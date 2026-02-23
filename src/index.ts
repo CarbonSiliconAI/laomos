@@ -11,6 +11,8 @@ import path from 'path';
 import { GraphManager } from './graph_manager';
 import { Server } from './server';
 import { ExternalAPIManager } from './external_api';
+import { ExecutionJournal } from './telemetry/journal';
+import { BudgetConstraint } from './telemetry/types';
 
 async function main() {
     console.log('--- Agent OS Simulation Starting ---');
@@ -62,14 +64,26 @@ async function main() {
     // 6. Start API Server
     const externalApiManager = new ExternalAPIManager(identityManager);
 
+    // 7. Initialize Execution Journal (telemetry)
+    const journal = new ExecutionJournal(fsManager.getSystemDir());
+
+    // Default budget constraint (conservative — can be overridden via /api/budget)
+    const defaultBudget: BudgetConstraint = {
+        maxCostUsdPerRun: 0.50,
+        maxLatencyMs: 30_000,
+        qualityFloor: 0.6,
+        preferredModels: [],
+        fallbackModels: ['local'],
+    };
+
     // Initialize Scheduler
     const scheduler = new AgentScheduler(fsManager.getSystemDir(), {
         modelRouter: router,
         externalApiManager: externalApiManager
-    });
+    }, journal, defaultBudget);
     await scheduler.init();
 
-    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools);
+    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, 3001, journal);
     server.start();
 
     console.log('\n--- Agent OS Simulation Logic Complete (Server Running) ---');

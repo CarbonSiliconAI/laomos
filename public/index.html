@@ -5,26 +5,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agent OS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --taskbar-height: 48px;
-            --window-border: 1px solid #30363d;
-            --window-bg: #161b22;
-            --header-bg: #21262d;
-            --text-color: #c9d1d9;
-            --accent-color: #58a6ff;
-            --selection-color: rgba(88, 166, 255, 0.3);
+            --bg: #E8EDF2;
+            --surface-1: #FFFFFF;
+            --surface-2: #F5F5F7;
+            --surface-3: #EBEBED;
+            --border: rgba(0,0,0,0.08);
+            --border-active: rgba(0,0,0,0.18);
+            --text-primary: #1D1D1F;
+            --text-secondary: rgba(0,0,0,0.5);
+            --text-tertiary: rgba(0,0,0,0.35);
+            --accent: #1D1D1F;
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --taskbar-height: 80px;
+            /* Legacy aliases kept for JS compatibility */
+            --bg-color: #E8EDF2;
+            --window-border: 1px solid rgba(0,0,0,0.08);
+            --window-bg: #FFFFFF;
+            --header-bg: #F5F5F7;
+            --text-color: #1D1D1F;
+            --accent-color: #1D1D1F;
+            --selection-color: rgba(0,122,255,0.12);
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background: url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2874&auto=format&fit=crop') no-repeat center center fixed;
-            background-size: cover;
-            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(145deg, #dce6f0 0%, #e4eaf3 30%, #d6e2ee 60%, #e0e9f4 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
             user-select: none;
@@ -44,86 +61,92 @@
         }
 
         .desktop-icon {
-            width: 80px;
-            height: 90px;
+            width: 72px;
+            height: 80px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             margin: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            transition: background 0.15s;
         }
 
         .desktop-icon:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.4);
         }
 
         .desktop-icon.selected {
             background-color: var(--selection-color);
-            border: 1px solid var(--accent-color);
+            border: 1px solid rgba(0,122,255,0.3);
         }
 
         .icon-img {
-            font-size: 40px;
+            font-size: 36px;
             margin-bottom: 5px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
         }
 
         .icon-label {
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 500;
             text-align: center;
-            color: white;
-            padding: 2px 4px;
-            border-radius: 3px;
+            color: #1D1D1F;
+            padding: 2px 5px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(4px);
+            text-shadow: none;
         }
 
         /* Window System */
         .window {
             position: absolute;
-            background-color: var(--window-bg);
-            border: var(--window-border);
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: #FFFFFF;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
             display: flex;
             flex-direction: column;
             min-width: 300px;
             min-height: 200px;
             overflow: hidden;
-            animation: openWindow 0.2s ease-out;
+            animation: openWindow 0.18s ease-out;
             resize: both;
         }
 
         @keyframes openWindow {
-            from {
-                transform: scale(0.95);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
+            from { transform: scale(0.96); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
         }
 
         .window-header {
-            height: 32px;
-            background-color: var(--header-bg);
-            border-bottom: var(--window-border);
+            height: 40px;
+            background-color: #F5F5F7;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 10px;
+            justify-content: center;
+            padding: 0 12px;
             cursor: default;
+            position: relative;
+            flex-shrink: 0;
         }
 
         .window-title {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
+            color: #1D1D1F;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
         }
 
         .window-controls {
+            position: absolute;
+            left: 12px;
             display: flex;
             gap: 8px;
         }
@@ -134,34 +157,40 @@
             border-radius: 50%;
             cursor: pointer;
             border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            line-height: 1;
+            color: transparent;
+            transition: color 0.15s;
         }
 
-        .close-btn {
-            background-color: #ff5f56;
-        }
+        .close-btn { background-color: #FF5F57; }
+        .min-btn   { background-color: #FEBC2E; }
+        .max-btn   { background-color: #28C840; }
 
-        .min-btn {
-            background-color: #ffbd2e;
-        }
+        .window-header:hover .close-btn,
+        .window-header:hover .min-btn,
+        .window-header:hover .max-btn { color: rgba(0,0,0,0.45); }
 
-        .max-btn {
-            background-color: #27c93f;
-        }
+        .close-btn::after { content: '×'; }
+        .min-btn::after   { content: '–'; }
+        .max-btn::after   { content: '+'; }
 
         .window-body {
             flex-grow: 1;
             position: relative;
             overflow: auto;
-            background-color: #1e1e1e;
+            background-color: #FFFFFF;
         }
 
         .window.active {
             z-index: 100;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
-            border-color: #555;
+            box-shadow: 0 16px 56px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1);
+            border-color: rgba(0,0,0,0.14);
         }
 
-        /* Specific App Styles */
         /* File Explorer */
         .file-explorer-container {
             display: flex;
@@ -170,8 +199,8 @@
 
         .fe-sidebar {
             width: 200px;
-            background-color: #252526;
-            border-right: 1px solid #3e3e42;
+            background-color: #F5F5F7;
+            border-right: 1px solid rgba(0,0,0,0.08);
             overflow-y: auto;
         }
 
@@ -184,6 +213,7 @@
             grid-auto-rows: 100px;
             gap: 10px;
             align-content: start;
+            background: #FFFFFF;
         }
 
         .fe-item {
@@ -192,12 +222,12 @@
             align-items: center;
             justify-content: center;
             padding: 5px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
         }
 
         .fe-item:hover {
-            background-color: #37373d;
+            background-color: rgba(0,0,0,0.05);
         }
 
         .fe-icon {
@@ -209,72 +239,120 @@
             font-size: 12px;
             text-align: center;
             word-break: break-word;
+            color: #1D1D1F;
         }
 
         /* Graph */
-        #graph-svg {
-            width: 100%;
-            height: 100%;
-        }
+        #graph-svg { width: 100%; height: 100%; }
 
-        /* Taskbar */
+        /* Taskbar / macOS Dock */
         #taskbar {
-            height: var(--taskbar-height);
-            background-color: rgba(22, 27, 34, 0.8);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            position: absolute;
-            bottom: 0;
-            width: 100%;
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            height: auto;
+            background: rgba(255,255,255,0.65);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+            padding: 8px 12px;
+            gap: 4px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
             z-index: 1000;
         }
 
         .taskbar-item {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s;
             position: relative;
         }
 
         .taskbar-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
+            background-color: rgba(0,0,0,0.07);
         }
 
         .taskbar-item.running::after {
             content: '';
             position: absolute;
-            bottom: -4px;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 4px;
             height: 4px;
             border-radius: 50%;
-            background-color: var(--text-color);
+            background-color: rgba(0,0,0,0.5);
         }
 
-        .taskbar-icon {
-            font-size: 24px;
+        /* Dock tooltip */
+        .taskbar-item::before {
+            content: attr(title);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30,30,30,0.88);
+            color: rgba(255,255,255,0.95);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
         }
+
+        .taskbar-item:hover::before { opacity: 1; }
+
+        .taskbar-icon {
+            font-size: 26px;
+            transition: transform 0.15s ease;
+            transform-origin: bottom center;
+        }
+
+        /* Global input overrides */
+        input, textarea, select {
+            font-family: 'Inter', -apple-system, sans-serif !important;
+            background: #FFFFFF !important;
+            color: #1D1D1F !important;
+            border: 1px solid rgba(0,0,0,0.12) !important;
+            border-radius: 6px !important;
+            outline: none !important;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: rgba(0,122,255,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1) !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28); }
 
         /* Tooltip */
         .tooltip {
             position: absolute;
-            background: #333;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #555;
+            background: rgba(30,30,30,0.88);
+            padding: 5px 8px;
+            border-radius: 6px;
             font-size: 12px;
             display: none;
             pointer-events: none;
             z-index: 2000;
+            color: rgba(255,255,255,0.95);
         }
     </style>
 </head>
@@ -307,7 +385,7 @@
     <!-- Editor Template -->
     <template id="tpl-editor">
         <textarea id="editor-textarea"
-            style="width:100%; height:100%; background:#1e1e1e; color:#d4d4d4; border:none; padding:10px; resize:none; font-family:monospace; outline:none;"></textarea>
+            style="width:100%; height:100%; background:#FAFAFA; color:#1D1D1F; border:none; padding:12px; resize:none; font-family:'JetBrains Mono', monospace; outline:none; font-size:13px; line-height:1.6;"></textarea>
     </template>
 
     <!-- Chat Template -->
@@ -316,15 +394,15 @@
             <!-- Chat View -->
             <div id="view-chat" style="display:flex; flex-direction:column; flex-grow:1; padding:10px;">
                 <select id="chat-model-select"
-                    style="padding:5px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    style="padding:5px; margin-bottom:10px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                     <option value="">Select Model...</option>
                 </select>
                 <div id="chat-messages"
-                    style="flex-grow:1; overflow-y:auto; border:1px solid #444; padding:10px; margin-bottom:10px; background:#161b22;">
+                    style="flex-grow:1; overflow-y:auto; border:1px solid rgba(0,0,0,0.08); padding:10px; margin-bottom:10px; background:#FAFAFA;">
                 </div>
                 <div style="display:flex; gap:5px;">
                     <input id="chat-input" type="text" placeholder="Type a message..."
-                        style="flex-grow:1; padding:5px; background:#2d2d2d; color:white; border:1px solid #444;">
+                        style="flex-grow:1; padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                     <button id="chat-send" style="padding:5px 10px; cursor:pointer;">Send</button>
                 </div>
             </div>
@@ -335,36 +413,36 @@
     <template id="tpl-model-manager">
         <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
             <div
-                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">System Hardware</h3>
-                <div id="sys-specs" style="font-size:13px; color:#c9d1d9;">Loading...</div>
+                style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">System Hardware</h3>
+                <div id="sys-specs" style="font-size:13px; color:#1D1D1F;">Loading...</div>
             </div>
 
             <div
-                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Recommended Models</h3>
-                <div id="rec-models" style="font-size:13px; color:#c9d1d9; margin-bottom:10px;">Loading...</div>
+                style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Recommended Models</h3>
+                <div id="rec-models" style="font-size:13px; color:#1D1D1F; margin-bottom:10px;">Loading...</div>
             </div>
 
             <div
-                style="padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px; flex-grow:1; display:flex; flex-direction:column; overflow:hidden;">
-                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Download Available Models
+                style="padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px; flex-grow:1; display:flex; flex-direction:column; overflow:hidden;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Download Available Models
                 </h3>
                 <div id="download-list" style="flex-grow:1; overflow-y:auto; padding-right:5px; margin-bottom:10px;">
                     <!-- List items generated by JS -->
-                    <div style="text-align:center; padding:20px; color:#8b949e;">Loading list...</div>
+                    <div style="text-align:center; padding:20px; color:rgba(0,0,0,0.5);">Loading list...</div>
                 </div>
 
                 <!-- Custom Pull Section -->
-                <div style="border-top:1px solid #30363d; padding-top:10px;">
-                    <div style="font-size:12px; color:#8b949e; margin-bottom:5px;">Or pull a custom model by tag:</div>
+                <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:10px;">
+                    <div style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:5px;">Or pull a custom model by tag:</div>
                     <div style="display:flex; gap:5px;">
                         <input id="custom-pull-input" type="text" placeholder="e.g. qwen2.5, deepseek-coder"
-                            style="flex-grow:1; padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                            style="flex-grow:1; padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">
                         <button id="btn-custom-pull"
-                            style="padding:5px 15px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px;">Pull</button>
+                            style="padding:5px 15px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Pull</button>
                     </div>
-                    <div id="custom-pull-status" style="font-size:12px; color:#8b949e; margin-top:5px;"></div>
+                    <div id="custom-pull-status" style="font-size:12px; color:rgba(0,0,0,0.5); margin-top:5px;"></div>
                 </div>
             </div>
         </div>
@@ -372,13 +450,13 @@
 
     <!-- Drawing App Template -->
     <template id="tpl-draw">
-        <div style="display:flex; flex-direction:row; height:100%; background:#0d1117; color:#c9d1d9;">
+        <div style="display:flex; flex-direction:row; height:100%; background:#F0F2F5; color:#1D1D1F;">
 
             <!-- Left Side: Drawing Area -->
             <div
-                style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d; position:relative; overflow:hidden;">
+                style="flex:1; display:flex; flex-direction:column; border-right:1px solid rgba(0,0,0,0.08); position:relative; overflow:hidden;">
                 <div
-                    style="padding:10px; background:#161b22; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center;">
+                    style="padding:10px; background:#FFFFFF; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; gap:5px;">
                         <button class="tool-btn active" data-tool="pen"
                             style="padding:5px 8px; font-size:12px; cursor:pointer;">✏️ Pen</button>
@@ -387,56 +465,56 @@
                         <button class="tool-btn" data-tool="clear"
                             style="padding:5px 8px; font-size:12px; cursor:pointer; color:#da3633;">❌ Clear</button>
                     </div>
-                    <div style="font-size:12px; color:#8b949e;">Canvas</div>
+                    <div style="font-size:12px; color:rgba(0,0,0,0.5);">Canvas</div>
                 </div>
 
-                <div style="flex-grow:1; position:relative; overflow:hidden; background:#0d1117;">
+                <div style="flex-grow:1; position:relative; overflow:hidden; background:#F0F2F5;">
                     <canvas id="draw-canvas" width="800" height="600"
-                        style="background:#0d1117; cursor:crosshair;"></canvas>
+                        style="background:#F0F2F5; cursor:crosshair;"></canvas>
                 </div>
 
-                <div style="padding:10px; background:#161b22; border-top:1px solid #30363d;">
+                <div style="padding:10px; background:#FFFFFF; border-top:1px solid rgba(0,0,0,0.08);">
                     <h4 style="margin:0 0 5px 0; font-size:12px;">AI Generation</h4>
                     <div style="display:flex; gap:5px; margin-bottom:5px;">
                         <select id="ai-provider"
-                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            style="padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                             <option value="openai">OpenAI</option>
                             <option value="google">Google (Sim)</option>
                             <option value="mock">Mock (Free)</option>
                         </select>
                         <select id="ai-type"
-                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            style="padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                             <option value="image">Image (DALL-E)</option>
                             <option value="graph">Graph (Mermaid)</option>
                         </select>
                     </div>
                     <div style="display:flex; gap:5px;">
                         <input id="ai-prompt" type="text" placeholder="Describe what to draw..."
-                            style="flex-grow:1; padding:4px; font-size:12px; background:#0d1117; color:white; border:1px solid #30363d;">
+                            style="flex-grow:1; padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                         <button id="btn-draw-gen"
-                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1f6feb; color:white; border:none; border-radius:3px;">Generate</button>
+                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Generate</button>
                     </div>
-                    <div id="draw-status" style="font-size:11px; color:#c9d1d9; margin-top:3px;"></div>
+                    <div id="draw-status" style="font-size:11px; color:#1D1D1F; margin-top:3px;"></div>
                 </div>
 
                 <!-- Mermaid container -->
                 <div id="mermaid-container"
-                    style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#0d1117; z-index:10; padding:20px; overflow:auto;">
+                    style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#F0F2F5; z-index:10; padding:20px; overflow:auto;">
                     <button id="close-mermaid"
-                        style="position:absolute; top:10px; right:10px; z-index:20; cursor:pointer; padding:5px 8px; background:#21262d; color:white; border:1px solid #30363d; border-radius:3px;">Close
+                        style="position:absolute; top:10px; right:10px; z-index:20; cursor:pointer; padding:5px 8px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">Close
                         View</button>
                     <div class="mermaid-target"></div>
                 </div>
             </div>
 
             <!-- Right Side: Task Flow Visualization -->
-            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+            <div style="width:280px; background:#FFFFFF; display:flex; flex-direction:column;">
                 <div
-                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); font-weight:bold; font-size:13px; color:#1D1D1F;">
                     AI Task Flow
                 </div>
                 <div id="draw-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
-                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                    <div style="color:rgba(0,0,0,0.38); font-size:12px; text-align:center; margin-top:20px;">
                         Execution trace will appear here...
                     </div>
                 </div>
@@ -447,25 +525,25 @@
 
     <!-- Video App Template -->
     <template id="tpl-video">
-        <div style="display:flex; flex-direction:row; height:100%; background:#000; color:#c9d1d9;">
+        <div style="display:flex; flex-direction:row; height:100%; background:#000; color:#FFFFFF;">
 
             <!-- Left Side: Video Player Area -->
-            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d;">
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid rgba(0,0,0,0.08);">
                 <div
                     style="flex-grow:1; position:relative; overflow:hidden; background:#000; display:flex; justify-content:center; align-items:center;">
                     <video id="video-player" controls style="max-width:100%; max-height:100%;"></video>
                     <div id="video-placeholder"
-                        style="color:#30363d; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                        style="color:rgba(0,0,0,0.16); display:flex; flex-direction:column; align-items:center; gap:10px;">
                         <div style="font-size:48px;">🎬</div>
                         <div>Enter a prompt to generate video</div>
                     </div>
                 </div>
 
-                <div style="padding:10px; background:#161b22; border-top:1px solid #30363d;">
+                <div style="padding:10px; background:#FFFFFF; border-top:1px solid rgba(0,0,0,0.08);">
                     <h4 style="margin:0 0 5px 0; font-size:12px;">AI Video Generation</h4>
                     <div style="display:flex; gap:5px; margin-bottom:5px;">
                         <select id="video-provider"
-                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            style="padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                             <option value="google">Google (Veo)</option>
                             <option value="openai">OpenAI (Sora)</option>
                             <option value="mock">Mock (Free)</option>
@@ -473,22 +551,22 @@
                     </div>
                     <div style="display:flex; gap:5px;">
                         <input id="video-prompt" type="text" placeholder="Describe the video..."
-                            style="flex-grow:1; padding:4px; font-size:12px; background:#0d1117; color:white; border:1px solid #30363d;">
+                            style="flex-grow:1; padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                         <button id="btn-video-gen"
-                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1f6feb; color:white; border:none; border-radius:3px;">Generate</button>
+                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Generate</button>
                     </div>
-                    <div id="video-status" style="font-size:11px; color:#c9d1d9; margin-top:3px;"></div>
+                    <div id="video-status" style="font-size:11px; color:#1D1D1F; margin-top:3px;"></div>
                 </div>
             </div>
 
             <!-- Right Side: Task Flow Visualization -->
-            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+            <div style="width:280px; background:#FFFFFF; display:flex; flex-direction:column;">
                 <div
-                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); font-weight:bold; font-size:13px; color:#1D1D1F;">
                     AI Task Flow
                 </div>
                 <div id="video-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
-                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                    <div style="color:rgba(0,0,0,0.38); font-size:12px; text-align:center; margin-top:20px;">
                         Execution trace will appear here...
                     </div>
                 </div>
@@ -499,33 +577,34 @@
 
     <style>
         .tool-btn {
-            background: #21262d;
-            color: white;
-            border: 1px solid #30363d;
-            border-radius: 3px;
+            background: rgba(0,0,0,0.06);
+            color: #1D1D1F;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
         }
 
         .tool-btn:hover {
-            background: #30363d;
+            background: rgba(0,0,0,0.1);
         }
 
         .tool-btn.active {
-            background: #1f6feb;
-            border-color: #1f6feb;
+            background: #1D1D1F;
+            color: #FFFFFF;
+            border-color: #1D1D1F;
         }
     </style>
 
     <!-- AI Flow template -->
     <template id="tpl-flow">
-        <div style="display:flex; height:100%; flex-direction:column; background:#0d1117; color:#c9d1d9;">
+        <div style="display:flex; height:100%; flex-direction:column; background:#F0F2F5; color:#1D1D1F;">
             <div
-                style="display:flex; padding:10px; border-bottom:1px solid #30363d; background:#161b22; align-items:center; justify-content:space-between;">
+                style="display:flex; padding:10px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FFFFFF; align-items:center; justify-content:space-between;">
                 <div>
                     <h3 style="margin:0; font-size:14px; font-weight:600;">AI Flow Builder</h3>
-                    <span style="font-size:12px; color:#8b949e;">Standard AI Agent Protocol Linker</span>
+                    <span style="font-size:12px; color:rgba(0,0,0,0.5);">Standard AI Agent Protocol Linker</span>
                 </div>
                 <button id="flow-run-btn"
-                    style="padding:6px 12px; background:#238636; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
+                    style="padding:6px 12px; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
                     ▶ Run Graph
                 </button>
             </div>
@@ -533,8 +612,8 @@
             <div style="display:flex; flex:1; overflow:hidden;">
                 <!-- Left Palette -->
                 <div
-                    style="width:200px; border-right:1px solid #30363d; background:#161b22; display:flex; flex-direction:column;">
-                    <div style="padding:10px; font-weight:600; border-bottom:1px solid #30363d; font-size:12px;">Tool
+                    style="width:200px; border-right:1px solid rgba(0,0,0,0.08); background:#FFFFFF; display:flex; flex-direction:column;">
+                    <div style="padding:10px; font-weight:600; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px;">Tool
                         Palette</div>
                     <div id="flow-palette"
                         style="flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:10px;">
@@ -545,7 +624,7 @@
                 <!-- Center Column: Canvas + Bottom Properties -->
                 <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
                     <!-- Main Canvas -->
-                    <div style="flex:1; position:relative; overflow:hidden; background:#0d1117;"
+                    <div style="flex:1; position:relative; overflow:hidden; background:#F0F2F5;"
                         id="flow-canvas-container">
                         <svg id="flow-edges"
                             style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></svg>
@@ -557,12 +636,12 @@
 
                     <!-- Bottom Properties Pane -->
                     <div id="flow-properties"
-                        style="height:250px; border-top:1px solid #30363d; background:#161b22; display:flex; flex-direction:column; display:none;">
+                        style="height:250px; border-top:1px solid rgba(0,0,0,0.08); background:#FFFFFF; display:flex; flex-direction:column; display:none;">
                         <div
-                            style="padding:10px; font-weight:600; border-bottom:1px solid #30363d; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                            style="padding:10px; font-weight:600; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; display:flex; justify-content:space-between; align-items:center;">
                             <span>Protocol Inspector</span>
                             <button id="flow-prop-close"
-                                style="background:none; border:none; color:#c9d1d9; cursor:pointer;">✕</button>
+                                style="background:none; border:none; color:#1D1D1F; cursor:pointer;">✕</button>
                         </div>
                         <div
                             style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:row; flex-wrap:wrap; gap:20px;">
@@ -571,10 +650,10 @@
                             <!-- Col 1: Metdata -->
                             <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">AGENT
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">AGENT
                                         CATEGORY</label>
                                     <select id="prop-category"
-                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;">
+                                        style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;">
                                         <option value="Conversational">Conversational</option>
                                         <option value="Generative">Generative</option>
                                         <option value="Vision">Vision</option>
@@ -584,16 +663,16 @@
                                     </select>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">VERTICAL
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">VERTICAL
                                         DOMAIN</label>
                                     <input id="prop-domain" type="text"
-                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;"
                                         placeholder="e.g., General, Art, Coding">
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">FUNCTIONALITY</label>
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">FUNCTIONALITY</label>
                                     <textarea id="prop-func"
-                                        style="width:100%; height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical;"
+                                        style="width:100%; height:40px; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px; resize:vertical;"
                                         placeholder="Describe what this agent does..."></textarea>
                                 </div>
                             </div>
@@ -601,37 +680,37 @@
                             <!-- Col 2: IO Format & Save -->
                             <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">INPUT FORMAT</label>
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">INPUT FORMAT</label>
                                     <input id="prop-in-format" type="text"
-                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;"
                                         placeholder="e.g., Text Prompt, Image URL">
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">OUTPUT FORMAT</label>
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">OUTPUT FORMAT</label>
                                     <input id="prop-out-format" type="text"
-                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;"
                                         placeholder="e.g., Markdown Text, PNG Buffer">
                                 </div>
                                 <button id="prop-save-btn"
-                                    style="margin-top:auto; padding:8px; background:#238636; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">Save
+                                    style="margin-top:auto; padding:8px; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Save
                                     Protocol Status</button>
                             </div>
 
                             <!-- Col 3: Values -->
                             <div style="flex:2; min-width:300px; display:flex; flex-direction:column; gap:8px;">
                                 <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-                                    <label style="font-size:11px; color:#ffbd2e; font-weight:600;">MANUAL INPUT VALUE
-                                        <span style="font-size:10px; color:#8b949e;">(Overrides incoming
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.6); font-weight:600;">MANUAL INPUT VALUE
+                                        <span style="font-size:10px; color:rgba(0,0,0,0.5);">(Overrides incoming
                                             connections)</span></label>
                                     <textarea id="prop-input-value"
-                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical; font-family:monospace;"
+                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px; resize:vertical; font-family:monospace;"
                                         placeholder="Start execution with this input..."></textarea>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-                                    <label style="font-size:11px; color:#27c93f; font-weight:600;">LAST OUTPUT
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">LAST OUTPUT
                                         VALUE</label>
                                     <textarea id="prop-output-value" readonly
-                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical; font-family:monospace;"
+                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px; resize:vertical; font-family:monospace;"
                                         placeholder="Output will appear here after run..."></textarea>
                                 </div>
                             </div>
@@ -641,13 +720,13 @@
 
                 <!-- Right Side: Task Flow Visualization -->
                 <div
-                    style="width:280px; background:#161b22; display:flex; flex-direction:column; border-left:1px solid #30363d;">
+                    style="width:280px; background:#FFFFFF; display:flex; flex-direction:column; border-left:1px solid rgba(0,0,0,0.08);">
                     <div
-                        style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                        style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); font-weight:bold; font-size:13px; color:#1D1D1F;">
                         AI Task Flow
                     </div>
                     <div id="flow-task-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
-                        <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                        <div style="color:rgba(0,0,0,0.38); font-size:12px; text-align:center; margin-top:20px;">
                             Execution trace will appear here...
                         </div>
                     </div>
@@ -658,19 +737,19 @@
 
     <!-- App Store Template -->
     <template id="tpl-store">
-        <div style="display:flex; flex-direction:column; height:100%; background:#0d1117; color:#c9d1d9;">
+        <div style="display:flex; flex-direction:column; height:100%; background:#F0F2F5; color:#1D1D1F;">
             <!-- Header -->
             <div
-                style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; justify-content:space-between; align-items:center;">
+                style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FFFFFF; display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <h3 style="margin:0; font-size:16px; font-weight:600;">Agent App Store</h3>
-                    <span style="font-size:12px; color:#8b949e;">Discover and install new AI Agents</span>
+                    <span style="font-size:12px; color:rgba(0,0,0,0.5);">Discover and install new AI Agents</span>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="store-search" placeholder="Search apps..."
-                        style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px; width:200px;">
+                        style="padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:13px; width:200px;">
                     <select id="store-category"
-                        style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px;">
+                        style="padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:13px;">
                         <option value="all">All Categories</option>
                         <option value="generative">Generative</option>
                         <option value="utility">Utility</option>
@@ -690,19 +769,19 @@
     <!-- Smart Search Template -->
     <!-- Smart Search Template -->
     <template id="tpl-search">
-        <div style="display:flex; flex-direction:row; height:100%; background:#0d1117; color:#c9d1d9;">
+        <div style="display:flex; flex-direction:row; height:100%; background:#F0F2F5; color:#1D1D1F;">
 
             <!-- Left Side: Search Area -->
-            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d;">
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid rgba(0,0,0,0.08);">
                 <div
-                    style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; align-items:center; gap: 10px;">
+                    style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FFFFFF; display:flex; align-items:center; gap: 10px;">
                     <input type="text" id="search-input" placeholder="Ask the system or search the web..."
-                        style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; font-size:14px; outline:none;">
+                        style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.08); background:#F0F2F5; color:#1D1D1F; font-size:14px; outline:none;">
                     <button id="search-btn"
-                        style="padding:8px 16px; background:#58a6ff; color:#0d1117; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">Search</button>
+                        style="padding:8px 16px; background:#1D1D1F; color:#FFFFFF; font-weight:600; border:none; border-radius:6px; cursor:pointer;">Search</button>
                 </div>
                 <div id="search-results" style="flex:1; padding:20px; overflow-y:auto; line-height:1.6;">
-                    <div style="color:#8b949e; text-align:center; margin-top:50px;">
+                    <div style="color:rgba(0,0,0,0.5); text-align:center; margin-top:50px;">
                         <div style="font-size:40px; margin-bottom:15px;">🔍</div>
                         Type a query to intelligently search your local OS memory or the external web.
                     </div>
@@ -710,13 +789,13 @@
             </div>
 
             <!-- Right Side: Task Flow Visualization -->
-            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+            <div style="width:280px; background:#FFFFFF; display:flex; flex-direction:column;">
                 <div
-                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); font-weight:bold; font-size:13px; color:#1D1D1F;">
                     AI Task Flow
                 </div>
                 <div id="search-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
-                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                    <div style="color:rgba(0,0,0,0.38); font-size:12px; text-align:center; margin-top:20px;">
                         Execution trace will appear here...
                     </div>
                 </div>
@@ -727,33 +806,33 @@
 
     <!-- Settings Template -->
     <template id="tpl-settings">
-        <div style="display:flex; flex-direction:column; height:100%; background:#0d1117; color:#c9d1d9;">
+        <div style="display:flex; flex-direction:column; height:100%; background:#F0F2F5; color:#1D1D1F;">
             <div
-                style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; align-items:center;">
+                style="padding:15px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FFFFFF; display:flex; align-items:center;">
                 <div>
                     <h3 style="margin:0; font-size:16px; font-weight:600;">System Settings</h3>
-                    <span style="font-size:12px; color:#8b949e;">Agent OS Configuration</span>
+                    <span style="font-size:12px; color:rgba(0,0,0,0.5);">Agent OS Configuration</span>
                 </div>
             </div>
 
             <div style="display:flex; flex:1; overflow:hidden;">
                 <!-- Left Nav -->
-                <div style="width:150px; border-right:1px solid #30363d; background:#161b22; padding:10px;">
+                <div style="width:150px; border-right:1px solid rgba(0,0,0,0.08); background:#FFFFFF; padding:10px;">
                     <div
-                        style="padding:8px 10px; background:#1f6feb; color:white; border-radius:4px; font-weight:600; font-size:13px; cursor:default;">
+                        style="padding:8px 10px; background:#1D1D1F; color:#FFFFFF; border-radius:6px; font-weight:600; font-size:13px; cursor:default;">
                         App Permissions
                     </div>
                 </div>
 
                 <!-- Main Content -->
                 <div style="flex:1; padding:20px; overflow-y:auto;">
-                    <h4 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:8px;">App Authorization
+                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">App Authorization
                         Tiers</h4>
-                    <p style="font-size:12px; color:#8b949e; margin-bottom:20px;">
+                    <p style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:20px;">
                         Control what access each app has on your system.<br>
-                        <strong style="color:#58a6ff;">Tier 1</strong>: Full Access (No interruptions)<br>
-                        <strong style="color:#ffbd2e;">Tier 2</strong>: Medium Risk (Ask before launch)<br>
-                        <strong style="color:#ff5f56;">Tier 3</strong>: Highly Restricted (Strict warning)
+                        <strong style="color:#007AFF;">Tier 1</strong>: Full Access (No interruptions)<br>
+                        <strong style="color:rgba(255,200,80,0.9);">Tier 2</strong>: Medium Risk (Ask before launch)<br>
+                        <strong style="color:rgba(255,100,80,0.9);">Tier 3</strong>: Highly Restricted (Strict warning)
                     </p>
 
                     <div id="settings-app-list" style="display:flex; flex-direction:column; gap:10px;">
@@ -808,34 +887,59 @@
     <template id="tpl-api-manager">
         <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
             <div
-                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Manage API Keys</h3>
+                style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Manage API Keys</h3>
                 <div id="api-key-list" style="margin-bottom:10px;">Loading...</div>
 
-                <div style="border-top:1px solid #30363d; padding-top:10px;">
+                <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:10px;">
                     <h4 style="margin:0 0 10px 0; font-size:13px;">Add New Key</h4>
                     <div style="display:flex; flex-direction:column; gap:8px;">
                         <input id="api-provider" type="text" placeholder="Provider (e.g. openai, google, grok)"
-                            style="padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                            style="padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">
                         <input id="api-key-value" type="password" placeholder="API Key (sk-...)"
-                            style="padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                            style="padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">
                         <button id="btn-save-key"
-                            style="padding:6px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px;">Save
+                            style="padding:6px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Save
                             Key</button>
                     </div>
-                    <div id="api-key-status" style="font-size:12px; color:#c9d1d9; margin-top:5px;"></div>
+                    <div id="api-key-status" style="font-size:12px; color:#1D1D1F; margin-top:5px;"></div>
                 </div>
             </div>
 
-            <div style="padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Get API Keys</h3>
+            <div style="padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Get API Keys</h3>
                 <div style="display:flex; flex-direction:column; gap:5px; font-size:13px;">
                     <a href="https://platform.openai.com/api-keys" target="_blank"
-                        style="color:#58a6ff; text-decoration:none;">Get OpenAI Key ↗</a>
+                        style="color:#007AFF; text-decoration:none;">Get OpenAI Key ↗</a>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank"
-                        style="color:#58a6ff; text-decoration:none;">Get Gemini (Google) Key ↗</a>
-                    <a href="https://console.x.ai/" target="_blank" style="color:#58a6ff; text-decoration:none;">Get
+                        style="color:#007AFF; text-decoration:none;">Get Gemini (Google) Key ↗</a>
+                    <a href="https://console.x.ai/" target="_blank" style="color:#007AFF; text-decoration:none;">Get
                         Grok (xAI) Key ↗</a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Execution History Template -->
+    <template id="tpl-history">
+        <div style="display:flex; flex-direction:column; height:100%; font-family:'Inter',-apple-system,sans-serif; background:#FFFFFF;">
+            <!-- Stats Bar -->
+            <div id="hist-stats" style="display:flex; gap:12px; padding:12px 16px; background:#F5F5F7; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(0,0,0,0.5); flex-shrink:0;">
+                <span>Loading stats...</span>
+            </div>
+            <!-- Toolbar -->
+            <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid rgba(0,0,0,0.08); flex-shrink:0; background:#FAFAFA;">
+                <button id="hist-refresh" style="padding:4px 12px; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; cursor:pointer; font-size:12px;">Refresh</button>
+                <button id="hist-diff-btn" style="padding:4px 12px; background:rgba(0,0,0,0.06); color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px; cursor:pointer; font-size:12px;" disabled>Diff Selected (0)</button>
+                <span style="margin-left:auto; font-size:11px; color:rgba(0,0,0,0.4);">Select 2 runs to compare</span>
+            </div>
+            <!-- Main content: list + detail -->
+            <div style="display:flex; flex:1; overflow:hidden;">
+                <!-- Run List -->
+                <div id="hist-list" style="width:280px; overflow-y:auto; border-right:1px solid rgba(0,0,0,0.08); flex-shrink:0;"></div>
+                <!-- Detail Panel -->
+                <div id="hist-detail" style="flex:1; overflow-y:auto; padding:16px;">
+                    <div style="display:flex; align-items:center; justify-content:center; height:100%; color:rgba(0,0,0,0.3); font-size:13px;">Select a run to view details</div>
                 </div>
             </div>
         </div>
@@ -947,9 +1051,23 @@
                 icon: '⚙️',
                 type: 'app',
             },
+            'history': {
+                id: 'history',
+                name: 'Exec History',
+                icon: '📊',
+                type: 'app',
+                action: () => openHistoryApp()
+            },
+            'eval': {
+                id: 'eval',
+                name: 'Evaluation',
+                icon: '🎯',
+                type: 'app',
+                action: () => openEvalApp()
+            },
         };
 
-        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'rag', 'search', 'settings'];
+        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'rag', 'search', 'history', 'eval', 'settings'];
 
         const availableModels = [
             { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: 'Meta\'s latest state-of-the-art model' },
@@ -1262,7 +1380,7 @@
                     <strong>RAM:</strong> ${specs.freeMem} free / ${specs.totalMem} total
                 `;
 
-                recModelsDiv.innerHTML = 'Based on your hardware, we recommend models from the list below marked with <span style="background:#1f6feb; color:white; padding:1px 4px; border-radius:3px; font-size:10px;">Recommended</span>';
+                recModelsDiv.innerHTML = 'Based on your hardware, we recommend models from the list below marked with <span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px;">Recommended</span>';
 
                 renderDownloadList(specs.recommendedModels);
             } catch (e) {
@@ -1283,17 +1401,17 @@
                 sorted.forEach(m => {
                     const isRec = recommended.some(r => m.id.includes(r) || r.includes(m.id));
                     const item = document.createElement('div');
-                    item.style.cssText = 'padding:10px; margin-bottom:5px; background:#21262d; border:1px solid #30363d; border-radius:4px; display:flex; justify-content:space-between; align-items:center;';
+                    item.style.cssText = 'padding:10px; margin-bottom:5px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px; display:flex; justify-content:space-between; align-items:center;';
 
                     item.innerHTML = `
                         <div style="flex-grow:1;">
-                            <div style="font-weight:600; font-size:13px; color:white;">
-                                ${m.name} <span style="font-weight:normal; color:#8b949e; font-size:11px;">(${m.size})</span>
-                                ${isRec ? '<span style="background:#1f6feb; color:white; padding:1px 4px; border-radius:3px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
+                            <div style="font-weight:600; font-size:13px; color:#1D1D1F;">
+                                ${m.name} <span style="font-weight:normal; color:rgba(0,0,0,0.5); font-size:11px;">(${m.size})</span>
+                                ${isRec ? '<span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
                             </div>
-                            <div style="font-size:11px; color:#8b949e;">${m.desc}</div>
+                            <div style="font-size:11px; color:rgba(0,0,0,0.5);">${m.desc}</div>
                         </div>
-                        <button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px; font-size:12px;">Pull</button>
+                        <button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-size:12px;">Pull</button>
                     `;
 
                     const btn = item.querySelector('.pull-btn');
@@ -1301,7 +1419,7 @@
                         const originalText = btn.textContent;
                         btn.textContent = 'Pulling...';
                         btn.disabled = true;
-                        btn.style.background = '#8b949e';
+                        btn.style.background = 'rgba(0,0,0,0.10)';
 
                         try {
                             const res = await fetch('/api/ollama/pull', {
@@ -1313,16 +1431,16 @@
 
                             if (data.status === 'success' || !data.error) {
                                 btn.textContent = 'Installed';
-                                btn.style.background = '#1f6feb';
+                                btn.style.background = 'rgba(0,0,0,0.10)';
                             } else {
                                 btn.textContent = 'Failed';
-                                btn.style.background = '#da3633';
-                                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = '#238636'; }, 3000);
+                                btn.style.background = 'rgba(255,80,80,0.15)';
+                                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = 'rgba(0,0,0,0.10)'; }, 3000);
                             }
                         } catch (e) {
                             btn.textContent = 'Error';
-                            btn.style.background = '#da3633';
-                            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = '#238636'; }, 3000);
+                            btn.style.background = 'rgba(255,80,80,0.15)';
+                            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = 'rgba(0,0,0,0.10)'; }, 3000);
                         }
                     };
 
@@ -1337,7 +1455,7 @@
 
                 customStatus.textContent = `Pulling ${model}...`;
                 customBtn.disabled = true;
-                customBtn.style.background = '#8b949e';
+                customBtn.style.background = 'rgba(0,0,0,0.10)';
 
                 try {
                     const res = await fetch('/api/ollama/pull', {
@@ -1348,7 +1466,7 @@
                     const data = await res.json();
 
                     if (data.status === 'success' || !data.error) {
-                        customStatus.innerHTML = `<span style="color:#27c93f">Success!</span>`;
+                        customStatus.innerHTML = `<span style="color:rgba(100,220,100,0.9)">Success!</span>`;
                         customBtn.textContent = 'Done';
                     } else {
                         customStatus.innerHTML = `<span style="color:#ff5f56">Failed</span>`;
@@ -1359,7 +1477,7 @@
                     setTimeout(() => {
                         customBtn.disabled = false;
                         customBtn.textContent = 'Pull';
-                        customBtn.style.background = '#238636';
+                        customBtn.style.background = 'rgba(0,0,0,0.10)';
                         customStatus.textContent = '';
                     }, 3000);
                 }
@@ -1379,32 +1497,32 @@
 
             async function loadKeys() {
                 try {
-                    listDiv.innerHTML = '<div style="color:#8b949e">Loading...</div>';
+                    listDiv.innerHTML = '<div style="color:rgba(0,0,0,0.5)">Loading...</div>';
                     const res = await fetch('/api/keys');
                     const keys = await res.json();
 
                     if (Object.keys(keys).length === 0) {
-                        listDiv.innerHTML = '<div style="color:#8b949e; font-style:italic;">No keys stored.</div>';
+                        listDiv.innerHTML = '<div style="color:rgba(0,0,0,0.5); font-style:italic;">No keys stored.</div>';
                         return;
                     }
 
                     listDiv.innerHTML = '';
                     Object.keys(keys).forEach(provider => {
                         const row = document.createElement('div');
-                        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#21262d; padding:8px; border-radius:4px; margin-bottom:5px; border:1px solid #30363d;';
+                        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(0,0,0,0.08);';
 
                         const keyVal = keys[provider];
                         const masked = keyVal.length > 8 ? keyVal.substring(0, 4) + '...' + keyVal.substring(keyVal.length - 4) : '****';
 
                         row.innerHTML = `
                             <div style="flex-grow:1">
-                                <div style="font-weight:600; font-size:13px; color:white;">${provider}</div>
-                                <div style="font-size:11px; color:#8b949e; font-family:monospace;">${masked}</div>
+                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">${provider}</div>
+                                <div style="font-size:11px; color:rgba(0,0,0,0.5); font-family:monospace;">${masked}</div>
                             </div>
                             <div style="display:flex; gap:5px; align-items:center;">
                                 <span class="verify-status" style="font-size:14px;"></span>
-                                <button class="verify-btn" style="padding:2px 8px; font-size:11px; color:white; background:#1f6feb; border:none; border-radius:3px; cursor:pointer;">Verify</button>
-                                <button class="del-btn" style="padding:2px 8px; font-size:11px; color:white; background:#da3633; border:none; border-radius:3px; cursor:pointer;">Delete</button>
+                                <button class="verify-btn" style="padding:2px 8px; font-size:11px; color:#1D1D1F; background:rgba(0,0,0,0.07); border:1px solid rgba(0,0,0,0.1); border-radius:6px; cursor:pointer;">Verify</button>
+                                <button class="del-btn" style="padding:2px 8px; font-size:11px; color:#CC2200; background:rgba(255,60,60,0.12); border:1px solid rgba(255,60,60,0.2); border-radius:6px; cursor:pointer;">Delete</button>
                             </div>
                         `;
 
@@ -1462,7 +1580,7 @@
                 const key = keyInput.value.trim();
 
                 if (!provider || !key) {
-                    statusDiv.innerHTML = '<span style="color:#ffbd2e">Provider and Key required</span>';
+                    statusDiv.innerHTML = '<span style="color:rgba(255,200,80,0.9)">Provider and Key required</span>';
                     return;
                 }
 
@@ -1477,7 +1595,7 @@
                     });
 
                     if (res.ok) {
-                        statusDiv.innerHTML = '<span style="color:#27c93f">Saved!</span>';
+                        statusDiv.innerHTML = '<span style="color:rgba(100,220,100,0.9)">Saved!</span>';
                         providerInput.value = '';
                         keyInput.value = '';
                         loadKeys();
@@ -1503,7 +1621,7 @@
             div.style.marginBottom = '10px';
             div.style.padding = '8px';
             div.style.borderRadius = '5px';
-            div.style.background = role === 'User' ? '#2b3137' : '#1f6feb20';
+            div.style.background = role === 'User' ? 'rgba(0,0,0,0.05)' : 'rgba(0,122,255,0.06)';
             div.innerHTML = `<strong>${role}:</strong> ${text}`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
@@ -1568,7 +1686,7 @@
                         d.fx = null; d.fy = null;
                     }));
 
-            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+            const colorScale = d3.scaleOrdinal(['#5E81F4','#56CFE1','#FF9F7F','#FFD166','#06D6A0','#EF476F','#118AB2','#8338EC','#FB5607','#3A86FF']);
 
             node.append("circle")
                 .attr("r", 15)
@@ -1647,7 +1765,7 @@
 
                 ctx.lineWidth = lineWidth;
                 ctx.lineCap = 'round';
-                ctx.strokeStyle = tool === 'eraser' ? '#0d1117' : color;
+                ctx.strokeStyle = tool === 'eraser' ? '#FFFFFF' : color;
 
                 ctx.lineTo(x, y);
                 ctx.stroke();
@@ -1707,40 +1825,40 @@
                             if (currentNodeCount === 0) flowContainer.innerHTML = '';
                             else {
                                 const connector = document.createElement('div');
-                                connector.style.cssText = 'width:2px; height:20px; background:#30363d; margin-left:14px;';
+                                connector.style.cssText = 'width:2px; height:20px; background:rgba(0,0,0,0.08); margin-left:14px;';
                                 flowContainer.appendChild(connector);
                             }
 
                             node = document.createElement('div');
                             node.dataset.step = event.step.replace(/\\s/g, '-');
                             node.style.cssText = `
-                                background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                                background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; padding: 10px;
                                 font-size: 12px; position:relative;
                             `;
                             flowContainer.appendChild(node);
                         }
 
-                        let dotColor = '#8b949e';
+                        let dotColor = 'rgba(0,0,0,0.3)';
                         let statusLabel = 'Pending';
-                        if (event.status === 'running') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
-                        else if (event.status === 'completed') { dotColor = '#238636'; statusLabel = 'Done'; }
-                        else if (event.status === 'error') { dotColor = '#f85149'; statusLabel = 'Error'; }
+                        if (event.status === 'running') { dotColor = 'rgba(255,200,80,0.9)'; statusLabel = 'Running...'; }
+                        else if (event.status === 'completed') { dotColor = 'rgba(100,220,100,0.9)'; statusLabel = 'Done'; }
+                        else if (event.status === 'error') { dotColor = 'rgba(255,100,80,0.9)'; statusLabel = 'Error'; }
 
                         let durationSpan = '';
                         if (event.durationMs !== undefined) {
-                            durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
+                            durationSpan = `<span style="color:rgba(0,0,0,0.38); font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
                         }
 
                         node.innerHTML = `
                             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
-                                    <strong style="color:#c9d1d9;">${event.step}</strong>
+                                    <strong style="color:#1D1D1F;">${event.step}</strong>
                                     ${durationSpan}
                                 </div>
                                 <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
                             </div>
-                            <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                            <div style="color:rgba(0,0,0,0.5); line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#FFFFFF; padding:5px; border-radius:6px;">${event.details || ''}</div>
                         `;
 
                         flowContainer.scrollTop = flowContainer.scrollHeight;
@@ -1843,40 +1961,40 @@
                             if (currentNodeCount === 0) flowContainer.innerHTML = '';
                             else {
                                 const connector = document.createElement('div');
-                                connector.style.cssText = 'width:2px; height:20px; background:#30363d; margin-left:14px;';
+                                connector.style.cssText = 'width:2px; height:20px; background:rgba(0,0,0,0.08); margin-left:14px;';
                                 flowContainer.appendChild(connector);
                             }
 
                             node = document.createElement('div');
                             node.dataset.step = event.step.replace(/\\s/g, '-');
                             node.style.cssText = `
-                                background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                                background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; padding: 10px;
                                 font-size: 12px; position:relative;
                             `;
                             flowContainer.appendChild(node);
                         }
 
-                        let dotColor = '#8b949e';
+                        let dotColor = 'rgba(0,0,0,0.3)';
                         let statusLabel = 'Pending';
-                        if (event.status === 'running') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
-                        else if (event.status === 'completed') { dotColor = '#238636'; statusLabel = 'Done'; }
-                        else if (event.status === 'error') { dotColor = '#f85149'; statusLabel = 'Error'; }
+                        if (event.status === 'running') { dotColor = 'rgba(255,200,80,0.9)'; statusLabel = 'Running...'; }
+                        else if (event.status === 'completed') { dotColor = 'rgba(100,220,100,0.9)'; statusLabel = 'Done'; }
+                        else if (event.status === 'error') { dotColor = 'rgba(255,100,80,0.9)'; statusLabel = 'Error'; }
 
                         let durationSpan = '';
                         if (event.durationMs !== undefined) {
-                            durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
+                            durationSpan = `<span style="color:rgba(0,0,0,0.38); font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
                         }
 
                         node.innerHTML = `
                             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
-                                    <strong style="color:#c9d1d9;">${event.step}</strong>
+                                    <strong style="color:#1D1D1F;">${event.step}</strong>
                                     ${durationSpan}
                                 </div>
                                 <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
                             </div>
-                            <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                            <div style="color:rgba(0,0,0,0.5); line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#FFFFFF; padding:5px; border-radius:6px;">${event.details || ''}</div>
                         `;
 
                         flowContainer.scrollTop = flowContainer.scrollHeight;
@@ -1953,7 +2071,7 @@
                 btn.disabled = true;
                 btn.textContent = 'Searching...';
 
-                results.innerHTML = `<div style="color:#58a6ff; text-align:center; margin-top:20px;">Evaluating ${query}...</div>`;
+                results.innerHTML = `<div style="color:#007AFF; text-align:center; margin-top:20px;">Evaluating ${query}...</div>`;
                 flowContainer.innerHTML = ''; // Clear previous flow
 
                 let currentNodeCount = 0;
@@ -1966,47 +2084,47 @@
                     // Render line connector if not first node
                     if (currentNodeCount > 0) {
                         const line = document.createElement('div');
-                        line.style.cssText = `width:2px; height:15px; background:#30363d; margin-left:14px;`;
+                        line.style.cssText = `width:2px; height:15px; background:rgba(0,0,0,0.08); margin-left:14px;`;
                         flowContainer.appendChild(line);
                     }
 
                     // Render Node
                     const node = document.createElement('div');
                     node.style.cssText = `
-                        background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                        background: #FFFFFF; border: 1px solid rgba(0,0,0,0.08); border-radius: 6px; padding: 10px;
                         font-size: 12px; position:relative;
                     `;
 
                     // Status Colors
-                    let dotColor = '#8b949e';
+                    let dotColor = 'rgba(0,0,0,0.3)';
                     let statusLabel = 'Pending';
                     if (event.status === 'running') {
-                        dotColor = '#ffbd2e';
+                        dotColor = 'rgba(255,200,80,0.9)';
                         statusLabel = 'Running...';
                     } else if (event.status === 'completed') {
-                        dotColor = '#238636';
+                        dotColor = 'rgba(100,220,100,0.9)';
                         statusLabel = 'Done';
                     } else if (event.status === 'error') {
-                        dotColor = '#f85149';
+                        dotColor = 'rgba(255,100,80,0.9)';
                         statusLabel = 'Error';
                     }
 
                     let durationSpan = '';
                     if (event.durationMs !== undefined) {
                         const seconds = (event.durationMs / 1000).toFixed(2);
-                        durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${seconds}s</span>`;
+                        durationSpan = `<span style="color:rgba(0,0,0,0.38); font-size:10px; margin-left:8px;">${seconds}s</span>`;
                     }
 
                     node.innerHTML = `
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
-                                <strong style="color:#c9d1d9;">${event.step}</strong>
+                                <strong style="color:#1D1D1F;">${event.step}</strong>
                                 ${durationSpan}
                             </div>
                             <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
                         </div>
-                        <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                        <div style="color:rgba(0,0,0,0.5); line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#FFFFFF; padding:5px; border-radius:6px;">${event.details || ''}</div>
                     `;
 
                     flowContainer.appendChild(node);
@@ -2018,13 +2136,13 @@
                     const data = JSON.parse(e.data);
 
                     const sourceIcon = data.source === 'local' ? '📁 Local Knowledge' : '🌐 Web Search';
-                    const sourceColor = data.source === 'local' ? '#238636' : '#58a6ff';
+                    const sourceColor = data.source === 'local' ? '#34C759' : '#007AFF';
 
                     results.innerHTML = `
-                        <div style="margin-bottom:15px; padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; display:inline-block; border:1px solid ${sourceColor}; color:${sourceColor};">
+                        <div style="margin-bottom:15px; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:bold; display:inline-block; border:1px solid ${sourceColor}; color:${sourceColor};">
                             ${sourceIcon}
                         </div>
-                        <div style="font-size:14px; white-space:pre-wrap; color:#c9d1d9;">${data.content}</div>
+                        <div style="font-size:14px; white-space:pre-wrap; color:#1D1D1F;">${data.content}</div>
                     `;
 
                     btn.disabled = false;
@@ -2096,6 +2214,144 @@
                 updateEdges();
             }, 50);
 
+            // ── Goal Selector + Budget Panel ──────────────────────────────────
+            const runBtn = win.querySelector('#flow-run-btn');
+            const runBtnParent = runBtn.parentElement;
+
+            // Insert Goal + Budget strip above the run button area
+            const goalBudgetStrip = document.createElement('div');
+            goalBudgetStrip.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid rgba(0,0,0,0.06);background:#FAFAFA;flex-wrap:wrap;';
+            goalBudgetStrip.innerHTML = `
+                <span style="font-size:11px;color:rgba(0,0,0,0.4);font-weight:600;">GOAL</span>
+                <select id="flow-goal-select" style="padding:3px 6px;border:1px solid rgba(0,0,0,0.1);border-radius:4px;font-size:11px;background:#FFF;color:#1D1D1F;max-width:160px;">
+                    <option value="">No Goal</option>
+                </select>
+                <button id="flow-goal-add" style="padding:2px 7px;background:transparent;border:1px solid rgba(0,0,0,0.15);border-radius:4px;cursor:pointer;font-size:11px;color:#1D1D1F;">＋</button>
+                <span id="flow-active-goal-badge" style="display:none;padding:2px 8px;background:#007AFF22;color:#007AFF;border-radius:4px;font-size:10px;font-weight:600;"></span>
+                <span style="margin-left:8px;font-size:11px;color:rgba(0,0,0,0.4);font-weight:600;">BUDGET</span>
+                <input id="flow-budget-cost" type="range" min="0.01" max="2.00" step="0.01" value="0.50" style="width:80px;accent-color:#1D1D1F;">
+                <span id="flow-budget-cost-label" style="font-size:11px;color:#1D1D1F;min-width:36px;">$0.50</span>
+                <select id="flow-budget-provider" style="padding:3px 6px;border:1px solid rgba(0,0,0,0.1);border-radius:4px;font-size:11px;background:#FFF;color:#1D1D1F;">
+                    <option value="">Auto</option>
+                    <option value="local">Local</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                </select>
+            `;
+
+            // Insert strip between header and main content (inside outer flex container)
+            const outerContainer = win.children[0]; // outer flex div from template
+            outerContainer.insertBefore(goalBudgetStrip, outerContainer.children[1]);
+
+            // Populate goal dropdown
+            async function refreshGoalSelect() {
+                const goalSelect = goalBudgetStrip.querySelector('#flow-goal-select');
+                try {
+                    const goals = await goalList();
+                    goalSelect.innerHTML = '<option value="">No Goal</option>' +
+                        goals.map(g => `<option value="${g.goal_id}">${g.description}</option>`).join('');
+                    // Re-select current active goal
+                    if (activeGoal) goalSelect.value = activeGoal.goal_id;
+                } catch(e) {}
+            }
+            refreshGoalSelect();
+
+            // On goal change
+            goalBudgetStrip.querySelector('#flow-goal-select').addEventListener('change', async (e) => {
+                const id = e.target.value;
+                const badge = goalBudgetStrip.querySelector('#flow-active-goal-badge');
+                if (id) {
+                    activeGoal = await goalGet(id);
+                    badge.style.display = 'inline';
+                    badge.textContent = activeGoal ? activeGoal.description : '';
+                } else {
+                    activeGoal = null;
+                    badge.style.display = 'none';
+                }
+            });
+
+            // Create goal modal
+            goalBudgetStrip.querySelector('#flow-goal-add').addEventListener('click', () => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                overlay.innerHTML = `
+                    <div style="background:#FFF;border-radius:12px;padding:20px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+                        <h3 style="margin:0 0 14px;font-size:14px;color:#1D1D1F;">Create Goal</h3>
+                        <div style="margin-bottom:10px;">
+                            <label style="font-size:11px;color:rgba(0,0,0,0.5);font-weight:600;">NAME</label>
+                            <input id="new-goal-name" placeholder="e.g., Keep costs low" style="width:100%;margin-top:4px;padding:6px;border:1px solid rgba(0,0,0,0.12);border-radius:6px;font-size:12px;box-sizing:border-box;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                            <div>
+                                <label style="font-size:11px;color:rgba(0,0,0,0.5);font-weight:600;">COST TARGET (USD)</label>
+                                <input id="new-goal-cost" type="number" value="0.10" min="0.001" step="0.01" style="width:100%;margin-top:4px;padding:6px;border:1px solid rgba(0,0,0,0.12);border-radius:6px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:rgba(0,0,0,0.5);font-weight:600;">LATENCY TARGET (ms)</label>
+                                <input id="new-goal-latency" type="number" value="10000" min="100" step="100" style="width:100%;margin-top:4px;padding:6px;border:1px solid rgba(0,0,0,0.12);border-radius:6px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;">
+                            <button id="new-goal-cancel" style="padding:6px 14px;background:transparent;border:1px solid rgba(0,0,0,0.15);border-radius:6px;cursor:pointer;font-size:12px;">Cancel</button>
+                            <button id="new-goal-save" style="padding:6px 14px;background:#1D1D1F;color:#FFF;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Save Goal</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                overlay.querySelector('#new-goal-cancel').onclick = () => document.body.removeChild(overlay);
+                overlay.querySelector('#new-goal-save').onclick = async () => {
+                    const name    = overlay.querySelector('#new-goal-name').value.trim() || 'Unnamed Goal';
+                    const costT   = parseFloat(overlay.querySelector('#new-goal-cost').value)    || 0.10;
+                    const latT    = parseFloat(overlay.querySelector('#new-goal-latency').value) || 10000;
+                    const goal = {
+                        goal_id: 'goal-' + Date.now(),
+                        description: name,
+                        success_criteria: [
+                            { dimension: 'task_completion', target: 1, floor: 0.5, weight: 0.4, evaluator: 'rule_based' },
+                            { dimension: 'cost_efficiency', target: costT, floor: 0.3, weight: 0.3, evaluator: 'rule_based' },
+                            { dimension: 'latency',         target: latT,  floor: 0.2, weight: 0.2, evaluator: 'rule_based' },
+                            { dimension: 'output_quality',  target: 1,     floor: 0.5, weight: 0.1, evaluator: 'mock_llm_judge' },
+                        ],
+                        created_at: Date.now(),
+                    };
+                    await goalSave(goal);
+                    document.body.removeChild(overlay);
+                    await refreshGoalSelect();
+                    goalBudgetStrip.querySelector('#flow-goal-select').value = goal.goal_id;
+                    activeGoal = goal;
+                    const badge = goalBudgetStrip.querySelector('#flow-active-goal-badge');
+                    badge.style.display = 'inline';
+                    badge.textContent = goal.description;
+                };
+            });
+
+            // Budget panel — cost slider
+            const costSlider = goalBudgetStrip.querySelector('#flow-budget-cost');
+            const costLabel  = goalBudgetStrip.querySelector('#flow-budget-cost-label');
+            const provSelect = goalBudgetStrip.querySelector('#flow-budget-provider');
+
+            // Restore from localStorage
+            try {
+                const saved = JSON.parse(localStorage.getItem('aos-budget') || '{}');
+                if (saved.maxCostUsdPerRun) { costSlider.value = saved.maxCostUsdPerRun; costLabel.textContent = '$' + parseFloat(saved.maxCostUsdPerRun).toFixed(2); }
+                if (saved.preferredModels?.[0]) provSelect.value = saved.preferredModels[0];
+            } catch(e) {}
+
+            async function pushBudget() {
+                const body = {
+                    maxCostUsdPerRun: parseFloat(costSlider.value),
+                    preferredModels: provSelect.value ? [provSelect.value] : [],
+                };
+                localStorage.setItem('aos-budget', JSON.stringify(body));
+                try { await fetch('/api/budget', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); } catch(e) {}
+            }
+
+            costSlider.addEventListener('input', () => {
+                costLabel.textContent = '$' + parseFloat(costSlider.value).toFixed(2);
+                pushBudget();
+            });
+            provSelect.addEventListener('change', pushBudget);
+
             // Palette definitions
             const tools = [
                 { type: 'chat', label: '💬 Ollama Chat', cat: 'Conversational', domain: 'General', func: 'Local LLM text generation', in: 'Text', out: 'Text' },
@@ -2123,7 +2379,7 @@
                 const item = document.createElement('div');
                 item.textContent = tool.label;
                 item.style.cssText = `
-                    background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                    background: #FFFFFF; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 10px;
                     cursor: grab; font-size: 13px; font-weight: 500; user-select: none;
                     display: flex; align-items: center; justify-content: flex-start;
                     z-index: 50; position: relative;
@@ -2174,7 +2430,7 @@
                 el.className = 'flow-node';
                 el.style.cssText = `
                     position: absolute; left: ${data.x}px; top: ${data.y}px;
-                    width: 200px; background: #21262d; border: 1px solid #30363d;
+                    width: 200px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.1);
                     border-radius: 6px; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
                     cursor: move; z-index: 10;
                     display: flex; flex-direction: column; align-items: stretch;
@@ -2184,13 +2440,13 @@
                 let contentHTML = `
                     <div style="font-size:13px; font-weight:600; margin-bottom:10px; pointer-events:none; text-align:center;">${data.label}</div>
                     <textarea class="node-input" placeholder="Enter input here..." style="
-                        width:100%; height:60px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; 
-                        border-radius:4px; font-size:11px; resize:none; margin-bottom:10px; 
+                        width:100%; height:60px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); 
+                        border-radius:6px; font-size:11px; resize:none; margin-bottom:10px; 
                         box-sizing:border-box; padding:4px; font-family:inherit;
                     ">${data.manualInput || ''}</textarea>
                     
                     <!-- Output Image Display (Hidden initially) -->
-                    <div class="node-image-output" style="display:none; width:100%; margin-bottom:10px; border-radius:4px; overflow:hidden;">
+                    <div class="node-image-output" style="display:none; width:100%; margin-bottom:10px; border-radius:6px; overflow:hidden;">
                         <img src="" style="width:100%; height:auto; display:block;" />
                     </div>
 
@@ -2199,13 +2455,13 @@
                         <!-- In Port -->
                         <div class="port-in" data-nodeid="${data.id}" style="
                             position:absolute; left:-16px; top:0; width:12px; height:12px; border-radius:50%;
-                            background:#58a6ff; border:2px solid #0d1117; cursor:crosshair;
+                            background:#007AFF; border:2px solid #FFFFFF; cursor:crosshair;
                         "></div>
                         
                         <!-- Out Port -->
                         <div class="port-out" data-nodeid="${data.id}" style="
                             position:absolute; right:-16px; top:0; width:12px; height:12px; border-radius:50%;
-                            background:#238636; border:2px solid #0d1117; cursor:crosshair;
+                            background:#34C759; border:2px solid #FFFFFF; cursor:crosshair;
                         "></div>
                     </div>
                 `;
@@ -2304,7 +2560,7 @@
                 activeSourcePort = { nodeId, type };
 
                 tempLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                tempLine.setAttribute('stroke', '#8b949e');
+                tempLine.setAttribute('stroke', 'rgba(0,0,0,0.3)');
                 tempLine.setAttribute('stroke-width', '2');
                 tempLine.setAttribute('fill', 'none');
                 tempLine.setAttribute('stroke-dasharray', '5,5');
@@ -2346,7 +2602,7 @@
 
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute('d', pathD);
-                    path.setAttribute('stroke', '#58a6ff');
+                    path.setAttribute('stroke', 'rgba(0,0,0,0.35)');
                     path.setAttribute('stroke-width', '3');
                     path.setAttribute('fill', 'none');
                     svgEdges.appendChild(path);
@@ -2364,8 +2620,8 @@
                 if (!node) return;
 
                 // Highlight UI
-                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = '#30363d');
-                document.getElementById(id).style.borderColor = '#58a6ff';
+                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = 'rgba(0,0,0,0.1)');
+                document.getElementById(id).style.borderColor = '#007AFF';
 
                 // Open pane
                 propertiesPane.style.display = 'flex';
@@ -2382,7 +2638,7 @@
             propCloseBtn.onclick = () => {
                 propertiesPane.style.display = 'none';
                 activeNodeId = null;
-                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = '#30363d');
+                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = 'rgba(0,0,0,0.1)');
             };
 
             propSaveBtn.onclick = () => {
@@ -2396,16 +2652,16 @@
                     node.out = content.querySelector('#prop-out-format').value;
 
                     propSaveBtn.textContent = 'Saved!';
-                    propSaveBtn.style.background = '#27c93f';
+                    propSaveBtn.style.background = 'rgba(100,220,100,0.3)';
                     setTimeout(() => {
                         propSaveBtn.textContent = 'Save Protocol Status';
-                        propSaveBtn.style.background = '#238636';
+                        propSaveBtn.style.background = 'rgba(0,0,0,0.10)';
                     }, 1500);
                 }
             };
 
             // --- Execution Logic ---
-            const runBtn = win.querySelector('#flow-run-btn');
+            // (runBtn already declared above in goal/budget strip setup)
             runBtn.onclick = async () => {
                 if (nodes.length === 0) return;
 
@@ -2425,63 +2681,131 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ nodes, edges })
                     });
-                    const { jobId } = await res.json();
+                    const { jobId, runId } = await res.json();
                     if (!jobId) throw new Error("Failed to start job.");
 
-                    // 2. Poll Status
-                    let polling = true;
+                    // 2. Set up structured telemetry trace panel
                     const flowTaskContainer = win.querySelector('#flow-task-container');
-                    flowTaskContainer.innerHTML = '';
+                    flowTaskContainer.innerHTML = `
+                        <div style="padding:6px 8px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FAFAFA; display:flex; align-items:center; gap:6px;">
+                            <input id="tele-node-filter" placeholder="Filter by node ID…"
+                                style="flex:1; padding:3px 7px; border:1px solid rgba(0,0,0,0.1); border-radius:4px; font-size:11px; background:#FFFFFF; color:#1D1D1F; outline:none;">
+                            <span id="tele-run-id" style="font-size:10px; color:rgba(0,0,0,0.3); font-family:monospace;">${runId ? runId.slice(0,8)+'…' : ''}</span>
+                        </div>
+                        <div id="tele-feed" style="padding:8px; overflow-y:auto; max-height:calc(100% - 36px);"></div>
+                    `;
+                    const feedEl = flowTaskContainer.querySelector('#tele-feed');
+                    const filterInput = flowTaskContainer.querySelector('#tele-node-filter');
 
+                    // Delegate expand/collapse JSON on click
+                    feedEl.addEventListener('click', e => {
+                        const header = e.target.closest('.tele-hdr');
+                        if (!header) return;
+                        const json = header.closest('.tele-ev').querySelector('.tele-json');
+                        json.style.display = json.style.display === 'none' ? '' : 'none';
+                    });
+
+                    // node_id → current DOM element (updated on start → end)
+                    const nodeRowMap = new Map();
+
+                    function renderTeleEv(ev) {
+                        const sc = { running: '#F59E0B', success: '#34C759', error: '#FF3B30' };
+                        const c = sc[ev.status] || '#888';
+                        const fmtMs = v => v > 0 ? (v >= 1000 ? (v/1000).toFixed(1)+'s' : Math.round(v)+'ms') : '';
+                        const fmtCost = v => v > 0 ? '$'+v.toFixed(5) : '';
+                        const icon = ev.status === 'success' ? '✓' : ev.status === 'error' ? '✗' : '…';
+                        const label = (ev.context && ev.context.label) ? ev.context.label.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').trim() : ev.node_id;
+                        const jsonStr = JSON.stringify(ev, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const cacheBadge = ev.context?.cache_hit
+                            ? '<span style="padding:1px 6px;background:#F59E0B22;color:#F59E0B;border-radius:3px;font-size:9px;font-weight:600;">⚡ CACHE</span>'
+                            : '';
+                        const reasonBadge = ev.context?.model_selected_reason
+                            ? `<span style="color:rgba(0,0,0,0.28);font-style:italic;font-size:9px;">${ev.context.model_selected_reason}</span>`
+                            : '';
+                        return `<div class="tele-ev" data-node-id="${ev.node_id}" style="margin-bottom:5px; border-radius:6px; border:1px solid rgba(0,0,0,0.08); border-left:3px solid ${c}; overflow:hidden; background:#FFFFFF; font-size:11px;">
+                            <div class="tele-hdr" style="display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; user-select:none;">
+                                <div style="width:6px;height:6px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+                                <span style="font-weight:600;color:#1D1D1F;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
+                                <span style="color:rgba(0,0,0,0.35);">${ev.tool}</span>
+                                ${ev.model ? `<span style="color:rgba(0,0,0,0.3);font-style:italic;">${ev.model}</span>` : ''}
+                                ${cacheBadge}
+                                ${reasonBadge}
+                                <span style="margin-left:auto;color:rgba(0,0,0,0.4);">${fmtMs(ev.latency_ms)}</span>
+                                ${fmtCost(ev.cost_usd) ? `<span style="color:rgba(0,0,0,0.4);">${fmtCost(ev.cost_usd)}</span>` : ''}
+                                <span style="color:${c};font-weight:600;">${icon}</span>
+                            </div>
+                            <pre class="tele-json" style="display:none;margin:0;padding:6px 8px;background:#F5F5F7;color:#1D1D1F;font-size:10px;white-space:pre-wrap;word-break:break-all;border-top:1px solid rgba(0,0,0,0.06);max-height:180px;overflow-y:auto;">${jsonStr}</pre>
+                        </div>`;
+                    }
+
+                    function applyFilter() {
+                        const q = (filterInput.value || '').trim().toLowerCase();
+                        feedEl.querySelectorAll('.tele-ev').forEach(el => {
+                            el.style.display = (!q || el.dataset.nodeId.toLowerCase().includes(q)) ? '' : 'none';
+                        });
+                    }
+                    filterInput.addEventListener('input', applyFilter);
+
+                    // 3. Subscribe to live SSE telemetry stream
+                    const collectedSteps = [];   // end events only → stored in journal
+                    let finalOutcome = 'failed';
+                    let teleEs = null;
+                    if (runId) {
+                        teleEs = new EventSource(`/api/telemetry/stream?runId=${encodeURIComponent(runId)}`);
+                        teleEs.onmessage = e => {
+                            const ev = JSON.parse(e.data);
+                            // Collect completed steps for the journal record
+                            if (ev.status !== 'running') collectedSteps.push(ev);
+                            const existing = nodeRowMap.get(ev.node_id);
+                            if (existing) {
+                                // In-place update (start → end for same node)
+                                existing.outerHTML = renderTeleEv(ev);
+                                // Re-register by querying the updated element
+                                const updated = feedEl.querySelector(`.tele-ev[data-node-id="${ev.node_id}"]`);
+                                if (updated) nodeRowMap.set(ev.node_id, updated);
+                            } else {
+                                const wrapper = document.createElement('div');
+                                wrapper.innerHTML = renderTeleEv(ev);
+                                const el = wrapper.firstElementChild;
+                                const q = (filterInput.value || '').trim().toLowerCase();
+                                if (q && !ev.node_id.toLowerCase().includes(q)) el.style.display = 'none';
+                                feedEl.appendChild(el);
+                                nodeRowMap.set(ev.node_id, el);
+                            }
+                        };
+                        teleEs.onerror = () => teleEs.close();
+                    }
+
+                    // 4. Poll for canvas node highlighting only (no trace block rendering)
+                    let polling = true;
                     while (polling) {
                         const statusRes = await fetch(`/api/kernel/status/${jobId}`);
                         const jobState = await statusRes.json();
 
-                        // Update UI for each task
                         for (const taskId in jobState.tasks) {
                             const task = jobState.tasks[taskId];
                             const currEl = document.getElementById(taskId);
                             if (!currEl) continue;
 
-                            const node = nodes.find(n => n.id === taskId);
-                            if (!node) continue;
-
-                            // -- Task Trace UI Update --
-                            let traceEl = flowTaskContainer.querySelector(`#task-trace-${taskId}`);
-                            if (!traceEl) {
-                                traceEl = document.createElement('div');
-                                traceEl.id = `task-trace-${taskId}`;
-                                traceEl.style.cssText = 'margin-bottom:10px; padding:10px; background:#0d1117; border-radius:6px; border:1px solid #30363d; font-size:12px; position:relative;';
-                                flowTaskContainer.appendChild(traceEl);
+                            // Canvas node glow
+                            if (task.status === 'WAITING' || task.status === 'RUNNING') {
+                                currEl.style.boxShadow = '0 0 12px rgba(255,200,80,0.5)';
+                                currEl.style.borderColor = 'rgba(255,200,80,0.8)';
+                            } else if (task.status === 'DONE') {
+                                currEl.style.boxShadow = '0 0 12px rgba(100,220,100,0.4)';
+                                currEl.style.borderColor = 'rgba(100,220,100,0.7)';
+                            } else if (task.status === 'ERROR') {
+                                currEl.style.boxShadow = '0 0 12px rgba(255,100,80,0.4)';
+                                currEl.style.borderColor = 'rgba(255,100,80,0.7)';
+                            } else {
+                                currEl.style.boxShadow = 'none';
+                                currEl.style.borderColor = 'rgba(0,0,0,0.08)';
                             }
 
-                            let dotColor = '#8b949e';
-                            let statusLabel = 'Pending';
-                            if (task.status === 'RUNNING') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
-                            else if (task.status === 'DONE') { dotColor = '#238636'; statusLabel = 'Done'; }
-                            else if (task.status === 'ERROR') { dotColor = '#f85149'; statusLabel = 'Error'; }
-
-                            // Check if output is image url to show nicely instead of long raw HTML string
-                            let outSnippet = task.output || '';
-                            if (outSnippet.startsWith('http') || outSnippet.startsWith('/api/')) outSnippet = '[Image URL Generated]';
-                            if (outSnippet.length > 200) outSnippet = outSnippet.substring(0, 200) + '...';
-
-                            traceEl.innerHTML = `
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
-                                        <strong style="color:#c9d1d9;">${node.label.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDC00-\uDFFF])/g, '')}</strong>
-                                    </div>
-                                    <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
-                                </div>
-                                ${outSnippet ? `<div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto; overflow-wrap:anywhere;">${outSnippet}</div>` : ''}
-                            `;
-                            traceEl.style.borderColor = dotColor;
-
+                            // Update node output + image preview
+                            const node = nodes.find(n => n.id === taskId);
                             if (node && task.output) {
                                 node.lastOutput = task.output;
-
-                                // Show image on node if output is a URL
                                 if (task.output.startsWith('http') || task.output.startsWith('/api/')) {
                                     const imgContainer = currEl.querySelector('.node-image-output');
                                     const img = imgContainer?.querySelector('img');
@@ -2490,36 +2814,41 @@
                                         imgContainer.style.display = 'block';
                                     }
                                 }
-                            }
-
-                            if (task.status === 'WAITING' || task.status === 'RUNNING') {
-                                currEl.style.boxShadow = '0 0 10px #ffbd2e'; // Yellow
-                                currEl.style.borderColor = '#ffbd2e';
-                            } else if (task.status === 'DONE') {
-                                currEl.style.boxShadow = '0 0 10px #238636'; // Green
-                                currEl.style.borderColor = '#238636';
-                            } else if (task.status === 'ERROR') {
-                                currEl.style.boxShadow = '0 0 10px #ff5f56'; // Red
-                                currEl.style.borderColor = '#ff5f56';
-                            } else {
-                                // READY
-                                currEl.style.boxShadow = 'none';
-                                currEl.style.borderColor = '#30363d';
-                            }
-
-                            // Update properties pane if active
-                            if (activeNodeId === taskId && node) {
-                                propertiesPane.querySelector('#prop-output-value').value = node.lastOutput || '';
+                                if (activeNodeId === taskId) {
+                                    propertiesPane.querySelector('#prop-output-value').value = node.lastOutput || '';
+                                }
                             }
                         }
 
                         if (jobState.status === 'COMPLETED' || jobState.status === 'FAILED') {
+                            finalOutcome = jobState.status === 'COMPLETED' ? 'completed' : 'failed';
                             polling = false;
+                            if (teleEs) teleEs.close();
                         } else {
-                            // Wait 500ms before next poll
                             await new Promise(r => setTimeout(r, 500));
                         }
                     }
+
+                    // Persist ExecutionRecord to append-only IndexedDB journal
+                    const _totalCost    = collectedSteps.reduce((s, ev) => s + (ev.cost_usd  || 0), 0);
+                    const _totalLatency = collectedSteps.reduce((s, ev) => s + (ev.latency_ms || 0), 0);
+                    const _record = {
+                        run_id:           runId || ('local-' + jobId),
+                        flow_id:          jobId,
+                        flow_version:     _flowFingerprint(nodes),
+                        triggered_by:     'user',
+                        goal_id:          activeGoal ? activeGoal.goal_id : null,
+                        steps:            collectedSteps,
+                        total_cost_usd:   _totalCost,
+                        total_latency_ms: _totalLatency,
+                        outcome:          finalOutcome,
+                        snapshot:         { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
+                        timestamp:        Date.now(),
+                        status:           finalOutcome === 'completed' ? 'completed' : 'failed',
+                    };
+                    const _outcomeScore = activeGoal ? computeOutcomeScoreClient(_record, activeGoal) : null;
+                    journalAppend({ ..._record, outcome_score: _outcomeScore });
+
                 } catch (err) {
                     console.error('Kernel execution error:', err);
                     alert("A Kernel-level error occurred during execution.");
@@ -2716,7 +3045,7 @@
                     const isInstalled = installedStoreApps.includes(app.id);
                     const card = document.createElement('div');
                     card.style.cssText = `
-                        background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 15px;
+                        background: #FFFFFF; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 15px;
                         display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s, box-shadow 0.2s;
                     `;
                     card.onmouseenter = () => { card.style.transform = 'translateY(-2px)'; card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)'; };
@@ -2724,16 +3053,16 @@
 
                     card.innerHTML = `
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="font-size:32px; background:#161b22; width:50px; height:50px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid #30363d;">${app.icon}</div>
+                            <div style="font-size:32px; background:#FFFFFF; width:50px; height:50px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid rgba(0,0,0,0.08);">${app.icon}</div>
                             <div>
                                 <div style="font-weight:600; font-size:14px;">${app.name}</div>
-                                <div style="font-size:11px; color:#8b949e;">by ${app.publisher}</div>
+                                <div style="font-size:11px; color:rgba(0,0,0,0.5);">by ${app.publisher}</div>
                             </div>
                         </div>
-                        <div style="font-size:12px; color:#c9d1d9; flex:1; line-height:1.4;">${app.desc}</div>
+                        <div style="font-size:12px; color:#1D1D1F; flex:1; line-height:1.4;">${app.desc}</div>
                         <button class="install-btn" style="
-                            padding:8px; border-radius:4px; font-weight:600; font-size:12px; cursor:pointer; border:none;
-                            ${isInstalled ? 'background:#30363d; color:#8b949e;' : 'background:#238636; color:white;'}
+                            padding:8px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer; border:none;
+                            ${isInstalled ? 'background:rgba(0,0,0,0.08); color:rgba(0,0,0,0.5);' : 'background:#1D1D1F; color:#FFFFFF;'}
                         ">${isInstalled ? 'Installed' : 'Install'}</button>
                     `;
 
@@ -2746,7 +3075,7 @@
                 });
 
                 if (filtered.length === 0) {
-                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 40px; color:#8b949e;">No apps found matching your criteria.</div>';
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 40px; color:rgba(0,0,0,0.5);">No apps found matching your criteria.</div>';
                 }
             }
 
@@ -2758,7 +3087,7 @@
 
         function installApp(storeApp, btnElement) {
             btnElement.textContent = 'Installing...';
-            btnElement.style.background = '#1f6feb';
+            btnElement.style.background = 'rgba(0,0,0,0.12)';
 
             setTimeout(() => {
                 if (!installedStoreApps.includes(storeApp.id)) {
@@ -2771,8 +3100,8 @@
                 }
 
                 btnElement.textContent = 'Installed';
-                btnElement.style.background = '#30363d';
-                btnElement.style.color = '#8b949e';
+                btnElement.style.background = 'rgba(0,0,0,0.05)';
+                btnElement.style.color = 'rgba(0,0,0,0.4)';
                 btnElement.onclick = null;
             }, 800);
         }
@@ -2805,17 +3134,17 @@
         function showOSDialog(title, message, type, onConfirm) {
             const win = createWindow(title, 'dialog', 400, 200);
 
-            let color = type === 'warning' ? '#ffbd2e' : type === 'danger' ? '#ff5f56' : '#58a6ff';
+            let color = type === 'warning' ? '#F59E0B' : type === 'danger' ? '#EF4444' : '#007AFF';
 
             win.innerHTML = `
                 <div style="padding: 20px; display:flex; flex-direction:column; height:100%; box-sizing:border-box;">
                     <div style="display:flex; gap:15px; align-items:start;">
                         <span style="font-size:30px;">⚠️</span>
-                        <div style="font-size:14px; line-height:1.5; color:#c9d1d9;">${message}</div>
+                        <div style="font-size:14px; line-height:1.5; color:#1D1D1F;">${message}</div>
                     </div>
                     <div style="margin-top:auto; display:flex; justify-content:flex-end; gap:10px;">
-                        <button id="dialog-deny" style="padding:8px 15px; background:#21262d; border:1px solid #30363d; color:#c9d1d9; border-radius:4px; cursor:pointer;">Deny</button>
-                        <button id="dialog-allow" style="padding:8px 15px; background:${color}; color:${type === 'warning' ? 'black' : 'white'}; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Allow</button>
+                        <button id="dialog-deny" style="padding:8px 15px; background:#F5F5F7; border:1px solid rgba(0,0,0,0.08); color:#1D1D1F; border-radius:6px; cursor:pointer;">Deny</button>
+                        <button id="dialog-allow" style="padding:8px 15px; background:${color}; color:${type === 'warning' ? 'black' : 'white'}; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Allow</button>
                     </div>
                 </div>
             `;
@@ -2881,7 +3210,7 @@
                     const row = document.createElement('div');
                     row.style.cssText = `
                         display:flex; align-items:center; justify-content:space-between; 
-                        padding:12px; background:#21262d; border:1px solid #30363d; border-radius:6px;
+                        padding:12px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;
                     `;
 
                     row.innerHTML = `
@@ -2889,7 +3218,7 @@
                             <span style="font-size:20px;">${app.icon}</span>
                             <span style="font-weight:600; font-size:13px;">${app.name}</span>
                         </div>
-                        <select class="tier-select" data-appid="${appId}" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px; width:150px;">
+                        <select class="tier-select" data-appid="${appId}" style="padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:13px; width:150px;">
                             <option value="1" ${currentTier === '1' ? 'selected' : ''}>Tier 1 (Full)</option>
                             <option value="2" ${currentTier === '2' ? 'selected' : ''}>Tier 2 (Medium)</option>
                             <option value="3" ${currentTier === '3' ? 'selected' : ''}>Tier 3 (Strict)</option>
@@ -2907,6 +3236,44 @@
             }
 
             renderAppPerms();
+
+            // ── Semantic Cache section ────────────────────────────────────────
+            const cacheSection = document.createElement('div');
+            cacheSection.style.cssText = 'margin-top:16px;padding:14px;background:#FFF;border:1px solid rgba(0,0,0,0.08);border-radius:8px;';
+            cacheSection.innerHTML = `
+                <div style="font-size:13px;font-weight:600;color:#1D1D1F;margin-bottom:10px;">Semantic Cache</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <span style="font-size:12px;color:#1D1D1F;">Enable cache</span>
+                    <input type="checkbox" id="cache-enabled-toggle" style="accent-color:#1D1D1F;width:16px;height:16px;">
+                </div>
+                <div id="cache-stats-display" style="font-size:11px;color:rgba(0,0,0,0.5);margin-bottom:10px;">Loading…</div>
+                <button id="cache-clear-btn" style="padding:5px 12px;background:transparent;border:1px solid rgba(255,59,48,0.4);color:#FF3B30;border-radius:6px;cursor:pointer;font-size:11px;">Clear Cache</button>
+            `;
+            listContainer.parentElement.appendChild(cacheSection);
+
+            // Restore toggle
+            const cacheToggle = cacheSection.querySelector('#cache-enabled-toggle');
+            cacheToggle.checked = localStorage.getItem('aos-cache-enabled') !== 'false';
+            cacheToggle.addEventListener('change', () => {
+                localStorage.setItem('aos-cache-enabled', cacheToggle.checked ? 'true' : 'false');
+            });
+
+            // Load cache stats
+            async function loadCacheStats() {
+                try {
+                    const stats = await fetch('/api/cache/stats').then(r => r.json());
+                    cacheSection.querySelector('#cache-stats-display').innerHTML =
+                        `Entries: <b>${stats.total_entries}</b> &nbsp;·&nbsp; Hits: <b>${stats.total_hits}</b> &nbsp;·&nbsp; Hit Rate: <b>${stats.hit_rate_pct}%</b>`;
+                } catch(e) {
+                    cacheSection.querySelector('#cache-stats-display').textContent = 'Stats unavailable';
+                }
+            }
+            loadCacheStats();
+
+            cacheSection.querySelector('#cache-clear-btn').addEventListener('click', async () => {
+                await fetch('/api/cache', { method: 'DELETE' });
+                loadCacheStats();
+            });
         }
 
         // --- Init ---
@@ -2922,7 +3289,877 @@
             }
         });
 
+        // ── Append-only Execution Journal (IndexedDB) ─────────────────────────
+        // ExecutionRecord shape stored in IDB:
+        // { run_id, flow_id, flow_version, triggered_by, goal_id,
+        //   steps: ExecutionEvent[], total_cost_usd, total_latency_ms,
+        //   outcome, snapshot: { nodes, edges }, timestamp }
+
+        const _IDB_NAME = 'aos-journal';
+        const _IDB_VER  = 2;
+
+        function _openJournalDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(_IDB_NAME, _IDB_VER);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('runs')) {
+                        const store = db.createObjectStore('runs', { keyPath: 'run_id' });
+                        store.createIndex('by_timestamp', 'timestamp', { unique: false });
+                        store.createIndex('by_flow_id',   'flow_id',   { unique: false });
+                    }
+                    // Phase 2: goals store (only create if upgrading from < v2)
+                    if (e.oldVersion < 2 && !db.objectStoreNames.contains('goals')) {
+                        const gs = db.createObjectStore('goals', { keyPath: 'goal_id' });
+                        gs.createIndex('by_created_at', 'created_at', { unique: false });
+                    }
+                };
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror   = e => reject(e.target.error);
+            });
+        }
+
+        async function goalSave(goal) {
+            const db = await _openJournalDB();
+            return new Promise((resolve, reject) => {
+                const req = db.transaction('goals', 'readwrite').objectStore('goals').put(goal);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+
+        async function goalList() {
+            const db = await _openJournalDB();
+            return new Promise((resolve, reject) => {
+                const goals = [];
+                const req   = db.transaction('goals', 'readonly')
+                                .objectStore('goals')
+                                .index('by_created_at')
+                                .openCursor(null, 'prev');
+                req.onsuccess = e => {
+                    const cursor = e.target.result;
+                    if (cursor) { goals.push(cursor.value); cursor.continue(); }
+                    else resolve(goals);
+                };
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function goalGet(goalId) {
+            const db = await _openJournalDB();
+            return new Promise((resolve, reject) => {
+                const req = db.transaction('goals', 'readonly').objectStore('goals').get(goalId);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+
+        // Append-only: IDBObjectStore.add() throws ConstraintError on duplicate key
+        async function journalAppend(record) {
+            try {
+                const db = await _openJournalDB();
+                await new Promise((resolve, reject) => {
+                    const req = db.transaction('runs', 'readwrite').objectStore('runs').add(record);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror   = () => reject(req.error);
+                });
+                console.log(`[Journal] Appended run ${record.run_id}`);
+            } catch (e) {
+                if (e.name === 'ConstraintError') {
+                    console.warn('[Journal] Duplicate run_id, skipping:', record.run_id);
+                } else {
+                    console.error('[Journal] Append failed:', e);
+                }
+            }
+        }
+
+        async function journalListRuns(limit = 200) {
+            const db   = await _openJournalDB();
+            return new Promise((resolve, reject) => {
+                const runs = [];
+                const req  = db.transaction('runs', 'readonly')
+                               .objectStore('runs')
+                               .index('by_timestamp')
+                               .openCursor(null, 'prev');  // newest first
+                req.onsuccess = e => {
+                    const cursor = e.target.result;
+                    if (cursor && runs.length < limit) { runs.push(cursor.value); cursor.continue(); }
+                    else resolve(runs);
+                };
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function journalGetRun(runId) {
+            const db = await _openJournalDB();
+            return new Promise((resolve, reject) => {
+                const req = db.transaction('runs', 'readonly').objectStore('runs').get(runId);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+
+        // ── Phase 2: Active goal (set by Goal Selector in Flow App) ──────────
+        let activeGoal = null;  // Goal | null
+
+        // ── Client-side outcome scorer (mirrors evaluator.ts) ─────────────────
+        function mulberry32(seed) {
+            return function() {
+                seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        function computeOutcomeScoreClient(record, goal) {
+            const scoresByDimension = {};
+            const failReasons = [];
+            let weightedSum = 0, totalWeight = 0;
+
+            for (const criteria of goal.success_criteria) {
+                let score = 0;
+                switch (criteria.dimension) {
+                    case 'task_completion':
+                        score = record.outcome === 'completed' ? 1.0 : 0.0;
+                        break;
+                    case 'cost_efficiency':
+                        score = Math.max(0, Math.min(1, 1 - (record.total_cost_usd || 0) / criteria.target));
+                        break;
+                    case 'latency':
+                        score = Math.max(0, Math.min(1, 1 - (record.total_latency_ms || 0) / criteria.target));
+                        break;
+                    case 'output_quality':
+                        if (criteria.evaluator === 'mock_llm_judge') {
+                            const seed = parseInt((record.run_id || '').replace(/-/g, '').slice(0, 8), 16) || 42;
+                            const rng = mulberry32(seed);
+                            score = (seed % 30 + 70) / 100;
+                        } else {
+                            score = record.outcome === 'completed' ? 0.8 : 0.2;
+                        }
+                        break;
+                    default:
+                        score = 0;
+                }
+                scoresByDimension[criteria.dimension] = score;
+                weightedSum += score * criteria.weight;
+                totalWeight += criteria.weight;
+                if (score < criteria.floor) {
+                    failReasons.push(`${criteria.dimension} score ${score.toFixed(2)} below floor ${criteria.floor}`);
+                }
+            }
+
+            const finalScore = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;
+            return {
+                run_id: record.run_id,
+                goal_id: goal.goal_id,
+                scoresByDimension,
+                finalScore,
+                passed: failReasons.length === 0,
+                failReasons,
+            };
+        }
+
+        function _flowFingerprint(nodes) {
+            // Stable fingerprint: sorted node id:type pairs
+            let h = 0;
+            const s = JSON.stringify(nodes.map(n => n.id + ':' + n.type).sort());
+            for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+            return (h >>> 0).toString(16).padStart(8, '0');
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         initDesktop();
+
+        // --- Execution History App ---
+        function openHistoryApp() {
+            const body = createWindow('Run Journal', 'history', 940, 600);
+            body.innerHTML = document.getElementById('tpl-history').innerHTML;
+
+            const diffBtn = body.querySelector('#hist-diff-btn');
+            let selectedRunIds = [];
+
+            function updateDiffBtn() {
+                diffBtn.textContent = `Diff Selected (${selectedRunIds.length})`;
+                diffBtn.disabled = selectedRunIds.length !== 2;
+                diffBtn.style.background = selectedRunIds.length === 2 ? '#1D1D1F' : 'rgba(0,0,0,0.06)';
+                diffBtn.style.color = selectedRunIds.length === 2 ? '#FFFFFF' : '#1D1D1F';
+            }
+
+            function fmtCost(v) {
+                if (!v || v === 0) return '$0.00';
+                if (v < 0.001) return `$${(v * 1000).toFixed(4)}m`;
+                return `$${v.toFixed(4)}`;
+            }
+            function fmtMs(v) {
+                if (!v) return '—';
+                return v >= 1000 ? `${(v / 1000).toFixed(1)}s` : `${Math.round(v)}ms`;
+            }
+            function fmtDate(ts) {
+                if (!ts) return '—';
+                return new Date(ts).toLocaleString();
+            }
+            function statusBadge(status) {
+                const colors = { completed: '#34C759', failed: '#FF3B30', running: '#F59E0B' };
+                const c = colors[status] || '#888';
+                return `<span style="display:inline-block;padding:2px 7px;background:${c}22;color:${c};border-radius:4px;font-size:11px;font-weight:600;">${status}</span>`;
+            }
+
+            // ── Data source: IndexedDB journal ─────────────────────────────
+
+            async function loadStats() {
+                try {
+                    const runs = await journalListRuns();
+                    const totalCost    = runs.reduce((s, r) => s + (r.total_cost_usd  || 0), 0);
+                    const totalLatency = runs.reduce((s, r) => s + (r.total_latency_ms || 0), 0);
+                    const avgLatency   = runs.length ? totalLatency / runs.length : 0;
+                    const scoredRuns   = runs.filter(r => r.outcome_score);
+                    const passedRuns   = scoredRuns.filter(r => r.outcome_score?.passed);
+                    const passRate     = scoredRuns.length ? Math.round(passedRuns.length / scoredRuns.length * 100) : null;
+
+                    let cacheHitRate = null;
+                    try {
+                        const cs = await fetch('/api/cache/stats').then(r => r.json());
+                        cacheHitRate = cs.hit_rate_pct ?? null;
+                    } catch(e) {}
+
+                    body.querySelector('#hist-stats').innerHTML = `
+                        <span>Runs: <b>${runs.length}</b></span>
+                        <span style="margin-left:12px;">Total Cost: <b>${fmtCost(totalCost)}</b></span>
+                        <span style="margin-left:12px;">Avg Latency: <b>${fmtMs(avgLatency)}</b></span>
+                        ${passRate !== null ? `<span style="margin-left:12px;">Pass Rate: <b>${passRate}%</b></span>` : ''}
+                        ${cacheHitRate !== null ? `<span style="margin-left:12px;">Cache Hits: <b>${cacheHitRate}%</b></span>` : ''}
+                        <span style="margin-left:auto; color:rgba(0,0,0,0.3); font-size:10px;">IndexedDB</span>
+                    `;
+                } catch(e) {
+                    body.querySelector('#hist-stats').innerHTML = `<span style="color:#FF3B30;">Stats unavailable</span>`;
+                }
+            }
+
+            async function loadRuns() {
+                const listEl = body.querySelector('#hist-list');
+                listEl.innerHTML = '<div style="padding:16px;color:rgba(0,0,0,0.4);font-size:12px;">Loading…</div>';
+                try {
+                    const runs = await journalListRuns();
+                    if (!runs.length) {
+                        listEl.innerHTML = '<div style="padding:16px;color:rgba(0,0,0,0.4);font-size:12px;">No runs yet.<br>Execute an AI Flow to record a run.</div>';
+                        return;
+                    }
+                    selectedRunIds = [];
+                    updateDiffBtn();
+
+                    listEl.innerHTML = runs.map(r => `
+                        <div class="hist-run-item" data-id="${r.run_id}"
+                            style="padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.06); cursor:pointer; font-size:12px; display:flex; align-items:flex-start; gap:8px;">
+                            <input type="checkbox" class="hist-cb" data-id="${r.run_id}"
+                                style="margin-top:3px; flex-shrink:0; accent-color:#1D1D1F; cursor:pointer;"
+                                onclick="event.stopPropagation()">
+                            <div style="flex:1; min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+                                    ${statusBadge(r.outcome || 'unknown')}
+                                    <span style="color:rgba(0,0,0,0.35); font-size:10px;">${r.run_id.slice(0,8)}…</span>
+                                    <span style="margin-left:auto; color:rgba(0,0,0,0.28); font-size:10px; font-family:monospace;">${r.flow_version || ''}</span>
+                                </div>
+                                <div style="color:#1D1D1F; font-weight:500; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.flow_id}</div>
+                                <div style="display:flex; gap:10px; color:rgba(0,0,0,0.45);">
+                                    <span>${fmtCost(r.total_cost_usd)}</span>
+                                    <span>${fmtMs(r.total_latency_ms)}</span>
+                                    <span>${(r.steps || []).length} steps</span>
+                                </div>
+                                <div style="color:rgba(0,0,0,0.3); margin-top:3px; font-size:11px;">${fmtDate(r.timestamp)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    listEl.querySelectorAll('.hist-cb').forEach(cb => {
+                        cb.addEventListener('change', () => {
+                            const id = cb.dataset.id;
+                            if (cb.checked) {
+                                if (!selectedRunIds.includes(id)) {
+                                    if (selectedRunIds.length >= 2) {
+                                        const old = selectedRunIds.shift();
+                                        const oldCb = listEl.querySelector(`.hist-cb[data-id="${old}"]`);
+                                        if (oldCb) oldCb.checked = false;
+                                    }
+                                    selectedRunIds.push(id);
+                                }
+                            } else {
+                                selectedRunIds = selectedRunIds.filter(x => x !== id);
+                            }
+                            updateDiffBtn();
+                        });
+                    });
+
+                    listEl.querySelectorAll('.hist-run-item').forEach(el => {
+                        el.addEventListener('click', () => {
+                            listEl.querySelectorAll('.hist-run-item').forEach(x => x.style.background = '');
+                            el.style.background = 'rgba(0,122,255,0.07)';
+                            showDetail(el.dataset.id);
+                        });
+                        el.addEventListener('mouseenter', () => { if (!el.style.background) el.style.background = 'rgba(0,0,0,0.03)'; });
+                        el.addEventListener('mouseleave', () => { if (el.style.background === 'rgba(0,0,0,0.03)') el.style.background = ''; });
+                    });
+                } catch(e) {
+                    listEl.innerHTML = `<div style="padding:16px;color:#FF3B30;font-size:12px;">Error: ${e.message}</div>`;
+                }
+            }
+
+            async function showDetail(runId) {
+                const detail = body.querySelector('#hist-detail');
+                detail.innerHTML = '<div style="color:rgba(0,0,0,0.4);font-size:12px;">Loading…</div>';
+                try {
+                    const r = await journalGetRun(runId);
+                    if (!r) { detail.innerHTML = '<div style="color:#FF3B30;font-size:12px;">Run not found in journal.</div>'; return; }
+                    const steps = r.steps || [];
+
+                    // --- Build node timeline ---
+                    // Group steps by node_id (end events only; one per node)
+                    const nodeMap = new Map();
+                    steps.forEach(ev => {
+                        if (!nodeMap.has(ev.node_id)) nodeMap.set(ev.node_id, []);
+                        nodeMap.get(ev.node_id).push(ev);
+                    });
+
+                    // Compute global time range for bar widths
+                    const allStartTs = steps.map(ev => ev.timestamp - (ev.latency_ms || 0));
+                    const allEndTs   = steps.map(ev => ev.timestamp);
+                    const minTs    = allStartTs.length ? Math.min(...allStartTs) : 0;
+                    const maxTs    = allEndTs.length   ? Math.max(...allEndTs)   : 1;
+                    const totalSpan = Math.max(maxTs - minTs, 1);
+
+                    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+                    const timelineHTML = steps.length === 0
+                        ? '<div style="font-size:12px;color:rgba(0,0,0,0.4);">No steps recorded.</div>'
+                        : [...nodeMap.entries()].map(([nodeId, evs]) => {
+                            const ev = evs[evs.length - 1]; // end event (success/error)
+                            const startT   = ev.timestamp - (ev.latency_ms || 0);
+                            const leftPct  = ((startT - minTs) / totalSpan * 100).toFixed(1);
+                            const widthPct = Math.max(((ev.latency_ms || 0) / totalSpan * 100), 1.5).toFixed(1);
+                            const barColor = ev.status === 'success' ? '#34C759' : ev.status === 'error' ? '#FF3B30' : '#F59E0B';
+                            const nodeLabel = r.snapshot?.nodes?.find(n => n.id === nodeId)?.label || nodeId;
+                            const evJSON   = esc(JSON.stringify(ev, null, 2));
+                            return `
+                                <div class="tl-row" style="border-bottom:1px solid rgba(0,0,0,0.04);">
+                                    <!-- Clickable header row -->
+                                    <div class="tl-hdr" style="display:grid;grid-template-columns:120px 1fr 70px 60px 18px;align-items:center;gap:8px;padding:5px 0;cursor:pointer;user-select:none;">
+                                        <div style="font-size:11px;color:#1D1D1F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${nodeId}">
+                                            ${esc(nodeLabel)}<span style="margin-left:4px;font-size:10px;color:${barColor};">${ev.status === 'success' ? '✓' : '✗'}</span>
+                                        </div>
+                                        <div style="position:relative;height:14px;background:rgba(0,0,0,0.05);border-radius:3px;overflow:hidden;">
+                                            <div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:100%;background:${barColor};border-radius:3px;opacity:0.75;"></div>
+                                        </div>
+                                        <div style="font-size:10px;color:rgba(0,0,0,0.5);text-align:right;">${fmtMs(ev.latency_ms)}</div>
+                                        <div style="font-size:10px;color:rgba(0,0,0,0.5);text-align:right;">${fmtCost(ev.cost_usd)}</div>
+                                        <div class="tl-chevron" style="font-size:9px;color:rgba(0,0,0,0.25);text-align:center;">▶</div>
+                                    </div>
+                                    <!-- Expandable payload body -->
+                                    <div class="tl-body" style="display:none;padding:8px 12px 10px;background:rgba(0,0,0,0.02);margin-bottom:2px;border-radius:0 0 4px 4px;">
+                                        <!-- Stats row -->
+                                        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:8px;font-size:11px;color:#1D1D1F;">
+                                            ${ev.model ? `<span><span style="color:rgba(0,0,0,0.4);">model</span> <b>${esc(ev.model)}</b></span>` : ''}
+                                            <span><span style="color:rgba(0,0,0,0.4);">in</span> ${ev.input_tokens ?? 0} tk</span>
+                                            <span><span style="color:rgba(0,0,0,0.4);">out</span> ${ev.output_tokens ?? 0} tk</span>
+                                            <span style="margin-left:auto;font-size:10px;color:rgba(0,0,0,0.25);">END event</span>
+                                        </div>
+                                        ${ev.output_preview ? `
+                                        <div style="margin-bottom:8px;">
+                                            <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:3px;">output preview</div>
+                                            <div style="font-size:11px;color:#1D1D1F;background:#F5F5F7;border-radius:4px;padding:6px 8px;white-space:pre-wrap;word-break:break-all;max-height:80px;overflow:auto;">${esc(ev.output_preview)}</div>
+                                        </div>` : ''}
+                                        ${ev.error_message ? `
+                                        <div style="margin-bottom:8px;padding:6px 8px;background:#FF3B3011;border:1px solid #FF3B3033;border-radius:4px;font-size:11px;color:#FF3B30;"><b>Error:</b> ${esc(ev.error_message)}</div>` : ''}
+                                        <!-- Hashes -->
+                                        <div style="font-size:10px;color:rgba(0,0,0,0.35);font-family:'JetBrains Mono',monospace;word-break:break-all;margin-bottom:8px;">
+                                            in_hash: ${ev.input_hash || '—'}${ev.output_hash ? ` &nbsp;·&nbsp; out_hash: ${ev.output_hash}` : ''}
+                                        </div>
+                                        <!-- Raw JSON -->
+                                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                                            <span style="font-size:10px;color:rgba(0,0,0,0.4);">Raw ExecutionEvent</span>
+                                            <button class="tl-json-btn" style="padding:1px 7px;background:transparent;color:rgba(0,0,0,0.4);border:1px solid rgba(0,0,0,0.12);border-radius:3px;cursor:pointer;font-size:10px;">Show JSON</button>
+                                            <button class="tl-copy-btn" style="padding:1px 7px;background:transparent;color:rgba(0,0,0,0.4);border:1px solid rgba(0,0,0,0.12);border-radius:3px;cursor:pointer;font-size:10px;">Copy</button>
+                                        </div>
+                                        <pre class="tl-json-pre" style="display:none;background:#F5F5F7;border-radius:4px;padding:8px;font-size:9px;font-family:'JetBrains Mono',monospace;overflow:auto;max-height:160px;color:#1D1D1F;white-space:pre;margin:0;">${evJSON}</pre>
+                                    </div>
+                                </div>
+                            `;
+                          }).join('');
+
+                    // --- FlowSnapshot JSON (collapsed by default) ---
+                    const snapshotJSON = r.snapshot ? JSON.stringify(r.snapshot, null, 2) : null;
+                    const snapshotHTML = snapshotJSON ? `
+                        <div style="margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <span style="font-size:12px;font-weight:600;color:#1D1D1F;">Flow Snapshot</span>
+                                <span style="font-size:11px;color:rgba(0,0,0,0.4);">${r.snapshot?.nodes?.length || 0} nodes, ${r.snapshot?.edges?.length || 0} edges</span>
+                                <button id="jnl-snapshot-toggle" style="margin-left:auto;padding:2px 8px;background:transparent;color:rgba(0,0,0,0.5);border:1px solid rgba(0,0,0,0.15);border-radius:4px;cursor:pointer;font-size:11px;">Show JSON</button>
+                            </div>
+                            <pre id="jnl-snapshot-json" style="display:none;background:#F5F5F7;border-radius:6px;padding:10px;font-size:10px;font-family:'JetBrains Mono',monospace;overflow:auto;max-height:200px;color:#1D1D1F;white-space:pre-wrap;word-break:break-all;">${snapshotJSON.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                        </div>
+                    ` : '';
+
+                    // Build outcome score section
+                    function renderOutcomeScore(score) {
+                        if (!score) return '';
+                        const passColor = score.passed ? '#34C759' : '#FF3B30';
+                        const passLabel = score.passed ? 'PASS' : 'FAIL';
+                        const dimBars = Object.entries(score.scoresByDimension).map(([dim, val]) => {
+                            const pct = Math.round((val || 0) * 100);
+                            const barColor = val >= 0.7 ? '#34C759' : val >= 0.4 ? '#F59E0B' : '#FF3B30';
+                            return `<div style="margin-bottom:5px;">
+                                <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(0,0,0,0.5);margin-bottom:2px;">
+                                    <span>${dim}</span><span>${pct}%</span>
+                                </div>
+                                <div style="height:6px;background:rgba(0,0,0,0.06);border-radius:3px;overflow:hidden;">
+                                    <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div>
+                                </div>
+                            </div>`;
+                        }).join('');
+                        const failList = score.failReasons.length
+                            ? `<ul style="margin:6px 0 0;padding-left:16px;font-size:11px;color:#FF3B30;">${score.failReasons.map(r => `<li>${r}</li>`).join('')}</ul>`
+                            : '';
+                        return `<div style="margin-bottom:14px;padding:12px;background:#F5F5F7;border-radius:8px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                                <span style="font-size:12px;font-weight:600;color:#1D1D1F;">Outcome Score</span>
+                                <span style="padding:2px 8px;background:${passColor}22;color:${passColor};border-radius:4px;font-size:11px;font-weight:700;">${passLabel}</span>
+                                <span style="margin-left:auto;font-size:20px;font-weight:700;color:${passColor};">${score.finalScore.toFixed(1)}</span>
+                                <span style="font-size:11px;color:rgba(0,0,0,0.4);">/ 100</span>
+                            </div>
+                            <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:8px;">Goal: ${score.goal_id}</div>
+                            ${dimBars}
+                            ${failList}
+                        </div>`;
+                    }
+
+                    detail.innerHTML = `
+                        <!-- Header -->
+                        <div style="margin-bottom:14px;padding:12px;background:#F5F5F7;border-radius:8px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                                <h3 style="margin:0;font-size:14px;color:#1D1D1F;overflow:hidden;text-overflow:ellipsis;">${r.flow_id}</h3>
+                                ${statusBadge(r.outcome || 'unknown')}
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;">
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Run ID</div><code style="font-size:10px;">${r.run_id}</code></div>
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Flow Version</div><code style="font-size:10px;">${r.flow_version || '—'}</code></div>
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Triggered By</div><b style="color:#1D1D1F;">${r.triggered_by || '—'}</b></div>
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Total Cost</div><b style="color:#1D1D1F;">${fmtCost(r.total_cost_usd)}</b></div>
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Total Latency</div><b style="color:#1D1D1F;">${fmtMs(r.total_latency_ms)}</b></div>
+                                <div><div style="color:rgba(0,0,0,0.35);margin-bottom:2px;">Timestamp</div>${fmtDate(r.timestamp)}</div>
+                            </div>
+                        </div>
+
+                        <!-- Outcome Score (Phase 2) -->
+                        ${renderOutcomeScore(r.outcome_score)}
+
+                        <!-- Node Timeline -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#1D1D1F;display:flex;align-items:center;gap:8px;">
+                                Node Timeline
+                                <span style="font-weight:400;color:rgba(0,0,0,0.4);">${steps.length} steps</span>
+                                <span style="font-weight:400;color:rgba(0,0,0,0.28);font-size:10px;">click row to expand</span>
+                            </div>
+                            <div style="display:grid;grid-template-columns:120px 1fr 70px 60px 18px;gap:8px;padding:4px 0;margin-bottom:4px;">
+                                <div style="font-size:10px;color:rgba(0,0,0,0.35);">Node</div>
+                                <div style="font-size:10px;color:rgba(0,0,0,0.35);">Timeline</div>
+                                <div style="font-size:10px;color:rgba(0,0,0,0.35);text-align:right;">Latency</div>
+                                <div style="font-size:10px;color:rgba(0,0,0,0.35);text-align:right;">Cost</div>
+                                <div></div>
+                            </div>
+                            <div id="tl-container">${timelineHTML}</div>
+                        </div>
+
+                        <!-- Flow Snapshot JSON -->
+                        ${snapshotHTML}
+
+                        <!-- Actions -->
+                        <div style="display:flex;gap:8px;">
+                            <button id="jnl-replay-btn" style="padding:6px 14px;background:#1D1D1F;color:#FFFFFF;border:none;border-radius:6px;cursor:pointer;font-size:12px;">↺ Replay from Snapshot</button>
+                        </div>
+                    `;
+
+                    // Timeline accordion — single delegated listener
+                    const tlContainer = detail.querySelector('#tl-container');
+                    if (tlContainer) {
+                        tlContainer.addEventListener('click', e => {
+                            // Copy button
+                            const copyBtn = e.target.closest('.tl-copy-btn');
+                            if (copyBtn) {
+                                e.stopPropagation();
+                                const pre = copyBtn.closest('.tl-body')?.querySelector('.tl-json-pre');
+                                if (pre) {
+                                    navigator.clipboard.writeText(pre.textContent).then(() => {
+                                        copyBtn.textContent = 'Copied!';
+                                        setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+                                    }).catch(() => {});
+                                }
+                                return;
+                            }
+                            // Show/Hide JSON button
+                            const jsonBtn = e.target.closest('.tl-json-btn');
+                            if (jsonBtn) {
+                                e.stopPropagation();
+                                const pre = jsonBtn.closest('.tl-body')?.querySelector('.tl-json-pre');
+                                if (pre) {
+                                    const open = pre.style.display === 'none';
+                                    pre.style.display = open ? 'block' : 'none';
+                                    jsonBtn.textContent = open ? 'Hide JSON' : 'Show JSON';
+                                }
+                                return;
+                            }
+                            // Header click — toggle body
+                            const hdr = e.target.closest('.tl-hdr');
+                            if (hdr) {
+                                const body = hdr.closest('.tl-row')?.querySelector('.tl-body');
+                                const chevron = hdr.querySelector('.tl-chevron');
+                                if (body) {
+                                    const open = body.style.display === 'none';
+                                    body.style.display = open ? 'block' : 'none';
+                                    if (chevron) chevron.textContent = open ? '▼' : '▶';
+                                }
+                            }
+                        });
+                    }
+
+                    // Toggle snapshot JSON
+                    const toggleBtn = detail.querySelector('#jnl-snapshot-toggle');
+                    const snapshotPre = detail.querySelector('#jnl-snapshot-json');
+                    if (toggleBtn && snapshotPre) {
+                        toggleBtn.addEventListener('click', () => {
+                            const hidden = snapshotPre.style.display === 'none';
+                            snapshotPre.style.display = hidden ? 'block' : 'none';
+                            toggleBtn.textContent = hidden ? 'Hide JSON' : 'Show JSON';
+                        });
+                    }
+
+                    // Replay
+                    detail.querySelector('#jnl-replay-btn')?.addEventListener('click', async () => {
+                        if (!r.snapshot?.nodes?.length) {
+                            showOSDialog('No Snapshot', 'This run has no stored graph snapshot.', 'warning');
+                            return;
+                        }
+                        try {
+                            const resp = await fetch('/api/kernel/run', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ nodes: r.snapshot.nodes, edges: r.snapshot.edges })
+                            }).then(x => x.json());
+                            showOSDialog('Replay Started', `Job: ${resp.jobId}`, 'info');
+                            setTimeout(() => { loadRuns(); loadStats(); }, 1500);
+                        } catch(e) {
+                            showOSDialog('Replay Failed', e.message, 'danger');
+                        }
+                    });
+                } catch(e) {
+                    detail.innerHTML = `<div style="color:#FF3B30;font-size:12px;">Error: ${e.message}</div>`;
+                }
+            }
+
+            // ── Diff computation (pure IndexedDB, no backend) ───────────────
+
+            function computeDiffLocal(a, b) {
+                // flow_diff: nodes added / removed
+                const aNodeIds = new Set((a.snapshot?.nodes || []).map(n => n.id));
+                const bNodeIds = new Set((b.snapshot?.nodes || []).map(n => n.id));
+                const addedNodes   = [...bNodeIds].filter(id => !aNodeIds.has(id));
+                const removedNodes = [...aNodeIds].filter(id => !bNodeIds.has(id));
+                const commonNodes  = [...aNodeIds].filter(id => bNodeIds.has(id));
+
+                // param_diff: compare node properties for shared nodes
+                const aNodes = new Map((a.snapshot?.nodes || []).map(n => [n.id, n]));
+                const bNodes = new Map((b.snapshot?.nodes || []).map(n => [n.id, n]));
+                const compareProps = ['type', 'manualInput', 'label', 'cat', 'domain'];
+                const paramDiff = [];
+                for (const nodeId of commonNodes) {
+                    const na = aNodes.get(nodeId);
+                    const nb = bNodes.get(nodeId);
+                    for (const prop of compareProps) {
+                        if (na[prop] !== nb[prop]) {
+                            paramDiff.push({ node_id: nodeId, field: prop, value_a: na[prop], value_b: nb[prop] });
+                        }
+                    }
+                }
+
+                // divergence_point: first node (by execution order) where output_hash differs
+                const aSteps = new Map((a.steps || []).map(ev => [ev.node_id, ev]));
+                const bSteps = new Map((b.steps || []).map(ev => [ev.node_id, ev]));
+                const orderedByA = [...(a.steps || [])].sort((x, y) => x.timestamp - y.timestamp).map(ev => ev.node_id);
+                const orderedByB = [...(b.steps || [])].sort((x, y) => x.timestamp - y.timestamp).map(ev => ev.node_id);
+                const order = [...orderedByA, ...orderedByB.filter(id => !orderedByA.includes(id))];
+                let divergencePoint = null;
+                for (const nodeId of order) {
+                    const ea = aSteps.get(nodeId);
+                    const eb = bSteps.get(nodeId);
+                    if (ea && eb && ea.output_hash && eb.output_hash && ea.output_hash !== eb.output_hash) {
+                        divergencePoint = nodeId;
+                        break;
+                    }
+                }
+
+                return {
+                    cost_delta:       b.total_cost_usd   - a.total_cost_usd,
+                    latency_delta:    b.total_latency_ms  - a.total_latency_ms,
+                    added_nodes:      addedNodes,
+                    removed_nodes:    removedNodes,
+                    param_diff:       paramDiff,
+                    divergence_point: divergencePoint,
+                };
+            }
+
+            async function showDiff(runIdA, runIdB) {
+                const detail = body.querySelector('#hist-detail');
+                detail.innerHTML = '<div style="color:rgba(0,0,0,0.4);font-size:12px;">Computing diff…</div>';
+                try {
+                    const [a, b] = await Promise.all([journalGetRun(runIdA), journalGetRun(runIdB)]);
+                    if (!a || !b) { detail.innerHTML = '<div style="color:#FF3B30;font-size:12px;">Could not load both runs.</div>'; return; }
+                    const diff = computeDiffLocal(a, b);
+
+                    const deltaSign = v => v > 0 ? '+' : '';
+                    const costColor = diff.cost_delta    <= 0 ? '#34C759' : '#FF3B30';
+                    const latColor  = diff.latency_delta <= 0 ? '#34C759' : '#FF3B30';
+
+                    const paramDiffHTML = diff.param_diff.length === 0
+                        ? '<div style="font-size:12px;color:rgba(0,0,0,0.4);padding:8px 0;">No parameter changes between these runs.</div>'
+                        : `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+                            <thead><tr style="background:#F5F5F7;color:rgba(0,0,0,0.5);">
+                                <th style="padding:5px 8px;text-align:left;font-weight:500;">Node</th>
+                                <th style="padding:5px 8px;text-align:left;font-weight:500;">Field</th>
+                                <th style="padding:5px 8px;text-align:left;font-weight:500;">Run A</th>
+                                <th style="padding:5px 8px;text-align:left;font-weight:500;">Run B</th>
+                            </tr></thead>
+                            <tbody>${diff.param_diff.map((d, i) => `
+                                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);background:${i%2===0?'#FFFFFF':'#FAFAFA'}">
+                                    <td style="padding:4px 8px;font-family:monospace;font-size:10px;color:#1D1D1F;">${d.node_id}</td>
+                                    <td style="padding:4px 8px;color:rgba(0,0,0,0.6);">${d.field}</td>
+                                    <td style="padding:4px 8px;color:#FF3B30;font-style:italic;">${d.value_a ?? '—'}</td>
+                                    <td style="padding:4px 8px;color:#34C759;">${d.value_b ?? '—'}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                           </table>`;
+
+                    const flowDiffHTML = (diff.added_nodes.length + diff.removed_nodes.length === 0)
+                        ? '<div style="font-size:12px;color:rgba(0,0,0,0.4);padding:8px 0;">Same topology — no nodes added or removed.</div>'
+                        : `<div style="display:flex;gap:20px;flex-wrap:wrap;">
+                            ${diff.added_nodes.length ? `<div>
+                                <div style="font-size:11px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Added in Run B (${diff.added_nodes.length})</div>
+                                ${diff.added_nodes.map(id => `<div style="font-size:11px;padding:3px 8px;background:#34C75922;color:#34C759;border-radius:4px;margin-bottom:3px;font-family:monospace;">${id}</div>`).join('')}
+                            </div>` : ''}
+                            ${diff.removed_nodes.length ? `<div>
+                                <div style="font-size:11px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Removed from Run A (${diff.removed_nodes.length})</div>
+                                ${diff.removed_nodes.map(id => `<div style="font-size:11px;padding:3px 8px;background:#FF3B3022;color:#FF3B30;border-radius:4px;margin-bottom:3px;font-family:monospace;">${id}</div>`).join('')}
+                            </div>` : ''}
+                          </div>`;
+
+                    const divergenceHTML = diff.divergence_point
+                        ? `<div style="padding:10px 12px;background:#F59E0B18;border:1px solid #F59E0B44;border-radius:6px;font-size:12px;">
+                               <span style="font-weight:600;color:#F59E0B;">Divergence at: </span>
+                               <code style="font-size:11px;color:#1D1D1F;">${diff.divergence_point}</code>
+                               <span style="color:rgba(0,0,0,0.5);margin-left:8px;">— first node where output_hash differs</span>
+                           </div>`
+                        : `<div style="padding:10px 12px;background:#34C75911;border:1px solid #34C75922;border-radius:6px;font-size:12px;color:rgba(0,0,0,0.6);">
+                               No divergence detected — all shared nodes produced identical output hashes.
+                           </div>`;
+
+                    detail.innerHTML = `
+                        <!-- Title bar -->
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                            <h3 style="margin:0;font-size:14px;color:#1D1D1F;">Run Diff</h3>
+                            <span style="font-size:11px;color:rgba(0,0,0,0.4);font-family:monospace;">${a.run_id.slice(0,8)}… vs ${b.run_id.slice(0,8)}…</span>
+                            <button id="jnl-diff-close" style="margin-left:auto;padding:3px 10px;background:transparent;color:rgba(0,0,0,0.5);border:1px solid rgba(0,0,0,0.15);border-radius:4px;cursor:pointer;font-size:11px;">✕ Close</button>
+                        </div>
+
+                        <!-- Summary cards -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+                            <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
+                                <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Run A</div>
+                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${a.run_id.slice(0,8)}…</div>
+                                <div style="font-size:11px;color:rgba(0,0,0,0.5);">${fmtCost(a.total_cost_usd)} · ${fmtMs(a.total_latency_ms)}</div>
+                            </div>
+                            <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
+                                <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Run B</div>
+                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${b.run_id.slice(0,8)}…</div>
+                                <div style="font-size:11px;color:rgba(0,0,0,0.5);">${fmtCost(b.total_cost_usd)} · ${fmtMs(b.total_latency_ms)}</div>
+                            </div>
+                            <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
+                                <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Cost Delta (B−A)</div>
+                                <div style="font-size:16px;font-weight:600;color:${costColor};">${deltaSign(diff.cost_delta)}${fmtCost(Math.abs(diff.cost_delta))}</div>
+                            </div>
+                            <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
+                                <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Latency Delta (B−A)</div>
+                                <div style="font-size:16px;font-weight:600;color:${latColor};">${deltaSign(diff.latency_delta)}${fmtMs(diff.latency_delta)}</div>
+                            </div>
+                        </div>
+
+                        <!-- Output divergence -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Output Divergence</div>
+                            ${divergenceHTML}
+                        </div>
+
+                        <!-- Flow topology diff -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Topology Changes</div>
+                            ${flowDiffHTML}
+                        </div>
+
+                        <!-- Parameter diff -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:12px;font-weight:600;color:#1D1D1F;margin-bottom:6px;">Parameter Changes</div>
+                            ${paramDiffHTML}
+                        </div>
+                    `;
+
+                    detail.querySelector('#jnl-diff-close')?.addEventListener('click', () => {
+                        detail.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(0,0,0,0.3);font-size:13px;">Select a run to view details</div>';
+                    });
+                } catch(e) {
+                    detail.innerHTML = `<div style="color:#FF3B30;font-size:12px;">Diff Error: ${e.message}</div>`;
+                }
+            }
+
+            diffBtn.addEventListener('click', () => {
+                if (selectedRunIds.length === 2) showDiff(selectedRunIds[0], selectedRunIds[1]);
+            });
+
+            body.querySelector('#hist-refresh').addEventListener('click', () => {
+                selectedRunIds = [];
+                updateDiffBtn();
+                loadRuns();
+                loadStats();
+            });
+
+            updateDiffBtn();
+            loadStats();
+            loadRuns();
+        }
+
+        // --- Evaluation App (Phase 2) ---
+        function openEvalApp() {
+            const win = createWindow('Evaluation', 'eval', 900, 560);
+            win.innerHTML = `
+                <div style="display:flex;flex-direction:column;height:100%;background:#F0F2F5;color:#1D1D1F;">
+                    <!-- Header -->
+                    <div style="padding:12px 16px;background:#FFF;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:10px;">
+                        <h3 style="margin:0;font-size:14px;font-weight:600;">Evaluation</h3>
+                        <span style="font-size:12px;color:rgba(0,0,0,0.4);">Scored runs</span>
+                        <!-- Filter tabs -->
+                        <div style="display:flex;gap:4px;margin-left:auto;">
+                            <button class="eval-tab" data-filter="all"    style="padding:4px 12px;border-radius:5px;border:1px solid rgba(0,0,0,0.12);background:#1D1D1F;color:#FFF;cursor:pointer;font-size:11px;font-weight:600;">All</button>
+                            <button class="eval-tab" data-filter="passed" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(0,0,0,0.12);background:transparent;color:#1D1D1F;cursor:pointer;font-size:11px;">Passed</button>
+                            <button class="eval-tab" data-filter="failed" style="padding:4px 12px;border-radius:5px;border:1px solid rgba(0,0,0,0.12);background:transparent;color:#1D1D1F;cursor:pointer;font-size:11px;">Failed</button>
+                        </div>
+                    </div>
+                    <!-- Table header -->
+                    <div style="display:grid;grid-template-columns:90px 1fr 120px 70px 60px 70px;gap:0;padding:6px 16px;background:#FAFAFA;border-bottom:1px solid rgba(0,0,0,0.06);font-size:10px;color:rgba(0,0,0,0.4);font-weight:600;">
+                        <div>RUN ID</div><div>GOAL</div><div>SCORE</div><div>STATUS</div><div>COST</div><div>DATE</div>
+                    </div>
+                    <!-- Rows -->
+                    <div id="eval-list" style="flex:1;overflow-y:auto;"></div>
+                </div>
+            `;
+
+            const listEl = win.querySelector('#eval-list');
+            let allRuns = [];
+            let currentFilter = 'all';
+
+            function fmtCostE(v) { return (!v || v === 0) ? '$0.00' : (v < 0.001 ? `$${(v*1000).toFixed(4)}m` : `$${v.toFixed(4)}`); }
+            function fmtDateE(ts) { return ts ? new Date(ts).toLocaleDateString() : '—'; }
+
+            function renderList(runs) {
+                if (!runs.length) {
+                    listEl.innerHTML = '<div style="padding:24px;color:rgba(0,0,0,0.4);font-size:12px;text-align:center;">No scored runs. Set a Goal in AI Flow and run a graph.</div>';
+                    return;
+                }
+                listEl.innerHTML = runs.map(r => {
+                    const score = r.outcome_score;
+                    const pct   = score ? score.finalScore.toFixed(1) : '—';
+                    const passColor = score ? (score.passed ? '#34C759' : '#FF3B30') : '#888';
+                    const passLabel = score ? (score.passed ? 'PASS' : 'FAIL') : '—';
+                    const barW  = score ? Math.round(score.finalScore) : 0;
+                    return `<div class="eval-row" data-id="${r.run_id}" style="display:grid;grid-template-columns:90px 1fr 120px 70px 60px 70px;gap:0;padding:8px 16px;border-bottom:1px solid rgba(0,0,0,0.04);cursor:pointer;align-items:center;font-size:11px;background:#FFF;" onmouseenter="this.style.background='rgba(0,122,255,0.05)'" onmouseleave="this.style.background='#FFF'">
+                        <div style="font-family:monospace;color:rgba(0,0,0,0.5);">${r.run_id.slice(0,8)}…</div>
+                        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1D1D1F;">${score?.goal_id || '—'}</div>
+                        <div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="flex:1;height:6px;background:rgba(0,0,0,0.07);border-radius:3px;overflow:hidden;">
+                                    <div style="height:100%;width:${barW}%;background:${passColor};border-radius:3px;"></div>
+                                </div>
+                                <span style="font-size:10px;color:rgba(0,0,0,0.5);min-width:28px;">${pct}</span>
+                            </div>
+                        </div>
+                        <div><span style="padding:2px 6px;background:${passColor}22;color:${passColor};border-radius:4px;font-size:10px;font-weight:600;">${passLabel}</span></div>
+                        <div style="color:rgba(0,0,0,0.5);">${fmtCostE(r.total_cost_usd)}</div>
+                        <div style="color:rgba(0,0,0,0.4);font-size:10px;">${fmtDateE(r.timestamp)}</div>
+                    </div>`;
+                }).join('');
+
+                listEl.querySelectorAll('.eval-row').forEach(row => {
+                    row.addEventListener('click', () => {
+                        // Open or reuse a History window to show detail
+                        openHistoryApp();
+                    });
+                });
+            }
+
+            async function loadEval() {
+                listEl.innerHTML = '<div style="padding:20px;color:rgba(0,0,0,0.4);font-size:12px;">Loading…</div>';
+                try {
+                    allRuns = await journalListRuns();
+                    applyFilter();
+                } catch(e) {
+                    listEl.innerHTML = `<div style="padding:20px;color:#FF3B30;font-size:12px;">Error: ${e.message}</div>`;
+                }
+            }
+
+            function applyFilter() {
+                let filtered = allRuns;
+                if (currentFilter === 'passed') filtered = allRuns.filter(r => r.outcome_score?.passed === true);
+                if (currentFilter === 'failed') filtered = allRuns.filter(r => r.outcome_score && r.outcome_score.passed === false);
+                // Show only scored runs unless 'all'
+                if (currentFilter !== 'all') {
+                    renderList(filtered);
+                } else {
+                    renderList(allRuns.filter(r => r.outcome_score));
+                }
+            }
+
+            win.querySelectorAll('.eval-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    currentFilter = tab.dataset.filter;
+                    win.querySelectorAll('.eval-tab').forEach(t => {
+                        t.style.background = t === tab ? '#1D1D1F' : 'transparent';
+                        t.style.color = t === tab ? '#FFF' : '#1D1D1F';
+                    });
+                    applyFilter();
+                });
+            });
+
+            loadEval();
+        }
+
+        // --- macOS Dock Magnification ---
+        (function initDockMagnification() {
+            const dock = document.getElementById('taskbar');
+            const BASE = 48, MAX = 64, RADIUS = 80;
+
+            function update(mouseX) {
+                dock.querySelectorAll('.taskbar-item').forEach(item => {
+                    const cx = item.getBoundingClientRect().left + item.offsetWidth / 2;
+                    const d = Math.abs(mouseX - cx);
+                    const scale = d < RADIUS
+                        ? 1 + ((MAX - BASE) / BASE) * Math.pow(1 - d / RADIUS, 1.5)
+                        : 1;
+                    const icon = item.querySelector('.taskbar-icon');
+                    if (icon) {
+                        icon.style.transform = `scale(${scale.toFixed(3)})`;
+                        icon.style.transformOrigin = 'bottom center';
+                    }
+                });
+            }
+
+            dock.addEventListener('mousemove', e => update(e.clientX));
+            dock.addEventListener('mouseleave', () =>
+                dock.querySelectorAll('.taskbar-icon').forEach(i => i.style.transform = 'scale(1)'));
+        })();
 
     </script>
 </body>

@@ -14,8 +14,21 @@ import { ContextManager } from './kernel/memory';
 import { AgentScheduler } from './kernel/scheduler';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
+import { ExecutionJournal } from './telemetry/journal';
+import { computeDiff } from './telemetry/diff';
+import { telemetryBus } from './telemetry/bus';
+import { ExecutionEvent, BudgetConstraint } from './telemetry/types';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
+
+// In-memory budget state (resets on restart — mock per spec)
+let currentBudget: BudgetConstraint = {
+    maxCostUsdPerRun: 0.50,
+    maxLatencyMs: 30_000,
+    qualityFloor: 0.6,
+    preferredModels: [],
+    fallbackModels: ['local'],
+};
 
 export class Server {
     private app: express.Application;
@@ -30,8 +43,9 @@ export class Server {
     private scheduler: AgentScheduler;
     private registry: PromptRegistry;
     private tools: ToolRegistry;
+    private journal?: ExecutionJournal;
 
-    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, port: number = 3000) {
+    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
         this.port = port;
         this.graphManager = graphManager;
@@ -44,6 +58,7 @@ export class Server {
         this.scheduler = scheduler;
         this.registry = registry;
         this.tools = tools;
+        this.journal = journal;
         this.configureRoutes();
     }
 
@@ -431,7 +446,8 @@ export class Server {
                 const { nodes, edges } = req.body;
                 if (!nodes || !edges) return res.status(400).json({ error: 'Graph data required' });
                 const jobId = await this.scheduler.submitJob(nodes, edges);
-                res.json({ jobId });
+                const runId = this.scheduler.getRunId(jobId);
+                res.json({ jobId, runId });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }
@@ -530,6 +546,114 @@ export class Server {
                 res.status(500).send(error.message);
             }
         });
+
+        // ── Telemetry / Execution History ──────────────────────────────────────
+
+        // Live SSE stream — subscribe to telemetryBus for a specific run
+        this.app.get('/api/telemetry/stream', (req, res) => {
+            const runId = req.query.runId as string;
+            if (!runId) return res.status(400).json({ error: 'runId required' });
+
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders();
+
+            // Replay any events already persisted (handles race between submit and SSE connect)
+            if (this.journal) {
+                const existing = this.journal.getRun(runId);
+                if (existing) {
+                    for (const ev of (existing.events ?? [])) {
+                        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+                    }
+                    if (existing.status !== 'running') {
+                        res.end();
+                        return;
+                    }
+                }
+            }
+
+            const handler = (ev: ExecutionEvent) => {
+                if (ev.run_id !== runId) return;
+                res.write(`data: ${JSON.stringify(ev)}\n\n`);
+            };
+
+            telemetryBus.subscribe(handler);
+            req.on('close', () => telemetryBus.unsubscribe(handler));
+        });
+
+        this.app.get('/api/telemetry/stats', (req, res) => {
+            if (!this.journal) return res.json({ total_runs: 0, total_cost_usd: 0, avg_latency_ms: 0, avg_rating: 0 });
+            res.json(this.journal.getStats());
+        });
+
+        this.app.get('/api/telemetry/runs', (req, res) => {
+            if (!this.journal) return res.json([]);
+            const limit = parseInt(req.query.limit as string) || 50;
+            res.json(this.journal.listRuns(limit));
+        });
+
+        this.app.get('/api/telemetry/runs/:runId', (req, res) => {
+            if (!this.journal) return res.status(503).json({ error: 'Journal not initialized' });
+            const record = this.journal.getRun(req.params.runId);
+            if (!record) return res.status(404).json({ error: 'Run not found' });
+            res.json(record);
+        });
+
+        this.app.post('/api/telemetry/runs/:runId/rating', (req, res) => {
+            if (!this.journal) return res.status(503).json({ error: 'Journal not initialized' });
+            const { rating, outcome } = req.body;
+            if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1–5' });
+            this.journal.rateRun(req.params.runId, rating, outcome);
+            res.json({ success: true });
+        });
+
+        this.app.get('/api/telemetry/diff', (req, res) => {
+            if (!this.journal) return res.status(503).json({ error: 'Journal not initialized' });
+            const { runA, runB } = req.query as { runA: string; runB: string };
+            if (!runA || !runB) return res.status(400).json({ error: 'runA and runB required' });
+            const a = this.journal.getRun(runA);
+            const b = this.journal.getRun(runB);
+            if (!a || !b) return res.status(404).json({ error: 'One or both runs not found' });
+            res.json(computeDiff(a, b));
+        });
+
+        this.app.post('/api/telemetry/replay/:runId', async (req, res) => {
+            if (!this.journal) return res.status(503).json({ error: 'Journal not initialized' });
+            const record = this.journal.getRun(req.params.runId);
+            if (!record) return res.status(404).json({ error: 'Run not found' });
+            try {
+                const { nodes, edges } = (record.flow_snapshot ?? record.snapshot)!;
+                const jobId = await this.scheduler.submitJob(nodes, edges);
+                res.json({ jobId, message: 'Replay started' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ───────────────────────────────────────────────────────────────────────
+
+        // ── Budget & Semantic Cache (Phase 2) ─────────────────────────────────
+
+        this.app.get('/api/budget', (_req, res) => {
+            res.json(currentBudget);
+        });
+
+        this.app.post('/api/budget', (req, res) => {
+            currentBudget = { ...currentBudget, ...req.body };
+            res.json(currentBudget);
+        });
+
+        this.app.get('/api/cache/stats', (_req, res) => {
+            res.json(this.journal?.getCacheStats() ?? { total_entries: 0, total_hits: 0, hit_rate_pct: 0 });
+        });
+
+        this.app.delete('/api/cache', (_req, res) => {
+            this.journal?.cacheClear();
+            res.json({ ok: true });
+        });
+
+        // ─────────────────────────────────────────────────────────────────────
 
         this.app.post('/api/keys/verify', async (req, res) => {
             try {
