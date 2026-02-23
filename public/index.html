@@ -10,170 +10,482 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
+        /*
+         * ═══════════════════════════════════════════════════════════════════
+         *  AGENT OS  —  DESIGN SYSTEM  v3
+         *  ─────────────────────────────────────────────────────────────────
+         *  Layer 1 · Token Layer       (:root CSS variables)
+         *  Layer 2 · Primitive Classes  (.glass-surface, .icon-tile, …)
+         *  Layer 3 · Shell Layout       (#top-bar, #dock, .window, …)
+         *  Layer 4 · App Compat         (legacy aliases so app code works)
+         * ═══════════════════════════════════════════════════════════════════
+         */
+
+        /* ── Design Tokens ─────────────────────────────────────────────── */
         :root {
-            --bg: #E8EDF2;
-            --surface-1: #FFFFFF;
-            --surface-2: #F5F5F7;
-            --surface-3: #EBEBED;
-            --border: rgba(0,0,0,0.08);
-            --border-active: rgba(0,0,0,0.18);
-            --text-primary: #1D1D1F;
-            --text-secondary: rgba(0,0,0,0.5);
-            --text-tertiary: rgba(0,0,0,0.35);
-            --accent: #1D1D1F;
-            --radius-sm: 6px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
-            --taskbar-height: 80px;
-            /* Legacy aliases kept for JS compatibility */
-            --bg-color: #E8EDF2;
-            --window-border: 1px solid rgba(0,0,0,0.08);
-            --window-bg: #FFFFFF;
-            --header-bg: #F5F5F7;
-            --text-color: #1D1D1F;
-            --accent-color: #1D1D1F;
-            --selection-color: rgba(0,122,255,0.12);
+            /* Brand */
+            --accent:        #2563EB;
+            --accent-light:  rgba(37,99,235,0.08);
+            --accent-glow:   rgba(37,99,235,0.12);
+
+            /* Semantic */
+            --text-primary:  #111827;
+            --text-secondary:#6B7280;
+            --text-muted:    #9CA3AF;
+            --success:       #16A34A;
+            --warning:       #D97706;
+            --error:         #DC2626;
+
+            /* Glass system */
+            --glass-bg:      rgba(255,255,255,0.65);
+            --glass-border:  rgba(255,255,255,0.72);
+            --glass-blur:    blur(28px) saturate(140%);
+            --glass-shadow:  0 20px 60px rgba(0,0,0,0.07);
+
+            /* Depth shadows */
+            --shadow-1:      none;
+            --shadow-2:      0 15px 40px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-3:      0 30px 80px rgba(0,0,0,0.11), 0 4px 16px rgba(0,0,0,0.06);
+
+            /* Radius */
+            --r-window:      20px;
+            --r-card:        14px;
+            --r-btn:         10px;
+            --r-dock-item:   14px;
+            --r-dock:        26px;
+
+            /* Shell dimensions */
+            --top-bar-h:     44px;
+            --dock-w:        76px;
+
+            /* Legacy aliases — keep all app code working unchanged */
+            --bg-color:          #EFF2F8;
+            --window-border:     1px solid rgba(255,255,255,0.8);
+            --window-bg:         rgba(255,255,255,0.72);
+            --header-bg:         rgba(250,251,253,0.9);
+            --text-color:        #111827;
+            --accent-color:      #2563EB;
+            --selection-color:   rgba(37,99,235,0.08);
+            --taskbar-height:    0px;
+            --bg:                #EFF2F8;
+            --surface-1:         rgba(255,255,255,0.9);
+            --surface-2:         rgba(248,250,252,0.85);
+            --surface-3:         rgba(240,243,248,0.8);
+            --border:            rgba(0,0,0,0.05);
+            --border-active:     rgba(0,0,0,0.12);
+            --radius-sm:         6px;
+            --radius-md:         var(--r-card);
+            --radius-lg:         var(--r-window);
+
+            /* ── Layer 1: Systematic Token Names ──────────────────────── */
+            /* Color tokens */
+            --c-accent:          var(--accent);
+            --c-accent-dim:      var(--accent-light);
+            --c-text-1:          var(--text-primary);
+            --c-text-2:          var(--text-secondary);
+            --c-text-3:          var(--text-muted);
+            --c-success:         var(--success);
+            --c-warning:         var(--warning);
+            --c-error:           var(--error);
+            /* Glass tokens */
+            --gl-bg:             var(--glass-bg);
+            --gl-blur:           var(--glass-blur);
+            --gl-border:         var(--glass-border);
+            /* Shadow tokens */
+            --sh-1:              var(--shadow-1);
+            --sh-2:              var(--shadow-2);
+            --sh-3:              var(--shadow-3);
+            /* Radius tokens */
+            --r-panel:           18px;
+            --r-pill:            999px;
+            /* Spacing scale */
+            --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+            --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+            /* Type scale */
+            --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px;
+            --fs-base: 13px; --fs-md: 15px; --fs-lg: 18px;
+            /* Z-index scale */
+            --z-base: 1; --z-dock: 2000; --z-topbar: 3000;
+            --z-cmd: 9000; --z-toast: 9500;
+            /* Motion */
+            --dur-fast: 150ms; --dur-base: 180ms; --dur-slow: 280ms;
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --dur-breathe: 3s;
         }
 
+        /* ── Reset ──────────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Body & Background ──────────────────────────────────────────── */
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: linear-gradient(145deg, #dce6f0 0%, #e4eaf3 30%, #d6e2ee 60%, #e0e9f4 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #F6F8FB 0%, #E9EEF5 100%);
             background-attachment: fixed;
             color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Desktop Icons */
-        #desktop {
-            height: calc(100vh - var(--taskbar-height));
-            width: 100%;
-            position: relative;
-            padding: 10px;
-            box-sizing: border-box;
+        /* Soft radial highlight — top right corner */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; right: 0;
+            width: 55vw; height: 55vh;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.52) 0%, transparent 62%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Subtle noise texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            background-size: 200px 200px;
+            opacity: 0.018;
+            mix-blend-mode: overlay;
+        }
+
+        /* ── Top System Bar (AI Command Bar) ───────────────────────────── */
+        #top-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--top-bar-h);
+            background: rgba(246,248,251,0.68);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.60);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: var(--z-topbar);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+        }
+
+        .tb-left {
             display: flex;
             flex-direction: column;
-            flex-wrap: wrap;
-            align-content: flex-start;
+            min-width: 120px;
+        }
+        .tb-time {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--c-text-2);
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+        .tb-date {
+            font-size: 10.5px;
+            color: var(--c-text-3);
+            line-height: 1.25;
         }
 
-        .desktop-icon {
-            width: 72px;
-            height: 80px;
+        /* AI Command Pill — the system's primary AI entry point */
+        .ai-cmd-pill {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 420px;
+            max-width: calc(100vw - 280px);
+            height: 32px;
+            background: rgba(255,255,255,0.70);
+            backdrop-filter: blur(30px) saturate(120%);
+            -webkit-backdrop-filter: blur(30px) saturate(120%);
+            border-radius: 999px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.85),
+                0 8px 25px rgba(0,0,0,0.06),
+                inset 1px 0 0 rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 9px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 300;
+            color: #9CA3AF;
+            letter-spacing: -0.005em;
+            transition: background 150ms ease, box-shadow 150ms ease;
+            user-select: none;
+        }
+        .ai-cmd-pill:hover {
+            background: rgba(255,255,255,0.88);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.90),
+                0 8px 25px rgba(0,0,0,0.07),
+                0 0 12px rgba(100,120,255,0.15);
+        }
+
+        /* Pulsing AI dot inside the pill */
+        .ai-cmd-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, rgba(139,92,246,0.85) 0%, rgba(99,102,241,0.45) 100%);
+            box-shadow: 0 0 5px rgba(99,102,241,0.40);
+            flex-shrink: 0;
+            animation: aiPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes aiPulse {
+            0%, 100% { opacity: 0.55; transform: scale(1);    box-shadow: 0 0 4px rgba(99,102,241,0.28); }
+            50%       { opacity: 1;   transform: scale(1.22); box-shadow: 0 0 10px rgba(99,102,241,0.55); }
+        }
+        .ai-cmd-label { flex: 1; }
+
+        /* Right-side status area — deliberately reduced contrast */
+        .tb-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: flex-end;
+            opacity: 0.70;
+            transition: opacity 0.2s ease;
+        }
+        .tb-right:hover { opacity: 1; }
+        .tb-icon-btn {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--c-text-2);
+            transition: background 0.15s ease-out;
+            position: relative;
+        }
+        .tb-icon-btn:hover { background: rgba(0,0,0,0.05); }
+        .tb-icon-btn .notif-dot {
+            position: absolute;
+            top: 5px; right: 5px;
+            width: 6px; height: 6px;
+            background: var(--c-error);
+            border-radius: 50%;
+            border: 1.5px solid rgba(246,248,251,0.9);
+        }
+        .tb-avatar {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 600; color: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(99,102,241,0.20);
+        }
+
+        /* ── Notification Panel ─────────────────────────────────────────── */
+        #notif-panel {
+            position: fixed;
+            top: calc(var(--top-bar-h) + 10px);
+            right: 16px;
+            width: 316px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--shadow-2);
+            z-index: 4000;
+            overflow: hidden;
+            transform-origin: top right;
+            transform: scale(0.91) translateY(-10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.18s ease-in-out, opacity 0.18s ease-in-out;
+        }
+        #notif-panel.open {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ── Left Dock ──────────────────────────────────────────────────── */
+        #dock {
+            position: fixed;
+            top: calc(var(--top-bar-h) + 10px);
+            bottom: 10px;
+            left: 10px;
+            width: 56px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--r-dock);
+            box-shadow: var(--shadow-2);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            margin: 10px;
-            border-radius: 8px;
+            padding: 12px 0 14px;
+            gap: 2px;
+            z-index: 2000;
+        }
+
+        .dock-item {
+            width: 40px; height: 40px;
+            border-radius: var(--r-dock-item);
+            display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            transition: background 0.15s;
+            color: var(--text-secondary);
+            transition: transform 0.18s ease-out, background 0.18s ease-out,
+                        box-shadow 0.18s ease-out, color 0.18s ease-out;
+            position: relative;
+            flex-shrink: 0;
         }
-
-        .desktop-icon:hover {
-            background-color: rgba(255, 255, 255, 0.4);
+        .dock-item:hover {
+            transform: scale(1.13);
+            background: rgba(255,255,255,0.75);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.09);
+            color: var(--text-primary);
         }
-
-        .desktop-icon.selected {
-            background-color: var(--selection-color);
-            border: 1px solid rgba(0,122,255,0.3);
+        .dock-item.running {
+            background: rgba(37,99,235,0.07);
+            color: var(--accent);
         }
-
-        .icon-img {
-            font-size: 36px;
-            margin-bottom: 5px;
-            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
+        .dock-item.running:hover {
+            background: rgba(37,99,235,0.12);
         }
-
-        .icon-label {
-            font-size: 11px;
+        /* Running indicator dot */
+        .dock-item.running::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.85;
+        }
+        /* Tooltip */
+        .dock-item::before {
+            content: attr(data-tip);
+            position: absolute;
+            left: calc(100% + 14px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(15,20,32,0.86);
+            color: rgba(255,255,255,0.93);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
             font-weight: 500;
-            text-align: center;
-            color: #1D1D1F;
-            padding: 2px 5px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(4px);
-            text-shadow: none;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            letter-spacing: -0.01em;
+        }
+        .dock-item:hover::before { opacity: 1; }
+
+        /* SVG stroke icons */
+        .dock-item svg {
+            width: 20px; height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.65;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        /* Window System */
+        .dock-sep {
+            width: 22px; height: 1px;
+            background: rgba(0,0,0,0.07);
+            margin: 5px 0;
+            flex-shrink: 0;
+        }
+        .dock-spacer { flex: 1; }
+
+        /* ── Desktop Surface ────────────────────────────────────────────── */
+        #desktop {
+            position: fixed;
+            top: var(--top-bar-h);
+            left: var(--dock-w);
+            right: 0; bottom: 0;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* ── Window Chrome ──────────────────────────────────────────────── */
         .window {
             position: absolute;
-            background-color: #FFFFFF;
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 12px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+            background: rgba(252,253,255,0.76);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            /* Inner top-edge highlight */
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: var(--r-window);
+            box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255,255,255,0.95);
             display: flex;
             flex-direction: column;
-            min-width: 300px;
-            min-height: 200px;
+            min-width: 320px;
+            min-height: 220px;
             overflow: hidden;
-            animation: openWindow 0.18s ease-out;
+            animation: openWindow 0.2s ease-out;
             resize: both;
+            opacity: 0.95;
+            transition: box-shadow 0.2s ease, opacity 0.2s ease;
         }
-
+        .window.active {
+            box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255,255,255,0.95);
+            opacity: 1;
+        }
         @keyframes openWindow {
-            from { transform: scale(0.96); opacity: 0; }
-            to   { transform: scale(1);    opacity: 1; }
+            from { transform: scale(0.93) translateY(12px); opacity: 0; }
+            to   { transform: scale(1)    translateY(0);    opacity: 1; }
         }
 
         .window-header {
             height: 40px;
-            background-color: #F5F5F7;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
+            background: rgba(248,250,253,0.72);
+            border-bottom: 1px solid rgba(0,0,0,0.045);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 12px;
+            padding: 0 16px;
             cursor: default;
             position: relative;
             flex-shrink: 0;
         }
-
         .window-title {
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 500;
-            color: #1D1D1F;
+            color: var(--text-secondary);
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: -0.01em;
         }
-
         .window-controls {
             position: absolute;
-            left: 12px;
+            left: 14px;
             display: flex;
-            gap: 8px;
+            gap: 7px;
         }
-
         .control-btn {
-            width: 12px;
-            height: 12px;
+            width: 12px; height: 12px;
             border-radius: 50%;
             cursor: pointer;
             border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 7px; line-height: 1;
             color: transparent;
-            transition: color 0.15s;
+            transition: color 0.12s ease, transform 0.1s ease;
         }
-
-        .close-btn { background-color: #FF5F57; }
-        .min-btn   { background-color: #FEBC2E; }
-        .max-btn   { background-color: #28C840; }
-
+        .control-btn:hover { transform: scale(1.15); }
+        .close-btn { background: #FF5F57; }
+        .min-btn   { background: #FFBD2E; }
+        .max-btn   { background: #28C840; }
         .window-header:hover .close-btn,
         .window-header:hover .min-btn,
-        .window-header:hover .max-btn { color: rgba(0,0,0,0.45); }
-
+        .window-header:hover .max-btn { color: rgba(0,0,0,0.38); }
         .close-btn::after { content: '×'; }
         .min-btn::after   { content: '–'; }
         .max-btn::after   { content: '+'; }
@@ -182,189 +494,793 @@
             flex-grow: 1;
             position: relative;
             overflow: auto;
-            background-color: #FFFFFF;
+            background: rgba(254,254,255,0.94);
         }
 
-        .window.active {
-            z-index: 100;
-            box-shadow: 0 16px 56px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1);
-            border-color: rgba(0,0,0,0.14);
+        /* ── Home Dashboard Widget ──────────────────────────────────────── */
+        #home-widget {
+            position: absolute;
+            top: 20px; right: 20px;
+            width: 340px;
+            z-index: 500;
         }
 
-        /* File Explorer */
-        .file-explorer-container {
+        .hw-pill {
+            height: 42px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 22px;
+            padding: 0 18px;
+            cursor: pointer;
+            box-shadow: var(--glass-shadow);
             display: flex;
-            height: 100%;
-        }
-
-        .fe-sidebar {
-            width: 200px;
-            background-color: #F5F5F7;
-            border-right: 1px solid rgba(0,0,0,0.08);
-            overflow-y: auto;
-        }
-
-        .fe-content {
-            flex-grow: 1;
-            padding: 10px;
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-            grid-auto-rows: 100px;
+            align-items: center;
             gap: 10px;
-            align-content: start;
-            background: #FFFFFF;
+            font-size: 13px;
+            transition: box-shadow 0.18s ease-out, background 0.18s ease-out;
+        }
+        .hw-pill:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.09);
+            background: rgba(255,255,255,0.82);
         }
 
-        .fe-item {
+        /* Breathing status indicator */
+        .hw-status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            flex-shrink: 0;
+            animation: breathe 3s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.6; transform: scale(1);    }
+            50%       { opacity: 1;   transform: scale(1.18); }
+        }
+
+        .hw-pill-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 13px;
+            letter-spacing: -0.01em;
+        }
+        .hw-pill-sub {
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+        .hw-pill-chevron {
+            margin-left: auto;
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+        .hw-pill.expanded .hw-pill-chevron { transform: rotate(180deg); }
+
+        .hw-expanded {
+            margin-top: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--r-card);
+            box-shadow: var(--shadow-2);
+            overflow: hidden;
+            animation: expandWidget 0.2s ease-out;
+        }
+        @keyframes expandWidget {
+            from { transform: scale(0.97) translateY(-6px); opacity: 0; }
+            to   { transform: scale(1)    translateY(0);    opacity: 1; }
+        }
+
+        .hw-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .hw-section:last-child { border-bottom: none; }
+
+        .hw-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 12px;
+        }
+        .hw-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .hw-row:last-child { margin-bottom: 0; }
+        .hw-row .hw-val {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Budget bar */
+        .hw-budget-track {
+            height: 5px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .hw-budget-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: var(--accent);
+            opacity: 0.65;
+            transition: width 0.45s ease;
+        }
+
+        /* Arc gauge */
+        .hw-gauge-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 0 8px;
+        }
+        .hw-gauge-label {
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Quick-launch buttons */
+        .hw-qa-row { display: flex; gap: 8px; }
+        .hw-qa-btn {
+            flex: 1;
+            padding: 8px 6px;
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(0,0,0,0.07);
+            border-radius: var(--r-btn);
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-align: center;
+            transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
+        }
+        .hw-qa-btn:hover {
+            background: rgba(37,99,235,0.06);
+            color: var(--accent);
+            border-color: rgba(37,99,235,0.14);
+        }
+
+        /* ── Command Palette ────────────────────────────────────────────── */
+        #cmd-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.16);
+            backdrop-filter: blur(10px) saturate(130%);
+            -webkit-backdrop-filter: blur(10px) saturate(130%);
+            z-index: 9000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 100px;
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out;
+            pointer-events: none;
+        }
+        #cmd-overlay.open { opacity: 1; pointer-events: all; }
+
+        #cmd-palette {
+            width: 100%;
+            max-width: 580px;
+            background: rgba(252,253,255,0.91);
+            backdrop-filter: blur(32px) saturate(160%);
+            -webkit-backdrop-filter: blur(32px) saturate(160%);
+            border: 1px solid rgba(255,255,255,0.92);
+            border-radius: 20px;
+            box-shadow: 0 32px 72px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
+            overflow: hidden;
+            transform: scale(0.95) translateY(-10px);
+            transition: transform 0.16s ease-in-out;
+        }
+        #cmd-overlay.open #cmd-palette { transform: scale(1) translateY(0); }
+
+        #cmd-input {
+            width: 100%;
+            padding: 17px 22px;
+            font-size: 15px;
+            border: none !important;
+            border-bottom: 1px solid rgba(0,0,0,0.055) !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            outline: none !important;
+            box-shadow: none !important;
+            letter-spacing: -0.01em;
+        }
+        #cmd-input::placeholder { color: var(--text-muted); font-weight: 400; }
+
+        #cmd-results { max-height: 340px; overflow-y: auto; padding: 8px 0; }
+
+        .cmd-section-label {
+            padding: 8px 22px 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+        .cmd-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 22px;
+            cursor: pointer;
+            font-size: 13.5px;
+            color: var(--text-primary);
+            transition: background 0.1s ease;
+        }
+        .cmd-item:hover, .cmd-item.selected {
+            background: rgba(37,99,235,0.055);
+            color: var(--accent);
+        }
+        .cmd-item .cmd-icon { width: 22px; text-align: center; flex-shrink: 0; font-size: 16px; }
+        .cmd-item .cmd-meta { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+        .cmd-footer {
+            padding: 9px 22px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 16px;
+        }
+        .cmd-footer kbd {
+            font-family: inherit;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 10px;
+            border: 1px solid rgba(0,0,0,0.07);
+        }
+
+        /* ── File Explorer ──────────────────────────────────────────────── */
+        .file-explorer-container { display: flex; height: 100%; }
+        .fe-sidebar { width: 180px; background: rgba(248,250,253,0.82); border-right: 1px solid rgba(0,0,0,0.05); overflow-y: auto; }
+        .fe-content { flex-grow: 1; padding: 12px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); grid-auto-rows: 100px; gap: 8px; align-content: start; background: rgba(255,255,255,0.6); }
+        .fe-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; border-radius: 10px; cursor: pointer; transition: background 0.15s ease; }
+        .fe-item:hover { background: rgba(37,99,235,0.055); }
+        .fe-icon { font-size: 30px; margin-bottom: 4px; }
+        .fe-name { font-size: 11px; text-align: center; word-break: break-word; color: var(--text-primary); }
+
+        /* ── Graph ──────────────────────────────────────────────────────── */
+        #graph-svg { width: 100%; height: 100%; }
+
+        /* ── Global Inputs ──────────────────────────────────────────────── */
+        input, textarea, select {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
+            background: rgba(255,255,255,0.85) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid rgba(0,0,0,0.09) !important;
+            border-radius: 8px !important;
+            outline: none !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: rgba(37,99,235,0.28) !important;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.07) !important;
+            background: rgba(255,255,255,0.97) !important;
+        }
+
+        /* ── Scrollbar ──────────────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.11); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.20); }
+
+        /* ── Utility ────────────────────────────────────────────────────── */
+        .tooltip {
+            position: absolute;
+            background: rgba(15,20,32,0.86);
+            padding: 5px 9px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+            pointer-events: none;
+            z-index: 9999;
+            color: rgba(255,255,255,0.92);
+            backdrop-filter: blur(8px);
+        }
+
+        /* ── Layer 2: Primitive Classes ─────────────────────────────────────── */
+
+        /* Base glass surface — combine with a layout class */
+        .glass-surface {
+            background: var(--gl-bg);
+            backdrop-filter: var(--gl-blur);
+            -webkit-backdrop-filter: var(--gl-blur);
+            border: 1px solid var(--gl-border);
+        }
+
+        /* Panel — glass + rounded + shadow-2 + padding */
+        .glass-panel {
+            background: var(--gl-bg);
+            backdrop-filter: var(--gl-blur);
+            -webkit-backdrop-filter: var(--gl-blur);
+            border: 1px solid var(--gl-border);
+            border-radius: var(--r-panel);
+            box-shadow: var(--sh-2);
+            padding: var(--sp-6);
+        }
+
+        /* Window — heavier glass + window radius + shadow-3 */
+        .glass-window {
+            background: rgba(252,253,255,0.76);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: var(--r-window);
+            box-shadow: var(--sh-3), inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+
+        /* Dock strip — glass + 26px radius + shadow-2 */
+        .glass-dock {
+            background: var(--gl-bg);
+            backdrop-filter: var(--gl-blur);
+            -webkit-backdrop-filter: var(--gl-blur);
+            border: 1px solid var(--gl-border);
+            border-radius: 26px;
+            box-shadow: var(--sh-2);
+        }
+
+        /* Pill — rounded, inset highlight — for search bar and status chips */
+        .glass-pill {
+            background: rgba(255,255,255,0.82);
+            border: 1px solid rgba(0,0,0,0.07);
+            border-radius: var(--r-pill);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.9);
+        }
+
+        /* Icon tile — 40×40 interactive icon with hover lift, tooltip, running dot */
+        .icon-tile {
+            width: 40px; height: 40px;
+            border-radius: var(--r-dock-item);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            color: var(--c-text-2);
+            transition:
+                transform var(--dur-base) var(--ease-out),
+                background var(--dur-base) ease-out,
+                box-shadow var(--dur-base) ease-out,
+                color var(--dur-base) ease-out;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .icon-tile:hover {
+            transform: scale(1.13);
+            background: rgba(255,255,255,0.75);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.09);
+            color: var(--c-text-1);
+        }
+        .icon-tile.running {
+            background: rgba(37,99,235,0.07);
+            color: var(--c-accent);
+        }
+        .icon-tile.running:hover { background: rgba(37,99,235,0.12); }
+        /* Running dot */
+        .icon-tile.running::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--c-accent);
+            opacity: 0.85;
+        }
+        /* Tooltip */
+        .icon-tile::before {
+            content: attr(data-tip);
+            position: absolute;
+            left: calc(100% + 14px);
+            top: 50%; transform: translateY(-50%);
+            background: rgba(15,20,32,0.86);
+            color: rgba(255,255,255,0.93);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: var(--fs-sm); font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none; opacity: 0;
+            transition: opacity 0.12s ease;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            letter-spacing: -0.01em;
+        }
+        .icon-tile:hover::before { opacity: 1; }
+        /* SVG icons inside icon-tile */
+        .icon-tile svg {
+            width: 20px; height: 20px;
+            fill: none; stroke: currentColor;
+            stroke-width: 1.65;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        /* Status dot with breathing animation */
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: breathe var(--dur-breathe) ease-in-out infinite;
+        }
+        .status-dot.success { background: var(--c-success); }
+        .status-dot.warning { background: var(--c-warning); }
+        .status-dot.error   { background: var(--c-error);   }
+
+        /* Hairline divider */
+        .divider {
+            height: 1px;
+            background: rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        /* KPI mini — small vertical label+value pair */
+        .kpi-mini {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .kpi-mini .kpi-val {
+            font-size: var(--fs-md);
+            font-weight: 600;
+            color: var(--c-text-1);
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .kpi-mini .kpi-lbl {
+            font-size: var(--fs-2xs);
+            color: var(--c-text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        /* Toast notification */
+        .toast {
+            background: var(--gl-bg);
+            backdrop-filter: var(--gl-blur);
+            -webkit-backdrop-filter: var(--gl-blur);
+            border: 1px solid var(--gl-border);
+            border-radius: var(--r-card);
+            box-shadow: var(--sh-3);
+            padding: 12px 18px;
+            font-size: var(--fs-base);
+            color: var(--c-text-1);
+            display: flex; align-items: center; gap: 10px;
+            min-width: 220px; max-width: 340px;
+            animation: toastIn var(--dur-base) var(--ease-out);
+        }
+        .toast.success .toast-dot { background: var(--c-success); }
+        .toast.warning .toast-dot { background: var(--c-warning); }
+        .toast.error   .toast-dot { background: var(--c-error);   }
+        .toast-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        @keyframes toastIn {
+            from { transform: translateX(24px); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+
+        /* Toast container */
+        #toast-region {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 8px;
+            z-index: var(--z-toast);
+            pointer-events: none;
+        }
+
+        /* ── AI Chat Overlay ─────────────────────────────────────────────── */
+        #ai-chat-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(8,10,18,0.12);
+            backdrop-filter: blur(12px) saturate(130%);
+            -webkit-backdrop-filter: blur(12px) saturate(130%);
+            z-index: 8500;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 54px;
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            pointer-events: none;
+        }
+        #ai-chat-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        #ai-chat-panel {
+            width: 100%;
+            max-width: 680px;
+            height: 530px;
+            background: rgba(252,253,255,0.92);
+            backdrop-filter: blur(36px) saturate(170%);
+            -webkit-backdrop-filter: blur(36px) saturate(170%);
+            border: 1px solid rgba(255,255,255,0.95);
+            border-radius: 24px;
+            box-shadow: var(--sh-3), inset 0 1px 0 rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.98) translateY(-8px);
+            transition: transform 0.12s var(--ease-out);
+        }
+        #ai-chat-overlay.open #ai-chat-panel {
+            transform: scale(1) translateY(0);
+        }
+        .ai-chat-header {
+            height: 46px;
+            background: rgba(248,250,253,0.80);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .ai-chat-header-inner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ai-chat-badge {
+            width: 20px; height: 20px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(99,102,241,0.30);
+        }
+        .ai-chat-badge svg {
+            width: 11px; height: 11px;
+            fill: rgba(255,255,255,0.92);
+            stroke: none;
+        }
+        .ai-chat-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--c-text-2);
+            letter-spacing: -0.01em;
+        }
+        .ai-chat-close {
+            position: absolute;
+            left: 14px;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.05);
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            color: var(--c-text-3);
+            line-height: 1;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+        .ai-chat-close:hover {
+            background: rgba(220,50,50,0.10);
+            color: var(--c-error);
+        }
+        #ai-chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        /* Empty state */
+        .ai-chat-empty {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 5px;
-            border-radius: 6px;
-            cursor: pointer;
+            gap: 10px;
+            opacity: 0.45;
         }
-
-        .fe-item:hover {
-            background-color: rgba(0,0,0,0.05);
+        .ai-chat-empty-icon {
+            width: 36px; height: 36px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            display: flex; align-items: center; justify-content: center;
         }
-
-        .fe-icon {
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-
-        .fe-name {
-            font-size: 12px;
+        .ai-chat-empty-icon svg { width: 18px; height: 18px; fill: white; stroke: none; }
+        .ai-chat-empty p {
+            font-size: 13px;
+            color: var(--c-text-3);
             text-align: center;
-            word-break: break-word;
-            color: #1D1D1F;
+            line-height: 1.5;
         }
-
-        /* Graph */
-        #graph-svg { width: 100%; height: 100%; }
-
-        /* Taskbar / macOS Dock */
-        #taskbar {
-            position: fixed;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: auto;
-            height: auto;
-            background: rgba(255,255,255,0.65);
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
-            padding: 8px 12px;
+        /* Message rows */
+        .ai-msg-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .ai-msg-row.user { flex-direction: row-reverse; }
+        .ai-msg-avatar {
+            width: 26px; height: 26px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 600;
+        }
+        .ai-msg-row.assistant .ai-msg-avatar {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            color: white;
+            box-shadow: 0 2px 6px rgba(99,102,241,0.25);
+        }
+        .ai-msg-row.user .ai-msg-avatar {
+            background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+            color: white;
+            box-shadow: 0 2px 6px rgba(59,130,246,0.22);
+        }
+        .ai-msg-bubble {
+            max-width: 72%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13.5px;
+            line-height: 1.58;
+            color: var(--c-text-1);
+            word-wrap: break-word;
+        }
+        .ai-msg-row.assistant .ai-msg-bubble {
+            background: rgba(255,255,255,0.90);
+            border: 1px solid rgba(0,0,0,0.05);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .ai-msg-row.user .ai-msg-bubble {
+            background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+            color: rgba(255,255,255,0.95);
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.28);
+            font-weight: 400;
+        }
+        /* Thinking indicator */
+        .ai-msg-thinking {
+            display: flex;
+            align-items: center;
             gap: 4px;
-            display: flex;
-            align-items: center;
-            z-index: 1000;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.90);
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-
-        .taskbar-item {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s;
-            position: relative;
-        }
-
-        .taskbar-item:hover {
-            background-color: rgba(0,0,0,0.07);
-        }
-
-        .taskbar-item.running::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 4px;
-            height: 4px;
+        .ai-msg-thinking span {
+            width: 5px; height: 5px;
             border-radius: 50%;
-            background-color: rgba(0,0,0,0.5);
+            background: var(--c-text-3);
+            animation: thinkDot 1.2s ease-in-out infinite;
         }
-
-        /* Dock tooltip */
-        .taskbar-item::before {
-            content: attr(title);
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(30,30,30,0.88);
-            color: rgba(255,255,255,0.95);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 500;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.15s;
+        .ai-msg-thinking span:nth-child(2) { animation-delay: 0.18s; }
+        .ai-msg-thinking span:nth-child(3) { animation-delay: 0.36s; }
+        @keyframes thinkDot {
+            0%, 100% { opacity: 0.28; transform: scale(0.8);  }
+            50%       { opacity: 1;   transform: scale(1.12); }
         }
-
-        .taskbar-item:hover::before { opacity: 1; }
-
-        .taskbar-icon {
-            font-size: 26px;
-            transition: transform 0.15s ease;
-            transform-origin: bottom center;
+        /* Input bar */
+        .ai-chat-input-bar {
+            padding: 10px 14px 14px;
+            border-top: 1px solid rgba(0,0,0,0.04);
+            background: rgba(249,250,252,0.88);
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
         }
-
-        /* Global input overrides */
-        input, textarea, select {
-            font-family: 'Inter', -apple-system, sans-serif !important;
-            background: #FFFFFF !important;
-            color: #1D1D1F !important;
-            border: 1px solid rgba(0,0,0,0.12) !important;
-            border-radius: 6px !important;
+        #ai-chat-input {
+            flex-grow: 1;
+            resize: none;
+            border: none !important;
+            background: transparent !important;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--c-text-1) !important;
             outline: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            max-height: 120px;
+            min-height: 22px;
+            overflow-y: auto;
+            padding: 4px 0 !important;
+            font-family: inherit;
+            font-weight: 300;
         }
-
-        input:focus, textarea:focus, select:focus {
-            border-color: rgba(0,122,255,0.4) !important;
-            box-shadow: 0 0 0 3px rgba(0,122,255,0.1) !important;
+        #ai-chat-input::placeholder { color: var(--c-text-3) !important; font-weight: 300; }
+        #ai-chat-send {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F8EF7 0%, #6366F1 100%);
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-size: 17px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.32);
+            line-height: 1;
         }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 6px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28); }
-
-        /* Tooltip */
-        .tooltip {
-            position: absolute;
-            background: rgba(30,30,30,0.88);
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            display: none;
-            pointer-events: none;
-            z-index: 2000;
-            color: rgba(255,255,255,0.95);
+        #ai-chat-send:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 18px rgba(99,102,241,0.42);
         }
+        #ai-chat-send:active { transform: scale(0.93); }
+        #ai-chat-send:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+        /* Legacy — keep existing app code intact */
+        .taskbar-item { display: none; }
     </style>
 </head>
 
 <body>
 
+    <div id="top-bar"></div>
+    <div id="dock"></div>
     <div id="desktop">
-        <!-- Icons generated by JS -->
+        <div id="home-widget"></div>
     </div>
+    <div id="cmd-overlay">
+        <div id="cmd-palette">
+            <input id="cmd-input" type="text" placeholder="Search apps, commands…" autocomplete="off" spellcheck="false">
+            <div id="cmd-results"></div>
+            <div class="cmd-footer">
+                <span><kbd>↑↓</kbd> navigate</span>
+                <span><kbd>↵</kbd> open</span>
+                <span><kbd>Esc</kbd> close</span>
+            </div>
+        </div>
+    </div>
+    <div id="notif-panel">
+        <div style="padding:14px 16px; border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="font-size:13px; font-weight:600; color:var(--text-primary);">Notifications</div>
+        </div>
+        <div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No new notifications</div>
+    </div>
+    <!-- legacy taskbar element — kept so old references don't throw -->
+    <div id="taskbar" style="display:none;"></div>
+    <!-- Toast notification region -->
+    <div id="toast-region"></div>
 
-    <div id="taskbar">
-        <!-- Taskbar items generated by JS -->
+    <!-- AI Chat Overlay — primary conversational entry point -->
+    <div id="ai-chat-overlay">
+        <div id="ai-chat-panel">
+            <div class="ai-chat-header">
+                <div class="ai-chat-header-inner">
+                    <div class="ai-chat-badge">
+                        <svg viewBox="0 0 14 14"><path d="M7 1L8.1 5.6 13 7 8.1 8.4 7 13 5.9 8.4 1 7 5.9 5.6Z"/></svg>
+                    </div>
+                    <span class="ai-chat-title">AI Assistant</span>
+                </div>
+                <button class="ai-chat-close" id="ai-chat-close-btn">×</button>
+            </div>
+            <div id="ai-chat-messages">
+                <div class="ai-chat-empty" id="ai-chat-empty">
+                    <div class="ai-chat-empty-icon">
+                        <svg viewBox="0 0 14 14"><path d="M7 1L8.1 5.6 13 7 8.1 8.4 7 13 5.9 8.4 1 7 5.9 5.6Z"/></svg>
+                    </div>
+                    <p>The system is listening.<br>Ask me anything.</p>
+                </div>
+            </div>
+            <div class="ai-chat-input-bar">
+                <textarea id="ai-chat-input" placeholder="Ask me anything…" rows="1" autocomplete="off" spellcheck="false"></textarea>
+                <button id="ai-chat-send" title="Send (↵)">↑</button>
+            </div>
+        </div>
     </div>
 
     <!-- Templates for Window Content -->
@@ -950,7 +1866,7 @@
     <script>
         // --- System State ---
         let windows = [];
-        let highestZ = 100;
+        let highestZ = 600; // start above home-widget z-index (500)
         let activeWindow = null;
 
         const apps = {
@@ -1082,73 +1998,450 @@
             { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: 'Meta\'s previous open LLM' },
         ];
 
-        // --- Desktop & Taskbar ---
-        function initDesktop() {
-            const desktop = document.getElementById('desktop');
-            const taskbar = document.getElementById('taskbar');
+        // --- Shell Functions ---
 
-            // Sort apps alphabetically by name
-            const sortedApps = Object.values(apps).sort((a, b) => a.name.localeCompare(b.name));
+        function renderTopBar() {
+            const bar = document.getElementById('top-bar');
+            bar.innerHTML = `
+                <div class="tb-left">
+                    <div class="tb-time" id="tb-time">--:--</div>
+                    <div class="tb-date" id="tb-date">---</div>
+                </div>
 
-            // Render Desktop Icons
-            sortedApps.forEach(app => {
-                const icon = document.createElement('div');
-                icon.className = 'desktop-icon';
-                icon.innerHTML = `
-                    <div class="icon-img">${app.icon}</div>
-                    <div class="icon-label">${app.name}</div>
+                <div class="ai-cmd-pill" id="ai-cmd-pill" title="Ask AI anything">
+                    <div class="ai-cmd-dot"></div>
+                    <span class="ai-cmd-label">Ask me anything…</span>
+                </div>
+
+                <div class="tb-right">
+                    <div class="tb-icon-btn tb-notif-btn" title="Notifications">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <div class="notif-dot"></div>
+                    </div>
+                    <div class="tb-avatar" title="Agent OS">A</div>
+                </div>
+            `;
+
+            // Live clock
+            function tick() {
+                const now = new Date();
+                const h = now.getHours().toString().padStart(2, '0');
+                const m = now.getMinutes().toString().padStart(2, '0');
+                const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const el = document.getElementById('tb-time');
+                const elD = document.getElementById('tb-date');
+                if (el) el.textContent = `${h}:${m}`;
+                if (elD) elD.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+            }
+            tick();
+            setInterval(tick, 15000);
+        }
+
+        function renderHomeWidget() {
+            const hw = document.getElementById('home-widget');
+            hw.innerHTML = `
+                <div class="hw-pill" id="hw-pill-toggle">
+                    <div class="hw-status-dot status-dot success"></div>
+                    <span class="hw-pill-title">AI Core</span>
+                    <span class="hw-pill-sub" id="hw-pill-status">· Stable · Budget —% · Pass —%</span>
+                    <span class="hw-pill-chevron">▾</span>
+                </div>
+                <div class="hw-expanded" id="hw-body" style="display:none;">
+                    <div class="hw-section">
+                        <div class="hw-section-label">Autonomy</div>
+                        <div style="display:flex; justify-content:space-around; margin-bottom:14px;">
+                            <div class="kpi-mini">
+                                <span class="kpi-val" id="hw-wins">0</span>
+                                <span class="kpi-lbl">Windows</span>
+                            </div>
+                            <div class="kpi-mini">
+                                <span class="kpi-val" id="hw-runs">—</span>
+                                <span class="kpi-lbl">Runs</span>
+                            </div>
+                            <div class="kpi-mini">
+                                <span class="kpi-val" id="hw-latency">—</span>
+                                <span class="kpi-lbl">Latency</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--c-text-3); margin-bottom:4px;">
+                            <span>Budget</span>
+                            <span id="hw-cost">—</span>
+                        </div>
+                        <!-- Budget bar -->
+                        <div class="hw-budget-track">
+                            <div class="hw-budget-fill" id="hw-budget-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="hw-section">
+                        <div class="hw-section-label">Confidence</div>
+                        <div class="hw-gauge-wrap" id="hw-gauge-wrap">
+                            <!-- Arc gauge rendered by JS -->
+                        </div>
+                    </div>
+                    <div class="hw-section">
+                        <div class="hw-section-label">Quick Launch</div>
+                        <div class="hw-qa-row">
+                            <div class="hw-qa-btn" onclick="if(apps.chat&&apps.chat.action)apps.chat.action()">Chat</div>
+                            <div class="hw-qa-btn" onclick="if(apps.flow&&apps.flow.action)apps.flow.action()">Flow</div>
+                            <div class="hw-qa-btn" onclick="openCmdPalette()">⌘K</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const pill = document.getElementById('hw-pill-toggle');
+            const body = document.getElementById('hw-body');
+            let expanded = false;
+
+            pill.addEventListener('click', () => {
+                expanded = !expanded;
+                body.style.display = expanded ? 'block' : 'none';
+                pill.classList.toggle('expanded', expanded);
+            });
+
+            // Arc gauge renderer (half-circle, muted blue)
+            function renderArcGauge(pct) {
+                const R = 28, cx = 50, cy = 38;
+                const arcLen = Math.PI * R;
+                const filled = pct * arcLen;
+                const empty  = arcLen - filled;
+                // SVG arc path: M left-tip A R R 0 0 1 right-tip
+                const x1 = cx - R, x2 = cx + R;
+                return `
+                    <svg width="100" height="44" viewBox="0 0 100 44">
+                        <path d="M ${x1} ${cy} A ${R} ${R} 0 0 1 ${x2} ${cy}"
+                            fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="5.5" stroke-linecap="round"/>
+                        <path d="M ${x1} ${cy} A ${R} ${R} 0 0 1 ${x2} ${cy}"
+                            fill="none" stroke="rgba(37,99,235,0.45)" stroke-width="5.5" stroke-linecap="round"
+                            stroke-dasharray="${filled} ${empty}"
+                            style="transition:stroke-dasharray 0.45s ease"/>
+                        <text x="${cx}" y="${cy - 4}" text-anchor="middle"
+                            font-size="12" fill="#6B7280"
+                            font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+                            ${Math.round(pct * 100)}%
+                        </text>
+                    </svg>
+                    <span class="hw-gauge-label">Avg Rating</span>
                 `;
-                icon.onclick = () => app.action();
-                desktop.appendChild(icon);
-            });
+            }
 
-            // Render Taskbar (Dock style)
-            renderTaskbar();
+            // Budget cap (default $0.50 from server)
+            let budgetMax = 0.50;
+            fetch('/api/budget').then(r => r.json()).then(b => { budgetMax = b.maxCostUsdPerRun || 0.50; }).catch(() => {});
+
+            async function refreshWidgetStats() {
+                const winsEl   = document.getElementById('hw-wins');
+                const runsEl   = document.getElementById('hw-runs');
+                const latEl    = document.getElementById('hw-latency');
+                const costEl   = document.getElementById('hw-cost');
+                const barEl    = document.getElementById('hw-budget-bar');
+                const gaugeEl  = document.getElementById('hw-gauge-wrap');
+                const pillSub  = document.getElementById('hw-pill-status');
+
+                if (winsEl) winsEl.textContent = windows.length;
+
+                try {
+                    const r = await fetch('/api/telemetry/stats');
+                    if (!r.ok) return;
+                    const s = await r.json();
+
+                    if (runsEl)  runsEl.textContent  = s.total_runs ?? '—';
+                    if (latEl)   latEl.textContent   = s.avg_latency_ms ? `${Math.round(s.avg_latency_ms)}ms` : '—';
+                    if (costEl)  costEl.textContent  = s.total_cost_usd != null ? `$${s.total_cost_usd.toFixed(4)}` : '—';
+
+                    // Budget bar
+                    let budgetPct = 0;
+                    if (barEl) {
+                        budgetPct = Math.min(1, (s.total_cost_usd || 0) / budgetMax);
+                        barEl.style.width = (budgetPct * 100).toFixed(1) + '%';
+                        barEl.style.background = budgetPct > 0.85 ? 'var(--warning)' : 'var(--accent)';
+                    }
+
+                    // Arc gauge (avg_rating 0-5 → 0-1)
+                    let confPct = 0;
+                    if (gaugeEl) {
+                        confPct = s.avg_rating ? s.avg_rating / 5 : 0;
+                        gaugeEl.innerHTML = renderArcGauge(confPct);
+                    }
+
+                    // Update pill status line: "· Stable · Budget 48% · Pass 92%"
+                    if (pillSub) {
+                        const budStr  = s.total_cost_usd != null
+                            ? `Budget ${Math.round(budgetPct * 100)}%`
+                            : 'Budget —';
+                        const passStr = s.avg_rating != null
+                            ? `Pass ${Math.round(confPct * 100)}%`
+                            : 'Pass —';
+                        pillSub.textContent = `· Stable · ${budStr} · ${passStr}`;
+                    }
+                } catch {}
+            }
+
+            refreshWidgetStats();
+            setInterval(refreshWidgetStats, 12000);
         }
 
-        function renderTaskbar() {
-            const taskbar = document.getElementById('taskbar');
-            taskbar.innerHTML = '';
+        // cmd palette state
+        let _cmdIdx = -1;
 
-            const sortedApps = Object.values(apps).sort((a, b) => a.name.localeCompare(b.name));
+        function openCmdPalette() {
+            const overlay = document.getElementById('cmd-overlay');
+            const input   = document.getElementById('cmd-input');
+            overlay.classList.add('open');
+            input.value = '';
+            _cmdIdx = -1;
+            renderCmdResults('');
+            setTimeout(() => input.focus(), 50);
 
-            sortedApps.forEach(app => {
-                const item = document.createElement('div');
-                item.className = 'taskbar-item';
-                // Mark running if any window of this type is open (simplified)
-                const isRunning = windows.some(w => w.appId === app.id);
-                if (isRunning) item.classList.add('running');
+            input.oninput = () => { _cmdIdx = -1; renderCmdResults(input.value); };
+            input.onkeydown = (e) => {
+                const items = document.querySelectorAll('#cmd-results .cmd-item');
+                if (e.key === 'ArrowDown') { e.preventDefault(); _cmdIdx = Math.min(_cmdIdx + 1, items.length - 1); highlightCmd(items); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); _cmdIdx = Math.max(_cmdIdx - 1, 0); highlightCmd(items); }
+                else if (e.key === 'Enter') {
+                    const sel = items[_cmdIdx] || items[0];
+                    if (sel) { sel.click(); }
+                }
+            };
+        }
 
-                item.innerHTML = `<div class="taskbar-icon">${app.icon}</div>`;
-                item.onclick = () => app.action();
+        function closeCmdPalette() {
+            document.getElementById('cmd-overlay').classList.remove('open');
+        }
 
-                // Tooltip
-                item.title = app.name;
+        function highlightCmd(items) {
+            items.forEach((el, i) => el.classList.toggle('selected', i === _cmdIdx));
+            if (items[_cmdIdx]) items[_cmdIdx].scrollIntoView({ block: 'nearest' });
+        }
 
-                taskbar.appendChild(item);
+        function renderCmdResults(query) {
+            const results = document.getElementById('cmd-results');
+            const q = query.toLowerCase().trim();
+            const matched = Object.values(apps).filter(a =>
+                !q || a.name.toLowerCase().includes(q) || a.id.includes(q)
+            ).slice(0, 8);
+
+            if (!matched.length) {
+                results.innerHTML = `<div style="padding:16px 20px; color:var(--text-muted); font-size:13px;">No results</div>`;
+                return;
+            }
+
+            results.innerHTML = `<div class="cmd-section-label">Apps</div>` +
+                matched.map(a => `
+                    <div class="cmd-item" onclick="if(a_${a.id}_action)a_${a.id}_action(); closeCmdPalette();" data-app="${a.id}">
+                        <span class="cmd-icon">${a.icon}</span>
+                        <span>${a.name}</span>
+                        <span class="cmd-meta">app</span>
+                    </div>
+                `).join('');
+
+            // Wire up clicks properly
+            results.querySelectorAll('.cmd-item[data-app]').forEach(el => {
+                const appId = el.getAttribute('data-app');
+                el.onclick = () => {
+                    closeCmdPalette();
+                    const app = apps[appId];
+                    if (app && app.action) app.action();
+                };
             });
         }
+
+        // --- AI Chat Overlay ---
+        const _aiHistory = [];  // { role: 'user'|'assistant', content: string }
+
+        function openAIChatOverlay() {
+            const overlay = document.getElementById('ai-chat-overlay');
+            const input   = document.getElementById('ai-chat-input');
+            overlay.classList.add('open');
+            setTimeout(() => input && input.focus(), 80);
+        }
+
+        function closeAIChatOverlay() {
+            document.getElementById('ai-chat-overlay').classList.remove('open');
+        }
+
+        function _aiMsgRow(role, content) {
+            const row = document.createElement('div');
+            row.className = `ai-msg-row ${role}`;
+            const label = role === 'user' ? 'U' : '✦';
+            row.innerHTML = `
+                <div class="ai-msg-avatar">${label}</div>
+                <div class="ai-msg-bubble">${content.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+            `;
+            return row;
+        }
+
+        function _aiThinking() {
+            const row = document.createElement('div');
+            row.className = 'ai-msg-row assistant';
+            row.id = 'ai-thinking-row';
+            row.innerHTML = `
+                <div class="ai-msg-avatar">✦</div>
+                <div class="ai-msg-thinking">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+            return row;
+        }
+
+        async function sendAIMessage() {
+            const input   = document.getElementById('ai-chat-input');
+            const msgArea = document.getElementById('ai-chat-messages');
+            const sendBtn = document.getElementById('ai-chat-send');
+            const empty   = document.getElementById('ai-chat-empty');
+            const text    = input.value.trim();
+            if (!text) return;
+
+            // Remove empty state
+            if (empty) empty.remove();
+
+            // Append user bubble
+            input.value = '';
+            input.style.height = 'auto';
+            _aiHistory.push({ role: 'user', content: text });
+            msgArea.appendChild(_aiMsgRow('user', text));
+
+            // Thinking indicator
+            const thinking = _aiThinking();
+            msgArea.appendChild(thinking);
+            msgArea.scrollTop = msgArea.scrollHeight;
+
+            sendBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: text, sessionId: 'cmd-bar-session' })
+                });
+                const data = await res.json();
+                thinking.remove();
+
+                const reply = data.response || data.message || 'No response.';
+                _aiHistory.push({ role: 'assistant', content: reply });
+                msgArea.appendChild(_aiMsgRow('assistant', reply));
+            } catch (err) {
+                thinking.remove();
+                const errMsg = 'Connection error. Is the server running?';
+                msgArea.appendChild(_aiMsgRow('assistant', errMsg));
+            } finally {
+                sendBtn.disabled = false;
+                msgArea.scrollTop = msgArea.scrollHeight;
+                input.focus();
+            }
+        }
+
+        // --- Toast Utility ---
+        function showToast(message, type = 'success', duration = 3500) {
+            const region = document.getElementById('toast-region');
+            if (!region) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<div class="toast-dot"></div><span>${message}</span>`;
+            region.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(16px)';
+                setTimeout(() => toast.remove(), 320);
+            }, duration);
+        }
+
+        // --- Shell Init ---
+        function initDesktop() {
+            renderTopBar();
+            renderDock();
+            renderHomeWidget();
+        }
+
+        // Outline SVG icon set for the dock
+        const DOCK_SVG = {
+            'chat':          `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+            'flow':          `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+            'draw':          `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+            'video':         `<svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+            'model-manager': `<svg viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z"/></svg>`,
+            'search':        `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+            'rag':           `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+            'history':       `<svg viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>`,
+            'eval':          `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>`,
+            'computer':      `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+            'network':       `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="16" x2="19" y2="16"/><line x1="12" y1="16" x2="5" y2="16"/></svg>`,
+            'settings':      `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+        };
+
+        function renderDock() {
+            const dock = document.getElementById('dock');
+            dock.innerHTML = '';
+
+            // Primary apps shown in dock
+            const primaryIds = ['chat', 'flow', 'draw', 'video', 'model-manager', 'search', 'rag', 'history', 'eval'];
+            // Bottom utility apps
+            const bottomIds  = ['computer', 'network', 'settings'];
+
+            function makeItem(appId) {
+                const app = apps[appId];
+                if (!app) return null;
+                const isRunning = windows.some(w => w.appId === appId);
+                const el = document.createElement('div');
+                el.className = 'icon-tile' + (isRunning ? ' running' : '');
+                el.setAttribute('data-tip', app.name);
+                // Use SVG icon if available, else fall back to emoji
+                el.innerHTML = DOCK_SVG[appId] || `<span style="font-size:19px">${app.icon}</span>`;
+                el.onclick = () => { if (app.action) app.action(); };
+                return el;
+            }
+
+            primaryIds.forEach(id => {
+                const el = makeItem(id);
+                if (el) dock.appendChild(el);
+            });
+
+            // Separator
+            const sep = document.createElement('div');
+            sep.className = 'dock-sep';
+            dock.appendChild(sep);
+
+            // Spacer to push bottom items down
+            const spacer = document.createElement('div');
+            spacer.className = 'dock-spacer';
+            dock.appendChild(spacer);
+
+            bottomIds.forEach(id => {
+                const el = makeItem(id);
+                if (el) dock.appendChild(el);
+            });
+        }
+
+        // Keep old name as alias so any legacy call doesn't throw
+        function renderTaskbar() { renderDock(); }
 
         // --- Window Manager ---
         function createWindow(title, appId, width = 600, height = 400) {
             const id = 'win-' + Date.now();
+            const desktop = document.getElementById('desktop');
             const win = document.createElement('div');
             win.className = 'window active';
             win.id = id;
             win.style.width = width + 'px';
             win.style.height = height + 'px';
-            win.style.left = (50 + windows.length * 20) + 'px';
-            win.style.top = (50 + windows.length * 20) + 'px';
+            win.style.left = (20 + windows.length * 24) + 'px';
+            win.style.top  = (20 + windows.length * 24) + 'px';
             win.style.zIndex = ++highestZ;
 
             win.innerHTML = `
                 <div class="window-header" onmousedown="startDrag(event, '${id}')">
-                    <div class="window-title">${title}</div>
                     <div class="window-controls">
                         <button class="control-btn close-btn" onclick="closeWindow('${id}')"></button>
                         <button class="control-btn min-btn"></button>
                         <button class="control-btn max-btn"></button>
                     </div>
+                    <div class="window-title">${title}</div>
                 </div>
                 <div class="window-body" id="${id}-body"></div>
             `;
@@ -1156,12 +2449,12 @@
             // Focus management
             win.onmousedown = () => focusWindow(id);
 
-            document.body.appendChild(win);
+            desktop.appendChild(win);
 
             const winObj = { id, appId, element: win };
             windows.push(winObj);
             focusWindow(id);
-            renderTaskbar();
+            renderDock();
 
             return document.getElementById(`${id}-body`);
         }
@@ -1192,7 +2485,7 @@
         let draggedWin = null;
 
         function startDrag(e, id) {
-            if (e.target.closest('.window-controls')) return; // Don't drag if clicking buttons
+            if (e.target.closest('.window-controls')) return;
             isDragging = true;
             draggedWin = document.getElementById(id);
             const rect = draggedWin.getBoundingClientRect();
@@ -1203,8 +2496,9 @@
 
         window.onmousemove = (e) => {
             if (isDragging && draggedWin) {
-                draggedWin.style.left = (e.clientX - dragOffset.x) + 'px';
-                draggedWin.style.top = (e.clientY - dragOffset.y) + 'px';
+                const dr = document.getElementById('desktop').getBoundingClientRect();
+                draggedWin.style.left = (e.clientX - dragOffset.x - dr.left) + 'px';
+                draggedWin.style.top  = (e.clientY - dragOffset.y - dr.top)  + 'px';
             }
         }
 
@@ -4136,29 +5430,72 @@
             loadEval();
         }
 
-        // --- macOS Dock Magnification ---
-        (function initDockMagnification() {
-            const dock = document.getElementById('taskbar');
-            const BASE = 48, MAX = 64, RADIUS = 80;
+        // --- Shell Init ---
+        (function initShell() {
+            // Keyboard shortcuts
+            document.addEventListener('keydown', e => {
+                // ⌘K → command palette (app launcher)
+                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                    e.preventDefault();
+                    openCmdPalette();
+                }
+                // ESC → close whichever overlay is open (AI chat takes priority)
+                if (e.key === 'Escape') {
+                    const aiOpen = document.getElementById('ai-chat-overlay').classList.contains('open');
+                    if (aiOpen) { closeAIChatOverlay(); return; }
+                    closeCmdPalette();
+                }
+                // Space on AI chat input — auto-resize
+            });
 
-            function update(mouseX) {
-                dock.querySelectorAll('.taskbar-item').forEach(item => {
-                    const cx = item.getBoundingClientRect().left + item.offsetWidth / 2;
-                    const d = Math.abs(mouseX - cx);
-                    const scale = d < RADIUS
-                        ? 1 + ((MAX - BASE) / BASE) * Math.pow(1 - d / RADIUS, 1.5)
-                        : 1;
-                    const icon = item.querySelector('.taskbar-icon');
-                    if (icon) {
-                        icon.style.transform = `scale(${scale.toFixed(3)})`;
-                        icon.style.transformOrigin = 'bottom center';
-                    }
-                });
-            }
+            // Close cmd palette on its overlay click
+            document.getElementById('cmd-overlay').addEventListener('click', e => {
+                if (e.target === document.getElementById('cmd-overlay')) closeCmdPalette();
+            });
 
-            dock.addEventListener('mousemove', e => update(e.clientX));
-            dock.addEventListener('mouseleave', () =>
-                dock.querySelectorAll('.taskbar-icon').forEach(i => i.style.transform = 'scale(1)'));
+            // AI Command Pill → open AI Chat Overlay (NOT search)
+            document.getElementById('top-bar').addEventListener('click', e => {
+                if (e.target.closest('.ai-cmd-pill')) openAIChatOverlay();
+            });
+
+            // Notification bell toggle
+            document.getElementById('top-bar').addEventListener('click', e => {
+                if (e.target.closest('.tb-notif-btn')) {
+                    document.getElementById('notif-panel').classList.toggle('open');
+                }
+            });
+
+            // Close AI Chat Overlay on backdrop click
+            document.getElementById('ai-chat-overlay').addEventListener('click', e => {
+                if (e.target === document.getElementById('ai-chat-overlay')) closeAIChatOverlay();
+            });
+
+            // AI Chat close button
+            document.getElementById('ai-chat-close-btn').addEventListener('click', closeAIChatOverlay);
+
+            // AI Chat send button
+            document.getElementById('ai-chat-send').addEventListener('click', sendAIMessage);
+
+            // AI Chat input — Enter to send, Shift+Enter for newline; auto-resize
+            document.getElementById('ai-chat-input').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAIMessage();
+                }
+            });
+            document.getElementById('ai-chat-input').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Click outside notif panel to close
+            document.addEventListener('click', e => {
+                const panel = document.getElementById('notif-panel');
+                const bell  = document.querySelector('.tb-notif-btn');
+                if (!panel.contains(e.target) && !(bell && bell.contains(e.target))) {
+                    panel.classList.remove('open');
+                }
+            }, true);
         })();
 
     </script>
