@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - `package.json` has `"repository": "github:CarbonSiliconAI/aios"` so electron-updater finds releases.
-- GitHub repo with **Secrets** → `GH_TOKEN`: a Personal Access Token with `repo` scope (for publishing to GitHub Releases).
+- **No secret needed**: the workflow uses GitHub’s built-in `GITHUB_TOKEN` with `contents: write` to publish releases.
 - Tag push triggers the workflow.
 
 ## Stable release

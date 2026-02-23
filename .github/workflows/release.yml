@@ -6,6 +6,9 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-beta.*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -36,20 +39,20 @@ jobs:
       - name: Build and publish (mac)
         if: matrix.platform == 'mac'
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --mac --publish always
 
       - name: Build and publish (win)
         if: matrix.platform == 'win'
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always
 
       - name: Mark release as prerelease (beta tags)
         if: contains(github.ref, '-beta')
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" -o release.json

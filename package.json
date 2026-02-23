@@ -19,7 +19,6 @@
   "repository": "github:CarbonSiliconAI/aios",
   "type": "commonjs",
   "dependencies": {
-    "@lancedb/vectordb-darwin-arm64": "^0.21.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/fs-extra": "^11.0.4",
@@ -52,7 +51,9 @@
       "package.json"
     ],
     "publish": [
-      { "provider": "github" }
+      {
+        "provider": "github"
+      }
     ],
     "mac": {
       "target": [
@@ -65,7 +66,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -73,5 +76,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
+  },
+  "optionalDependencies": {
+    "@lancedb/vectordb-darwin-arm64": "^0.21.2"
   }
 }
