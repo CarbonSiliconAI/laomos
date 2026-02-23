@@ -3366,6 +3366,11 @@
                         onclick="switchSettingsTab('models')">
                         Models
                     </div>
+                    <div id="settings-tab-keys"
+                        style="padding:8px 10px; background:transparent; color:#1D1D1F; border-radius:6px; font-weight:500; font-size:13px; cursor:pointer;"
+                        onclick="switchSettingsTab('keys')">
+                        API Keys
+                    </div>
                 </div>
 
                 <!-- Main Content (Permissions) -->
@@ -3423,6 +3428,113 @@
 
                             <div style="color:rgba(0,0,0,0.5);">Free Memory</div>
                             <div id="settings-hw-mem-free">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content (API Keys) -->
+                <div id="settings-pane-keys" style="flex:1; padding:20px; overflow-y:auto; display:none;">
+                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">LLM API Keys
+                    </h4>
+                    <p style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:20px;">
+                        Configure API keys for external cloud providers below to unlock advanced AI capabilities.
+                    </p>
+
+                    <div style="display:flex; flex-direction:column; gap:10px;" id="settings-keys-list">
+                        <!-- API Key Rows -->
+                        <div class="api-key-row" data-provider="openai"
+                            style="padding:15px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:8px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">OpenAI</div>
+                                <a href="#"
+                                    onclick="systemOpenExternal('https://platform.openai.com/api-keys'); return false;"
+                                    style="font-size:11px; color:#007AFF; text-decoration:none;">Get Key ↗</a>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                                <input type="password" class="key-input" placeholder="sk-proj-..."
+                                    style="flex:1; padding:6px 10px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; font-family:monospace;">
+                            </div>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <button class="btn-save"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Save</button>
+                                <button class="btn-verify"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">Verify</button>
+                                <button class="btn-delete"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:transparent; color:#FF3B30; border:none; border-radius:6px; margin-left:auto;">Delete</button>
+                            </div>
+                            <div class="key-status" style="font-size:11px; margin-top:8px;"></div>
+                        </div>
+
+                        <div class="api-key-row" data-provider="anthropic"
+                            style="padding:15px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:8px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">Anthropic (Claude)</div>
+                                <a href="#"
+                                    onclick="systemOpenExternal('https://console.anthropic.com/settings/keys'); return false;"
+                                    style="font-size:11px; color:#007AFF; text-decoration:none;">Get Key ↗</a>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                                <input type="password" class="key-input" placeholder="sk-ant-..."
+                                    style="flex:1; padding:6px 10px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; font-family:monospace;">
+                            </div>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <button class="btn-save"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Save</button>
+                                <button class="btn-verify"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">Verify</button>
+                                <button class="btn-delete"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:transparent; color:#FF3B30; border:none; border-radius:6px; margin-left:auto;">Delete</button>
+                            </div>
+                            <div class="key-status" style="font-size:11px; margin-top:8px;"></div>
+                        </div>
+
+                        <div class="api-key-row" data-provider="google"
+                            style="padding:15px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:8px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">Google (Gemini)</div>
+                                <a href="#"
+                                    onclick="systemOpenExternal('https://aistudio.google.com/app/apikey'); return false;"
+                                    style="font-size:11px; color:#007AFF; text-decoration:none;">Get Key ↗</a>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                                <input type="password" class="key-input" placeholder="AIzaSy..."
+                                    style="flex:1; padding:6px 10px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; font-family:monospace;">
+                            </div>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <button class="btn-save"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Save</button>
+                                <button class="btn-verify"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">Verify</button>
+                                <button class="btn-delete"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:transparent; color:#FF3B30; border:none; border-radius:6px; margin-left:auto;">Delete</button>
+                            </div>
+                            <div class="key-status" style="font-size:11px; margin-top:8px;"></div>
+                        </div>
+
+                        <div class="api-key-row" data-provider="xai"
+                            style="padding:15px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:8px;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">xAI (Grok)</div>
+                                <a href="#" onclick="systemOpenExternal('https://console.x.ai'); return false;"
+                                    style="font-size:11px; color:#007AFF; text-decoration:none;">Get Key ↗</a>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                                <input type="password" class="key-input" placeholder="xai-..."
+                                    style="flex:1; padding:6px 10px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; font-family:monospace;">
+                            </div>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <button class="btn-save"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px;">Save</button>
+                                <button class="btn-verify"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">Verify</button>
+                                <button class="btn-delete"
+                                    style="padding:4px 12px; font-size:11px; cursor:pointer; background:transparent; color:#FF3B30; border:none; border-radius:6px; margin-left:auto;">Delete</button>
+                            </div>
+                            <div class="key-status" style="font-size:11px; margin-top:8px;"></div>
                         </div>
                     </div>
                 </div>
@@ -6471,19 +6583,21 @@
             const tabPerms = win.querySelector('#settings-tab-permissions');
             const tabHw = win.querySelector('#settings-tab-hardware');
             const tabModels = win.querySelector('#settings-tab-models');
+            const tabKeys = win.querySelector('#settings-tab-keys');
 
             const panePerms = win.querySelector('#settings-pane-permissions');
             const paneHw = win.querySelector('#settings-pane-hardware');
             const paneModels = win.querySelector('#settings-pane-models');
+            const paneKeys = win.querySelector('#settings-pane-keys');
 
             function resetTabs() {
-                [tabPerms, tabHw, tabModels].forEach(t => {
+                [tabPerms, tabHw, tabModels, tabKeys].forEach(t => {
                     if (!t) return;
                     t.style.background = 'transparent';
                     t.style.color = '#1D1D1F';
                     t.style.fontWeight = '500';
                 });
-                [panePerms, paneHw, paneModels].forEach(p => {
+                [panePerms, paneHw, paneModels, paneKeys].forEach(p => {
                     if (p) p.style.display = 'none';
                 });
             }
@@ -6503,6 +6617,12 @@
                     tabModels.style.color = '#FFFFFF';
                     tabModels.style.fontWeight = '600';
                     paneModels.style.display = 'block';
+                } else if (tabName === 'keys') {
+                    tabKeys.style.background = '#1D1D1F';
+                    tabKeys.style.color = '#FFFFFF';
+                    tabKeys.style.fontWeight = '600';
+                    paneKeys.style.display = 'block';
+                    loadStoredKeys();
                 } else {
                     // Default to permissions
                     tabPerms.style.background = '#1D1D1F';
@@ -6516,6 +6636,7 @@
             tabPerms.onclick = () => win.switchSettingsTab('permissions');
             tabHw.onclick = () => win.switchSettingsTab('hardware');
             tabModels.onclick = () => win.switchSettingsTab('models');
+            tabKeys.onclick = () => win.switchSettingsTab('keys');
 
             let hwLoaded = false;
             async function loadHardwareSpecs() {
@@ -6669,6 +6790,131 @@
 
             // Kick off hardware-aware render immediately on Settings load
             loadOfflineModelRecommendations();
+
+            // ── API Keys logic ──────────────────────────────────────────────
+            let keysLoaded = false;
+            async function loadStoredKeys() {
+                if (keysLoaded) return;
+                try {
+                    const res = await fetch('/api/keys');
+                    if (res.ok) {
+                        const savedKeys = await res.json();
+                        bindKeyRowActions(savedKeys);
+                    }
+                    keysLoaded = true;
+                } catch (e) {
+                    console.error("Failed to load saved API keys:", e);
+                }
+            }
+
+            function bindKeyRowActions(savedKeys) {
+                const keyRows = win.querySelectorAll('.api-key-row');
+                keyRows.forEach(row => {
+                    const provider = row.getAttribute('data-provider');
+                    const inputEl = row.querySelector('.key-input');
+                    const btnSave = row.querySelector('.btn-save');
+                    const btnVerify = row.querySelector('.btn-verify');
+                    const btnDelete = row.querySelector('.btn-delete');
+                    const statusText = row.querySelector('.key-status');
+
+                    // Populate mask if a key is already saved
+                    if (savedKeys[provider]) {
+                        inputEl.value = '••••••••••••••••••••••••••••••••';
+                    }
+
+                    // Save Handler
+                    btnSave.onclick = async () => {
+                        const newKey = inputEl.value.trim();
+                        // Prevent saving empty or the masked string
+                        if (!newKey || newKey.includes('••••')) return;
+
+                        btnSave.textContent = 'Saving...';
+                        btnSave.disabled = true;
+
+                        try {
+                            const res = await fetch('/api/keys', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ provider, key: newKey })
+                            });
+
+                            if (res.ok) {
+                                inputEl.value = '••••••••••••••••••••••••••••••••';
+                                statusText.textContent = 'Key saved successfully.';
+                                statusText.style.color = '#238636';
+                            } else {
+                                throw new Error('Save failed');
+                            }
+                        } catch (e) {
+                            statusText.textContent = 'Error saving key.';
+                            statusText.style.color = '#FF3B30';
+                        } finally {
+                            btnSave.textContent = 'Save';
+                            btnSave.disabled = false;
+                            setTimeout(() => { if (statusText.textContent.includes('saved')) statusText.textContent = ''; }, 3000);
+                        }
+                    };
+
+                    // Verify Handler
+                    btnVerify.onclick = async () => {
+                        btnVerify.textContent = '...';
+                        btnVerify.disabled = true;
+                        statusText.textContent = 'Verifying key...';
+                        statusText.style.color = 'rgba(0,0,0,0.5)';
+
+                        try {
+                            const res = await fetch('/api/keys/verify', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ provider })
+                            });
+
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.valid) {
+                                    statusText.textContent = 'Key is valid.';
+                                    statusText.style.color = '#238636';
+                                } else {
+                                    statusText.textContent = 'Key is invalid.';
+                                    statusText.style.color = '#FF3B30';
+                                }
+                            } else {
+                                throw new Error('Verification request failed');
+                            }
+                        } catch (e) {
+                            statusText.textContent = 'Error connecting to provider.';
+                            statusText.style.color = '#FF3B30';
+                        } finally {
+                            btnVerify.textContent = 'Verify';
+                            btnVerify.disabled = false;
+                        }
+                    };
+
+                    // Delete Handler
+                    btnDelete.onclick = async () => {
+                        if (confirm(`Are you sure you want to delete the ${provider} API key?`)) {
+                            btnDelete.textContent = '...';
+                            btnDelete.disabled = true;
+
+                            try {
+                                const res = await fetch(`/api/keys/${provider}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                    inputEl.value = '';
+                                    statusText.textContent = 'Key removed.';
+                                    statusText.style.color = 'rgba(0,0,0,0.5)';
+                                }
+                            } catch (e) {
+                                statusText.textContent = 'Failed to delete key.';
+                                statusText.style.color = '#FF3B30';
+                            } finally {
+                                btnDelete.textContent = 'Delete';
+                                btnDelete.disabled = false;
+                                setTimeout(() => { statusText.textContent = ''; }, 3000);
+                            }
+                        }
+                    };
+                });
+            }
             const cacheSection = document.createElement('div');
             cacheSection.style.cssText = 'margin-top:16px;padding:14px;background:#FFF;border:1px solid rgba(0,0,0,0.08);border-radius:8px;';
             cacheSection.innerHTML = `
