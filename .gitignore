@@ -2,9 +2,9 @@ node_modules/
 .DS_Store
 
 # Agent OS specific paths
-storage/system/keys.json
 storage/system/.aos_state/
 storage/system/.aos_vectors/
 storage/personal/
 storage/Docs/
 storage/Rags/
+storage/system/keys.json
