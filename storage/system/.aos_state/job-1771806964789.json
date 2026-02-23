@@ -1,0 +1,25 @@
+{
+  "jobId": "job-1771806964789",
+  "tasks": {
+    "node_1": {
+      "id": "node_1",
+      "type": "chat",
+      "inputs": [
+        "Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: a romatic city"
+      ],
+      "status": "DONE",
+      "manualInput": "Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: a romatic city",
+      "dependencies": [],
+      "output": "\"Envision a dreamy, moonlit metropolis where ancient architecture meets modern whimsy. The city's skyline is a tapestry of Gothic spires, Art Nouveau turrets, and grand Belle Époque mansions, their facades aglow with a soft, ethereal light that seems almost otherworldly. Winding cobblestone streets are lined with quaint boutiques, art galleries, and charming cafes, their awnings and shutters painted in hues of rose, lavender, and gold. The air is alive with the sweet scent of blooming jasmine and the gentle lapping of a nearby river against its banks. As night falls, the city's central square transforms into a magical promenade, where couples stroll hand-in-hand beneath twinkling string lights, their laughter and whispers carried on the breeze. The romantic essence of this enchanting metropolis is palpable in every detail, from the ornate ironwork to the delicate frescoes that adorn its buildings. Capture the city's mystique, its sense of nostalgia and possibility, in a single, breathtaking image.\""
+    },
+    "node_2": {
+      "id": "node_2",
+      "type": "draw",
+      "inputs": [],
+      "status": "DONE",
+      "dependencies": [],
+      "output": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-EFSKBAHqD9ajU3TMQQmf9Amf/user-Ku1oKLZorXaqhfSzwF1idRu6/img-zXJwDBPuv4YHSSAdmi634Fyp.png?st=2026-02-22T23%3A36%3A16Z&se=2026-02-23T01%3A36%3A16Z&sp=r&sv=2026-02-06&sr=b&rscd=inline&rsct=image/png&skoid=32836cae-d25f-4fe9-827b-1c8c59c442cc&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-02-22T15%3A16%3A01Z&ske=2026-02-23T15%3A16%3A01Z&sks=b&skv=2026-02-06&sig=KxaCx2P53ZBOavWtASmbCyedB9e3DIbFc8lh6c284fA%3D"
+    }
+  },
+  "status": "COMPLETED"
+}

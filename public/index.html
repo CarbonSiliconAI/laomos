@@ -1,0 +1,2768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent OS</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --taskbar-height: 48px;
+            --window-border: 1px solid #30363d;
+            --window-bg: #161b22;
+            --header-bg: #21262d;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --selection-color: rgba(88, 166, 255, 0.3);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2874&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Desktop Icons */
+        #desktop {
+            height: calc(100vh - var(--taskbar-height));
+            width: 100%;
+            position: relative;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            align-content: flex-start;
+        }
+
+        .desktop-icon {
+            width: 80px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .desktop-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .desktop-icon.selected {
+            background-color: var(--selection-color);
+            border: 1px solid var(--accent-color);
+        }
+
+        .icon-img {
+            font-size: 40px;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        }
+
+        .icon-label {
+            font-size: 12px;
+            text-align: center;
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Window System */
+        .window {
+            position: absolute;
+            background-color: var(--window-bg);
+            border: var(--window-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            min-height: 200px;
+            overflow: hidden;
+            animation: openWindow 0.2s ease-out;
+            resize: both;
+        }
+
+        @keyframes openWindow {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .window-header {
+            height: 32px;
+            background-color: var(--header-bg);
+            border-bottom: var(--window-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            cursor: default;
+        }
+
+        .window-title {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .close-btn {
+            background-color: #ff5f56;
+        }
+
+        .min-btn {
+            background-color: #ffbd2e;
+        }
+
+        .max-btn {
+            background-color: #27c93f;
+        }
+
+        .window-body {
+            flex-grow: 1;
+            position: relative;
+            overflow: auto;
+            background-color: #1e1e1e;
+        }
+
+        .window.active {
+            z-index: 100;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+            border-color: #555;
+        }
+
+        /* Specific App Styles */
+        /* File Explorer */
+        .file-explorer-container {
+            display: flex;
+            height: 100%;
+        }
+
+        .fe-sidebar {
+            width: 200px;
+            background-color: #252526;
+            border-right: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+
+        .fe-content {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-rows: 100px;
+            gap: 10px;
+            align-content: start;
+        }
+
+        .fe-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .fe-item:hover {
+            background-color: #37373d;
+        }
+
+        .fe-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .fe-name {
+            font-size: 12px;
+            text-align: center;
+            word-break: break-word;
+        }
+
+        /* Graph */
+        #graph-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Taskbar */
+        #taskbar {
+            height: var(--taskbar-height);
+            background-color: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .taskbar-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .taskbar-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .taskbar-item.running::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: var(--text-color);
+        }
+
+        .taskbar-icon {
+            font-size: 24px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: #333;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            font-size: 12px;
+            display: none;
+            pointer-events: none;
+            z-index: 2000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="desktop">
+        <!-- Icons generated by JS -->
+    </div>
+
+    <div id="taskbar">
+        <!-- Taskbar items generated by JS -->
+    </div>
+
+    <!-- Templates for Window Content -->
+
+    <!-- File Explorer Template -->
+    <template id="tpl-file-explorer">
+        <div class="file-explorer-container">
+            <div class="fe-sidebar" id="fe-sidebar"></div>
+            <div class="fe-content" id="fe-main"></div>
+        </div>
+    </template>
+
+    <!-- Graph Template -->
+    <template id="tpl-graph">
+        <div id="graph-container" style="width:100%; height:100%;"></div>
+    </template>
+
+    <!-- Editor Template -->
+    <template id="tpl-editor">
+        <textarea id="editor-textarea"
+            style="width:100%; height:100%; background:#1e1e1e; color:#d4d4d4; border:none; padding:10px; resize:none; font-family:monospace; outline:none;"></textarea>
+    </template>
+
+    <!-- Chat Template -->
+    <template id="tpl-chat">
+        <div style="display:flex; flex-direction:column; height:100%; padding:0;">
+            <!-- Chat View -->
+            <div id="view-chat" style="display:flex; flex-direction:column; flex-grow:1; padding:10px;">
+                <select id="chat-model-select"
+                    style="padding:5px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <option value="">Select Model...</option>
+                </select>
+                <div id="chat-messages"
+                    style="flex-grow:1; overflow-y:auto; border:1px solid #444; padding:10px; margin-bottom:10px; background:#161b22;">
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <input id="chat-input" type="text" placeholder="Type a message..."
+                        style="flex-grow:1; padding:5px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <button id="chat-send" style="padding:5px 10px; cursor:pointer;">Send</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Model Manager Template -->
+    <template id="tpl-model-manager">
+        <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
+            <div
+                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">System Hardware</h3>
+                <div id="sys-specs" style="font-size:13px; color:#c9d1d9;">Loading...</div>
+            </div>
+
+            <div
+                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Recommended Models</h3>
+                <div id="rec-models" style="font-size:13px; color:#c9d1d9; margin-bottom:10px;">Loading...</div>
+            </div>
+
+            <div
+                style="padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px; flex-grow:1; display:flex; flex-direction:column; overflow:hidden;">
+                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Download Available Models
+                </h3>
+                <div id="download-list" style="flex-grow:1; overflow-y:auto; padding-right:5px; margin-bottom:10px;">
+                    <!-- List items generated by JS -->
+                    <div style="text-align:center; padding:20px; color:#8b949e;">Loading list...</div>
+                </div>
+
+                <!-- Custom Pull Section -->
+                <div style="border-top:1px solid #30363d; padding-top:10px;">
+                    <div style="font-size:12px; color:#8b949e; margin-bottom:5px;">Or pull a custom model by tag:</div>
+                    <div style="display:flex; gap:5px;">
+                        <input id="custom-pull-input" type="text" placeholder="e.g. qwen2.5, deepseek-coder"
+                            style="flex-grow:1; padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                        <button id="btn-custom-pull"
+                            style="padding:5px 15px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px;">Pull</button>
+                    </div>
+                    <div id="custom-pull-status" style="font-size:12px; color:#8b949e; margin-top:5px;"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Drawing App Template -->
+    <template id="tpl-draw">
+        <div style="display:flex; flex-direction:row; height:100%; background:#0d1117; color:#c9d1d9;">
+
+            <!-- Left Side: Drawing Area -->
+            <div
+                style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d; position:relative; overflow:hidden;">
+                <div
+                    style="padding:10px; background:#161b22; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="tool-btn active" data-tool="pen"
+                            style="padding:5px 8px; font-size:12px; cursor:pointer;">✏️ Pen</button>
+                        <button class="tool-btn" data-tool="eraser"
+                            style="padding:5px 8px; font-size:12px; cursor:pointer;">🧹 Eraser</button>
+                        <button class="tool-btn" data-tool="clear"
+                            style="padding:5px 8px; font-size:12px; cursor:pointer; color:#da3633;">❌ Clear</button>
+                    </div>
+                    <div style="font-size:12px; color:#8b949e;">Canvas</div>
+                </div>
+
+                <div style="flex-grow:1; position:relative; overflow:hidden; background:#0d1117;">
+                    <canvas id="draw-canvas" width="800" height="600"
+                        style="background:#0d1117; cursor:crosshair;"></canvas>
+                </div>
+
+                <div style="padding:10px; background:#161b22; border-top:1px solid #30363d;">
+                    <h4 style="margin:0 0 5px 0; font-size:12px;">AI Generation</h4>
+                    <div style="display:flex; gap:5px; margin-bottom:5px;">
+                        <select id="ai-provider"
+                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            <option value="openai">OpenAI</option>
+                            <option value="google">Google (Sim)</option>
+                            <option value="mock">Mock (Free)</option>
+                        </select>
+                        <select id="ai-type"
+                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            <option value="image">Image (DALL-E)</option>
+                            <option value="graph">Graph (Mermaid)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input id="ai-prompt" type="text" placeholder="Describe what to draw..."
+                            style="flex-grow:1; padding:4px; font-size:12px; background:#0d1117; color:white; border:1px solid #30363d;">
+                        <button id="btn-draw-gen"
+                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1f6feb; color:white; border:none; border-radius:3px;">Generate</button>
+                    </div>
+                    <div id="draw-status" style="font-size:11px; color:#c9d1d9; margin-top:3px;"></div>
+                </div>
+
+                <!-- Mermaid container -->
+                <div id="mermaid-container"
+                    style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#0d1117; z-index:10; padding:20px; overflow:auto;">
+                    <button id="close-mermaid"
+                        style="position:absolute; top:10px; right:10px; z-index:20; cursor:pointer; padding:5px 8px; background:#21262d; color:white; border:1px solid #30363d; border-radius:3px;">Close
+                        View</button>
+                    <div class="mermaid-target"></div>
+                </div>
+            </div>
+
+            <!-- Right Side: Task Flow Visualization -->
+            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+                <div
+                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    AI Task Flow
+                </div>
+                <div id="draw-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
+                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                        Execution trace will appear here...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <!-- Video App Template -->
+    <template id="tpl-video">
+        <div style="display:flex; flex-direction:row; height:100%; background:#000; color:#c9d1d9;">
+
+            <!-- Left Side: Video Player Area -->
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d;">
+                <div
+                    style="flex-grow:1; position:relative; overflow:hidden; background:#000; display:flex; justify-content:center; align-items:center;">
+                    <video id="video-player" controls style="max-width:100%; max-height:100%;"></video>
+                    <div id="video-placeholder"
+                        style="color:#30363d; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                        <div style="font-size:48px;">🎬</div>
+                        <div>Enter a prompt to generate video</div>
+                    </div>
+                </div>
+
+                <div style="padding:10px; background:#161b22; border-top:1px solid #30363d;">
+                    <h4 style="margin:0 0 5px 0; font-size:12px;">AI Video Generation</h4>
+                    <div style="display:flex; gap:5px; margin-bottom:5px;">
+                        <select id="video-provider"
+                            style="padding:4px; font-size:12px; background:#21262d; color:white; border:1px solid #30363d;">
+                            <option value="google">Google (Veo)</option>
+                            <option value="openai">OpenAI (Sora)</option>
+                            <option value="mock">Mock (Free)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input id="video-prompt" type="text" placeholder="Describe the video..."
+                            style="flex-grow:1; padding:4px; font-size:12px; background:#0d1117; color:white; border:1px solid #30363d;">
+                        <button id="btn-video-gen"
+                            style="padding:4px 8px; font-size:12px; cursor:pointer; background:#1f6feb; color:white; border:none; border-radius:3px;">Generate</button>
+                    </div>
+                    <div id="video-status" style="font-size:11px; color:#c9d1d9; margin-top:3px;"></div>
+                </div>
+            </div>
+
+            <!-- Right Side: Task Flow Visualization -->
+            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+                <div
+                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    AI Task Flow
+                </div>
+                <div id="video-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
+                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                        Execution trace will appear here...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <style>
+        .tool-btn {
+            background: #21262d;
+            color: white;
+            border: 1px solid #30363d;
+            border-radius: 3px;
+        }
+
+        .tool-btn:hover {
+            background: #30363d;
+        }
+
+        .tool-btn.active {
+            background: #1f6feb;
+            border-color: #1f6feb;
+        }
+    </style>
+
+    <!-- AI Flow template -->
+    <template id="tpl-flow">
+        <div style="display:flex; height:100%; flex-direction:column; background:#0d1117; color:#c9d1d9;">
+            <div
+                style="display:flex; padding:10px; border-bottom:1px solid #30363d; background:#161b22; align-items:center; justify-content:space-between;">
+                <div>
+                    <h3 style="margin:0; font-size:14px; font-weight:600;">AI Flow Builder</h3>
+                    <span style="font-size:12px; color:#8b949e;">Standard AI Agent Protocol Linker</span>
+                </div>
+                <button id="flow-run-btn"
+                    style="padding:6px 12px; background:#238636; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
+                    ▶ Run Graph
+                </button>
+            </div>
+
+            <div style="display:flex; flex:1; overflow:hidden;">
+                <!-- Left Palette -->
+                <div
+                    style="width:200px; border-right:1px solid #30363d; background:#161b22; display:flex; flex-direction:column;">
+                    <div style="padding:10px; font-weight:600; border-bottom:1px solid #30363d; font-size:12px;">Tool
+                        Palette</div>
+                    <div id="flow-palette"
+                        style="flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:10px;">
+                        <!-- Draggable nodes will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Center Column: Canvas + Bottom Properties -->
+                <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+                    <!-- Main Canvas -->
+                    <div style="flex:1; position:relative; overflow:hidden; background:#0d1117;"
+                        id="flow-canvas-container">
+                        <svg id="flow-edges"
+                            style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></svg>
+                        <div id="flow-canvas"
+                            style="position:absolute; top:0; left:0; width:2000px; height:2000px; transform-origin: top left;">
+                            <!-- Nodes dropped here -->
+                        </div>
+                    </div>
+
+                    <!-- Bottom Properties Pane -->
+                    <div id="flow-properties"
+                        style="height:250px; border-top:1px solid #30363d; background:#161b22; display:flex; flex-direction:column; display:none;">
+                        <div
+                            style="padding:10px; font-weight:600; border-bottom:1px solid #30363d; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Protocol Inspector</span>
+                            <button id="flow-prop-close"
+                                style="background:none; border:none; color:#c9d1d9; cursor:pointer;">✕</button>
+                        </div>
+                        <div
+                            style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:row; flex-wrap:wrap; gap:20px;">
+                            <input type="hidden" id="prop-node-id">
+
+                            <!-- Col 1: Metdata -->
+                            <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">AGENT
+                                        CATEGORY</label>
+                                    <select id="prop-category"
+                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;">
+                                        <option value="Conversational">Conversational</option>
+                                        <option value="Generative">Generative</option>
+                                        <option value="Vision">Vision</option>
+                                        <option value="Planning">Planning</option>
+                                        <option value="Tools">Tools</option>
+                                        <option value="Search">Search</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">VERTICAL
+                                        DOMAIN</label>
+                                    <input id="prop-domain" type="text"
+                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        placeholder="e.g., General, Art, Coding">
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">FUNCTIONALITY</label>
+                                    <textarea id="prop-func"
+                                        style="width:100%; height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical;"
+                                        placeholder="Describe what this agent does..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Col 2: IO Format & Save -->
+                            <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">INPUT FORMAT</label>
+                                    <input id="prop-in-format" type="text"
+                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        placeholder="e.g., Text Prompt, Image URL">
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size:11px; color:#8b949e; font-weight:600;">OUTPUT FORMAT</label>
+                                    <input id="prop-out-format" type="text"
+                                        style="width:100%; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px;"
+                                        placeholder="e.g., Markdown Text, PNG Buffer">
+                                </div>
+                                <button id="prop-save-btn"
+                                    style="margin-top:auto; padding:8px; background:#238636; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">Save
+                                    Protocol Status</button>
+                            </div>
+
+                            <!-- Col 3: Values -->
+                            <div style="flex:2; min-width:300px; display:flex; flex-direction:column; gap:8px;">
+                                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                                    <label style="font-size:11px; color:#ffbd2e; font-weight:600;">MANUAL INPUT VALUE
+                                        <span style="font-size:10px; color:#8b949e;">(Overrides incoming
+                                            connections)</span></label>
+                                    <textarea id="prop-input-value"
+                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical; font-family:monospace;"
+                                        placeholder="Start execution with this input..."></textarea>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                                    <label style="font-size:11px; color:#27c93f; font-weight:600;">LAST OUTPUT
+                                        VALUE</label>
+                                    <textarea id="prop-output-value" readonly
+                                        style="width:100%; flex:1; min-height:40px; padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:12px; resize:vertical; font-family:monospace;"
+                                        placeholder="Output will appear here after run..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side: Task Flow Visualization -->
+                <div
+                    style="width:280px; background:#161b22; display:flex; flex-direction:column; border-left:1px solid #30363d;">
+                    <div
+                        style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                        AI Task Flow
+                    </div>
+                    <div id="flow-task-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
+                        <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                            Execution trace will appear here...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- App Store Template -->
+    <template id="tpl-store">
+        <div style="display:flex; flex-direction:column; height:100%; background:#0d1117; color:#c9d1d9;">
+            <!-- Header -->
+            <div
+                style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:600;">Agent App Store</h3>
+                    <span style="font-size:12px; color:#8b949e;">Discover and install new AI Agents</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="store-search" placeholder="Search apps..."
+                        style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px; width:200px;">
+                    <select id="store-category"
+                        style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px;">
+                        <option value="all">All Categories</option>
+                        <option value="generative">Generative</option>
+                        <option value="utility">Utility</option>
+                        <option value="search">Search</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grid -->
+            <div id="store-grid"
+                style="flex:1; overflow-y:auto; padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:15px; align-content:start;">
+                <!-- App cards injected here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Smart Search Template -->
+    <!-- Smart Search Template -->
+    <template id="tpl-search">
+        <div style="display:flex; flex-direction:row; height:100%; background:#0d1117; color:#c9d1d9;">
+
+            <!-- Left Side: Search Area -->
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d;">
+                <div
+                    style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; align-items:center; gap: 10px;">
+                    <input type="text" id="search-input" placeholder="Ask the system or search the web..."
+                        style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; font-size:14px; outline:none;">
+                    <button id="search-btn"
+                        style="padding:8px 16px; background:#58a6ff; color:#0d1117; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">Search</button>
+                </div>
+                <div id="search-results" style="flex:1; padding:20px; overflow-y:auto; line-height:1.6;">
+                    <div style="color:#8b949e; text-align:center; margin-top:50px;">
+                        <div style="font-size:40px; margin-bottom:15px;">🔍</div>
+                        Type a query to intelligently search your local OS memory or the external web.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Task Flow Visualization -->
+            <div style="width:280px; background:#161b22; display:flex; flex-direction:column;">
+                <div
+                    style="padding:15px; border-bottom:1px solid #30363d; font-weight:bold; font-size:13px; color:#c9d1d9;">
+                    AI Task Flow
+                </div>
+                <div id="search-flow-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
+                    <div style="color:#6e7681; font-size:12px; text-align:center; margin-top:20px;">
+                        Execution trace will appear here...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <!-- Settings Template -->
+    <template id="tpl-settings">
+        <div style="display:flex; flex-direction:column; height:100%; background:#0d1117; color:#c9d1d9;">
+            <div
+                style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; align-items:center;">
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:600;">System Settings</h3>
+                    <span style="font-size:12px; color:#8b949e;">Agent OS Configuration</span>
+                </div>
+            </div>
+
+            <div style="display:flex; flex:1; overflow:hidden;">
+                <!-- Left Nav -->
+                <div style="width:150px; border-right:1px solid #30363d; background:#161b22; padding:10px;">
+                    <div
+                        style="padding:8px 10px; background:#1f6feb; color:white; border-radius:4px; font-weight:600; font-size:13px; cursor:default;">
+                        App Permissions
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div style="flex:1; padding:20px; overflow-y:auto;">
+                    <h4 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:8px;">App Authorization
+                        Tiers</h4>
+                    <p style="font-size:12px; color:#8b949e; margin-bottom:20px;">
+                        Control what access each app has on your system.<br>
+                        <strong style="color:#58a6ff;">Tier 1</strong>: Full Access (No interruptions)<br>
+                        <strong style="color:#ffbd2e;">Tier 2</strong>: Medium Risk (Ask before launch)<br>
+                        <strong style="color:#ff5f56;">Tier 3</strong>: Highly Restricted (Strict warning)
+                    </p>
+
+                    <div id="settings-app-list" style="display:flex; flex-direction:column; gap:10px;">
+                        <!-- App permission rows injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- API Key Manager Template -->
+    <template id="tpl-api-manager">
+        <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
+            <div
+                style="margin-bottom:20px; padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Manage API Keys</h3>
+                <div id="api-key-list" style="margin-bottom:10px;">Loading...</div>
+
+                <div style="border-top:1px solid #30363d; padding-top:10px;">
+                    <h4 style="margin:0 0 10px 0; font-size:13px;">Add New Key</h4>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <input id="api-provider" type="text" placeholder="Provider (e.g. openai, google, grok)"
+                            style="padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                        <input id="api-key-value" type="password" placeholder="API Key (sk-...)"
+                            style="padding:5px; background:#2d2d2d; color:white; border:1px solid #444; border-radius:3px;">
+                        <button id="btn-save-key"
+                            style="padding:6px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px;">Save
+                            Key</button>
+                    </div>
+                    <div id="api-key-status" style="font-size:12px; color:#c9d1d9; margin-top:5px;"></div>
+                </div>
+            </div>
+
+            <div style="padding:10px; background:#161b22; border:1px solid #30363d; border-radius:6px;">
+                <h3 style="margin-top:0; border-bottom:1px solid #30363d; padding-bottom:5px;">Get API Keys</h3>
+                <div style="display:flex; flex-direction:column; gap:5px; font-size:13px;">
+                    <a href="https://platform.openai.com/api-keys" target="_blank"
+                        style="color:#58a6ff; text-decoration:none;">Get OpenAI Key ↗</a>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                        style="color:#58a6ff; text-decoration:none;">Get Gemini (Google) Key ↗</a>
+                    <a href="https://console.x.ai/" target="_blank" style="color:#58a6ff; text-decoration:none;">Get
+                        Grok (xAI) Key ↗</a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // --- System State ---
+        let windows = [];
+        let highestZ = 100;
+        let activeWindow = null;
+
+        const apps = {
+            'computer': {
+                id: 'computer',
+                name: 'My Computer',
+                icon: '💻',
+                type: 'app',
+                action: () => openFileExplorer('')
+            },
+            'network': {
+                id: 'network',
+                name: 'System Graph',
+                icon: '🕸️',
+                type: 'app',
+                action: () => openGraph()
+            },
+            'terminal': {
+                id: 'terminal',
+                name: 'Terminal',
+                icon: '📟',
+                type: 'app',
+                action: () => alert('Terminal not implemented yet')
+            },
+            'chat': {
+                id: 'chat',
+                name: 'Ollama Chat',
+                icon: '💬',
+                type: 'app',
+                action: () => openChat()
+            },
+            'model-manager': {
+                id: 'model-manager',
+                name: 'Model Manager',
+                icon: '🧠',
+                type: 'app',
+                action: () => openModelManager()
+            },
+            'api-manager': {
+                id: 'api-manager',
+                name: 'API Keys',
+                icon: '🔑',
+                type: 'app',
+                action: () => openApiManager()
+            },
+            'draw': {
+                id: 'draw',
+                name: 'AI Draw',
+                icon: '🎨',
+                type: 'app',
+                action: () => openDrawApp()
+            },
+            'video': {
+                id: 'video',
+                name: 'AI Video',
+                icon: '🎬',
+                type: 'app',
+                action: () => openVideoApp()
+            },
+            'flow': {
+                id: 'flow',
+                name: 'AI Flow',
+                icon: '🔀',
+                type: 'app',
+                action: () => openFlowApp()
+            },
+            'store': {
+                id: 'store',
+                name: 'App Store',
+                icon: '🏪',
+                type: 'app',
+                action: () => openAppStore()
+            },
+            'search': {
+                id: 'search',
+                name: 'Smart Search',
+                icon: '🔍',
+                type: 'app',
+                action: () => openSearchApp()
+            },
+            'settings': {
+                id: 'settings',
+                name: 'Settings',
+                icon: '⚙️',
+                type: 'app',
+            },
+        };
+
+        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'search', 'settings'];
+
+        const availableModels = [
+            { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: 'Meta\'s latest state-of-the-art model' },
+            { id: 'llama3.1:70b', name: 'Llama 3.1 (70B)', size: '40GB', desc: 'Meta\'s powerful large model' },
+            { id: 'qwen2.5:0.5b', name: 'Qwen 2.5 (0.5B)', size: '350MB', desc: 'Alibaba\'s latest nano model' },
+            { id: 'qwen2.5:1.5b', name: 'Qwen 2.5 (1.5B)', size: '900MB', desc: 'Alibaba\'s latest micro model' },
+            { id: 'qwen2.5:7b', name: 'Qwen 2.5 (7B)', size: '4.5GB', desc: 'Alibaba\'s strong 7B model' },
+            { id: 'gemma2', name: 'Gemma 2 (9B)', size: '5.5GB', desc: 'Google\'s open model version 2' },
+            { id: 'mistral-nemo', name: 'Mistral Nemo', size: '7.1GB', desc: 'Mistral\'s 12B model' },
+            { id: 'phi3.5', name: 'Phi-3.5', size: '2.4GB', desc: 'Microsoft\'s latest small model' },
+            { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model' },
+            { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: 'Meta\'s previous open LLM' },
+        ];
+
+        // --- Desktop & Taskbar ---
+        function initDesktop() {
+            const desktop = document.getElementById('desktop');
+            const taskbar = document.getElementById('taskbar');
+
+            // Sort apps alphabetically by name
+            const sortedApps = Object.values(apps).sort((a, b) => a.name.localeCompare(b.name));
+
+            // Render Desktop Icons
+            sortedApps.forEach(app => {
+                const icon = document.createElement('div');
+                icon.className = 'desktop-icon';
+                icon.innerHTML = `
+                    <div class="icon-img">${app.icon}</div>
+                    <div class="icon-label">${app.name}</div>
+                `;
+                icon.onclick = () => app.action();
+                desktop.appendChild(icon);
+            });
+
+            // Render Taskbar (Dock style)
+            renderTaskbar();
+        }
+
+        function renderTaskbar() {
+            const taskbar = document.getElementById('taskbar');
+            taskbar.innerHTML = '';
+
+            const sortedApps = Object.values(apps).sort((a, b) => a.name.localeCompare(b.name));
+
+            sortedApps.forEach(app => {
+                const item = document.createElement('div');
+                item.className = 'taskbar-item';
+                // Mark running if any window of this type is open (simplified)
+                const isRunning = windows.some(w => w.appId === app.id);
+                if (isRunning) item.classList.add('running');
+
+                item.innerHTML = `<div class="taskbar-icon">${app.icon}</div>`;
+                item.onclick = () => app.action();
+
+                // Tooltip
+                item.title = app.name;
+
+                taskbar.appendChild(item);
+            });
+        }
+
+        // --- Window Manager ---
+        function createWindow(title, appId, width = 600, height = 400) {
+            const id = 'win-' + Date.now();
+            const win = document.createElement('div');
+            win.className = 'window active';
+            win.id = id;
+            win.style.width = width + 'px';
+            win.style.height = height + 'px';
+            win.style.left = (50 + windows.length * 20) + 'px';
+            win.style.top = (50 + windows.length * 20) + 'px';
+            win.style.zIndex = ++highestZ;
+
+            win.innerHTML = `
+                <div class="window-header" onmousedown="startDrag(event, '${id}')">
+                    <div class="window-title">${title}</div>
+                    <div class="window-controls">
+                        <button class="control-btn close-btn" onclick="closeWindow('${id}')"></button>
+                        <button class="control-btn min-btn"></button>
+                        <button class="control-btn max-btn"></button>
+                    </div>
+                </div>
+                <div class="window-body" id="${id}-body"></div>
+            `;
+
+            // Focus management
+            win.onmousedown = () => focusWindow(id);
+
+            document.body.appendChild(win);
+
+            const winObj = { id, appId, element: win };
+            windows.push(winObj);
+            focusWindow(id);
+            renderTaskbar();
+
+            return document.getElementById(`${id}-body`);
+        }
+
+        function closeWindow(id) {
+            const win = document.getElementById(id);
+            if (win) {
+                win.remove();
+                windows = windows.filter(w => w.id !== id);
+                renderTaskbar();
+            }
+        }
+
+        function focusWindow(id) {
+            activeWindow = id;
+            const win = document.getElementById(id);
+            if (win) {
+                win.style.zIndex = ++highestZ;
+                // Remove active class from all
+                document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+                win.classList.add('active');
+            }
+        }
+
+        // --- Dragging Logic ---
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let draggedWin = null;
+
+        function startDrag(e, id) {
+            if (e.target.closest('.window-controls')) return; // Don't drag if clicking buttons
+            isDragging = true;
+            draggedWin = document.getElementById(id);
+            const rect = draggedWin.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            focusWindow(id);
+        }
+
+        window.onmousemove = (e) => {
+            if (isDragging && draggedWin) {
+                draggedWin.style.left = (e.clientX - dragOffset.x) + 'px';
+                draggedWin.style.top = (e.clientY - dragOffset.y) + 'px';
+            }
+        }
+
+        window.onmouseup = () => {
+            isDragging = false;
+            draggedWin = null;
+        }
+
+        // --- App: File Explorer ---
+        async function openFileExplorer(path = '') {
+            const body = createWindow('File Explorer', 'computer', 700, 500);
+            body.innerHTML = document.getElementById('tpl-file-explorer').innerHTML;
+
+            // Re-bind IDs dynamically to avoid conflict if multiple windows? 
+            // For simplicity, we'll scope selectors to 'body'
+
+            const sidebar = body.querySelector('.fe-sidebar');
+            const main = body.querySelector('.fe-content');
+
+            await loadFiles(path, main, sidebar, body);
+        }
+
+        async function loadFiles(dirPath, container, sidebar, winBody) {
+            try {
+                const response = await fetch(`/api/files/list?path=${encodeURIComponent(dirPath)}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error);
+
+                container.innerHTML = '';
+
+                // Back Button (if valid)
+                const current = data.path.replace(/\/$/, '');
+                const root = data.root.replace(/\/$/, '');
+
+                if (current.startsWith(root) && current !== root) {
+                    const backItem = document.createElement('div');
+                    backItem.className = 'fe-item';
+                    backItem.innerHTML = `<div class="fe-icon">↩️</div><div class="fe-name">Back</div>`;
+                    backItem.onclick = () => {
+                        const parent = current.substring(0, current.lastIndexOf('/'));
+                        loadFiles(parent, container, sidebar, winBody);
+                    };
+                    container.appendChild(backItem);
+                }
+
+                data.files.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'fe-item';
+                    const icon = file.isDirectory ? '📁' : '📄';
+                    item.innerHTML = `<div class="fe-icon">${icon}</div><div class="fe-name">${file.name}</div>`;
+
+                    item.onclick = async () => {
+                        if (file.isDirectory) {
+                            loadFiles(file.path, container, sidebar, winBody);
+                        } else {
+                            // Open file
+                            const res = await fetch(`/api/files/read?path=${encodeURIComponent(file.path)}`);
+                            const fdata = await res.json();
+                            openEditor(file.name, fdata.content);
+                        }
+                    };
+                    container.appendChild(item);
+                });
+
+            } catch (e) {
+                container.innerHTML = `<div style="padding:20px; color:red;">Error: ${e.message}</div>`;
+            }
+        }
+
+        function openEditor(filename, content) {
+            const body = createWindow(filename, 'computer', 500, 400); // Use same app ID to group
+            body.innerHTML = document.getElementById('tpl-editor').innerHTML;
+            const textarea = body.querySelector('#editor-textarea');
+            textarea.value = content;
+        }
+
+        // --- App: Ollama Chat ---
+        async function openChat() {
+            const body = createWindow('Ollama Chat', 'chat', 500, 650);
+            body.innerHTML = document.getElementById('tpl-chat').innerHTML;
+
+            const modelSelect = body.querySelector('#chat-model-select');
+            const messagesDiv = body.querySelector('#chat-messages');
+            const input = body.querySelector('#chat-input');
+            const sendBtn = body.querySelector('#chat-send');
+
+            // Load models
+            const loadModels = async () => {
+                try {
+                    modelSelect.innerHTML = '<option value="">Select Model...</option>';
+                    const res = await fetch('/api/ollama/models');
+                    const data = await res.json();
+                    if (data.models) {
+                        data.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model;
+                            option.text = model;
+                            modelSelect.appendChild(option);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to load models", e);
+                }
+            };
+            loadModels();
+
+            // Send Logic
+            const sendMessage = async () => {
+                const text = input.value.trim();
+                if (!text) return;
+
+                // User Message
+                appendMessage(messagesDiv, 'User', text);
+                input.value = '';
+
+                // Bot Response
+                const model = modelSelect.value;
+                if (!model) {
+                    appendMessage(messagesDiv, 'System', 'Please select a model.');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/ollama/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'user', content: text }]
+                        })
+                    });
+                    const data = await res.json();
+
+                    if (data.message && data.message.content) {
+                        appendMessage(messagesDiv, 'AI', data.message.content);
+                    } else if (data.error) {
+                        appendMessage(messagesDiv, 'System', 'Error: ' + data.error);
+                    } else {
+                        appendMessage(messagesDiv, 'System', 'Error: No response.');
+                    }
+                } catch (e) {
+                    appendMessage(messagesDiv, 'System', 'Error: ' + e.message);
+                }
+            };
+
+            sendBtn.onclick = sendMessage;
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') sendMessage();
+            };
+        }
+
+        // --- App: Model Manager ---
+        async function openModelManager() {
+            const body = createWindow('Model Manager', 'model-manager', 500, 600);
+            body.innerHTML = document.getElementById('tpl-model-manager').innerHTML;
+
+            const sysSpecsDiv = body.querySelector('#sys-specs');
+            const recModelsDiv = body.querySelector('#rec-models');
+            const downloadList = body.querySelector('#download-list');
+
+            const customInput = body.querySelector('#custom-pull-input');
+            const customBtn = body.querySelector('#btn-custom-pull');
+            const customStatus = body.querySelector('#custom-pull-status');
+
+            // Fetch Specs immediately
+            try {
+                const res = await fetch('/api/system/specs');
+                const specs = await res.json();
+                sysSpecsDiv.innerHTML = `
+                    <strong>Platform:</strong> ${specs.platform}<br>
+                    <strong>CPU:</strong> ${specs.cpuModel} (${specs.cpuCores} cores)<br>
+                    <strong>RAM:</strong> ${specs.freeMem} free / ${specs.totalMem} total
+                `;
+
+                recModelsDiv.innerHTML = 'Based on your hardware, we recommend models from the list below marked with <span style="background:#1f6feb; color:white; padding:1px 4px; border-radius:3px; font-size:10px;">Recommended</span>';
+
+                renderDownloadList(specs.recommendedModels);
+            } catch (e) {
+                sysSpecsDiv.textContent = 'Error loading specs.';
+                renderDownloadList([]);
+            }
+
+            function renderDownloadList(recommended) {
+                downloadList.innerHTML = '';
+
+                // Sort: Recommended first, then others
+                const sorted = [...availableModels].sort((a, b) => {
+                    const aRec = recommended.some(r => a.id.includes(r) || r.includes(a.id));
+                    const bRec = recommended.some(r => b.id.includes(r) || r.includes(b.id));
+                    return bRec - aRec;
+                });
+
+                sorted.forEach(m => {
+                    const isRec = recommended.some(r => m.id.includes(r) || r.includes(m.id));
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding:10px; margin-bottom:5px; background:#21262d; border:1px solid #30363d; border-radius:4px; display:flex; justify-content:space-between; align-items:center;';
+
+                    item.innerHTML = `
+                        <div style="flex-grow:1;">
+                            <div style="font-weight:600; font-size:13px; color:white;">
+                                ${m.name} <span style="font-weight:normal; color:#8b949e; font-size:11px;">(${m.size})</span>
+                                ${isRec ? '<span style="background:#1f6feb; color:white; padding:1px 4px; border-radius:3px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
+                            </div>
+                            <div style="font-size:11px; color:#8b949e;">${m.desc}</div>
+                        </div>
+                        <button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#238636; color:white; border:none; border-radius:3px; font-size:12px;">Pull</button>
+                    `;
+
+                    const btn = item.querySelector('.pull-btn');
+                    btn.onclick = async () => {
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Pulling...';
+                        btn.disabled = true;
+                        btn.style.background = '#8b949e';
+
+                        try {
+                            const res = await fetch('/api/ollama/pull', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ model: m.id })
+                            });
+                            const data = await res.json();
+
+                            if (data.status === 'success' || !data.error) {
+                                btn.textContent = 'Installed';
+                                btn.style.background = '#1f6feb';
+                            } else {
+                                btn.textContent = 'Failed';
+                                btn.style.background = '#da3633';
+                                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = '#238636'; }, 3000);
+                            }
+                        } catch (e) {
+                            btn.textContent = 'Error';
+                            btn.style.background = '#da3633';
+                            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = '#238636'; }, 3000);
+                        }
+                    };
+
+                    downloadList.appendChild(item);
+                });
+            }
+
+            // Custom Pull Logic
+            customBtn.onclick = async () => {
+                const model = customInput.value.trim();
+                if (!model) return;
+
+                customStatus.textContent = `Pulling ${model}...`;
+                customBtn.disabled = true;
+                customBtn.style.background = '#8b949e';
+
+                try {
+                    const res = await fetch('/api/ollama/pull', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: model })
+                    });
+                    const data = await res.json();
+
+                    if (data.status === 'success' || !data.error) {
+                        customStatus.innerHTML = `<span style="color:#27c93f">Success!</span>`;
+                        customBtn.textContent = 'Done';
+                    } else {
+                        customStatus.innerHTML = `<span style="color:#ff5f56">Failed</span>`;
+                    }
+                } catch (e) {
+                    customStatus.innerHTML = `<span style="color:#ff5f56">Error</span>`;
+                } finally {
+                    setTimeout(() => {
+                        customBtn.disabled = false;
+                        customBtn.textContent = 'Pull';
+                        customBtn.style.background = '#238636';
+                        customStatus.textContent = '';
+                    }, 3000);
+                }
+            };
+        }
+
+        // --- App: API Key Manager ---
+        async function openApiManager() {
+            const body = createWindow('API Key Manager', 'api-manager', 400, 500);
+            body.innerHTML = document.getElementById('tpl-api-manager').innerHTML;
+
+            const listDiv = body.querySelector('#api-key-list');
+            const providerInput = body.querySelector('#api-provider');
+            const keyInput = body.querySelector('#api-key-value');
+            const saveBtn = body.querySelector('#btn-save-key');
+            const statusDiv = body.querySelector('#api-key-status');
+
+            async function loadKeys() {
+                try {
+                    listDiv.innerHTML = '<div style="color:#8b949e">Loading...</div>';
+                    const res = await fetch('/api/keys');
+                    const keys = await res.json();
+
+                    if (Object.keys(keys).length === 0) {
+                        listDiv.innerHTML = '<div style="color:#8b949e; font-style:italic;">No keys stored.</div>';
+                        return;
+                    }
+
+                    listDiv.innerHTML = '';
+                    Object.keys(keys).forEach(provider => {
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#21262d; padding:8px; border-radius:4px; margin-bottom:5px; border:1px solid #30363d;';
+
+                        const keyVal = keys[provider];
+                        const masked = keyVal.length > 8 ? keyVal.substring(0, 4) + '...' + keyVal.substring(keyVal.length - 4) : '****';
+
+                        row.innerHTML = `
+                            <div style="flex-grow:1">
+                                <div style="font-weight:600; font-size:13px; color:white;">${provider}</div>
+                                <div style="font-size:11px; color:#8b949e; font-family:monospace;">${masked}</div>
+                            </div>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <span class="verify-status" style="font-size:14px;"></span>
+                                <button class="verify-btn" style="padding:2px 8px; font-size:11px; color:white; background:#1f6feb; border:none; border-radius:3px; cursor:pointer;">Verify</button>
+                                <button class="del-btn" style="padding:2px 8px; font-size:11px; color:white; background:#da3633; border:none; border-radius:3px; cursor:pointer;">Delete</button>
+                            </div>
+                        `;
+
+                        // Delete Logic
+                        row.querySelector('.del-btn').onclick = async () => {
+                            if (confirm(`Delete key for ${provider}?`)) {
+                                await fetch(`/api/keys/${provider}`, { method: 'DELETE' });
+                                loadKeys();
+                            }
+                        };
+
+                        // Verify Logic
+                        row.querySelector('.verify-btn').onclick = async () => {
+                            const btn = row.querySelector('.verify-btn');
+                            const status = row.querySelector('.verify-status');
+
+                            btn.disabled = true;
+                            btn.textContent = '...';
+                            status.textContent = '';
+
+                            try {
+                                const res = await fetch('/api/keys/verify', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ provider })
+                                });
+                                const data = await res.json();
+
+                                if (data.valid) {
+                                    status.innerHTML = '✅';
+                                    status.title = 'Key is valid';
+                                } else {
+                                    status.innerHTML = '❌';
+                                    status.title = 'Key is invalid or quota exceeded';
+                                }
+                            } catch (e) {
+                                status.innerHTML = '⚠️';
+                                status.title = 'Verification error';
+                            } finally {
+                                btn.disabled = false;
+                                btn.textContent = 'Verify';
+                            }
+                        };
+
+                        listDiv.appendChild(row);
+                    });
+
+                } catch (e) {
+                    listDiv.innerHTML = '<div style="color:#ff5f56">Failed to load keys</div>';
+                }
+            }
+
+            saveBtn.onclick = async () => {
+                const provider = providerInput.value.trim();
+                const key = keyInput.value.trim();
+
+                if (!provider || !key) {
+                    statusDiv.innerHTML = '<span style="color:#ffbd2e">Provider and Key required</span>';
+                    return;
+                }
+
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving...';
+
+                try {
+                    const res = await fetch('/api/keys', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ provider, key })
+                    });
+
+                    if (res.ok) {
+                        statusDiv.innerHTML = '<span style="color:#27c93f">Saved!</span>';
+                        providerInput.value = '';
+                        keyInput.value = '';
+                        loadKeys();
+                    } else {
+                        statusDiv.innerHTML = '<span style="color:#ff5f56">Error saving</span>';
+                    }
+                } catch (e) {
+                    statusDiv.innerHTML = '<span style="color:#ff5f56">Network error</span>';
+                } finally {
+                    setTimeout(() => {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Key';
+                        statusDiv.textContent = '';
+                    }, 2000);
+                }
+            };
+
+            loadKeys(); // Initial load
+        }
+
+        function appendMessage(container, role, text) {
+            const div = document.createElement('div');
+            div.style.marginBottom = '10px';
+            div.style.padding = '8px';
+            div.style.borderRadius = '5px';
+            div.style.background = role === 'User' ? '#2b3137' : '#1f6feb20';
+            div.innerHTML = `<strong>${role}:</strong> ${text}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- App: System Graph ---
+        function openGraph() {
+            const body = createWindow('System Graph', 'network', 800, 600);
+            body.innerHTML = document.getElementById('tpl-graph').innerHTML;
+            const container = body.querySelector('#graph-container');
+
+            // D3 Logic scoped to this container
+            initD3Graph(container);
+        }
+
+        async function initD3Graph(container) {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Fetch data
+            let data = { nodes: [], edges: [] };
+            try {
+                const res = await fetch('/api/graph');
+                data = await res.json();
+            } catch (e) { console.error(e); }
+
+            const svg = d3.select(container).append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .call(d3.zoom().on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                }));
+
+            const g = svg.append("g");
+
+            const simulation = d3.forceSimulation(data.nodes)
+                .force("link", d3.forceLink(data.edges).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+            const link = g.append("g")
+                .attr("class", "links")
+                .selectAll("line")
+                .data(data.edges)
+                .enter().append("line")
+                .attr("class", "link")
+                .style("stroke", "#999").style("stroke-opacity", "0.6");
+
+            const node = g.append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(data.nodes)
+                .enter().append("g")
+                .call(d3.drag()
+                    .on("start", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x; d.fy = d.y;
+                    })
+                    .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+                    .on("end", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null; d.fy = null;
+                    }));
+
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            node.append("circle")
+                .attr("r", 15)
+                .attr("fill", d => colorScale(d.type))
+                .style("stroke", "#fff").style("stroke-width", "1.5px").style("cursor", "pointer");
+
+            node.append("text")
+                .attr("dx", 18)
+                .attr("dy", 4)
+                .text(d => d.label)
+                .style("fill", "#ddd").style("font-size", "12px").style("pointer-events", "none");
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+
+        // --- App: Drawing App ---
+        async function openDrawApp() {
+            // Include mermaid.js dynamically if not present
+            if (!document.querySelector('#mermaid-script')) {
+                const script = document.createElement('script');
+                script.id = 'mermaid-script';
+                script.src = 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js';
+                document.head.appendChild(script);
+            }
+
+            const body = createWindow('AI Drawing', 'draw', 600, 500);
+            body.innerHTML = document.getElementById('tpl-draw').innerHTML;
+
+            const canvas = body.querySelector('#draw-canvas');
+            const ctx = canvas.getContext('2d');
+            const tools = body.querySelectorAll('.tool-btn');
+            const promptInput = body.querySelector('#ai-prompt');
+            const generateBtn = body.querySelector('#btn-draw-gen');
+            const statusDiv = body.querySelector('#draw-status');
+            const providerSelect = body.querySelector('#ai-provider');
+            const typeSelect = body.querySelector('#ai-type');
+
+            // Mermaid UI
+            const mermaidContainer = body.querySelector('#mermaid-container');
+            const mermaidTarget = body.querySelector('.mermaid-target');
+            body.querySelector('#close-mermaid').onclick = () => mermaidContainer.style.display = 'none';
+
+            // Resize canvas to fit window-ish (simplified)
+            // In a real app we'd handle resize events
+
+            // Drawing State
+            let painting = false;
+            let tool = 'pen';
+            let color = 'white';
+            let lineWidth = 2;
+
+            function startPosition(e) {
+                painting = true;
+                draw(e);
+            }
+
+            function finishedPosition() {
+                painting = false;
+                ctx.beginPath();
+            }
+
+            function draw(e) {
+                if (!painting) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = tool === 'eraser' ? '#0d1117' : color;
+
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+
+            canvas.addEventListener('mousedown', startPosition);
+            canvas.addEventListener('mouseup', finishedPosition);
+            canvas.addEventListener('mousemove', draw);
+
+            // Tool Logic
+            tools.forEach(btn => {
+                btn.onclick = () => {
+                    const t = btn.dataset.tool;
+                    if (t === 'clear') {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    } else {
+                        tool = t;
+                        tools.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        if (tool === 'pen') lineWidth = 2;
+                        if (tool === 'eraser') lineWidth = 10;
+                    }
+                };
+            });
+
+            // AI Generation Logic
+            generateBtn.onclick = async () => {
+                const prompt = promptInput.value.trim();
+                const provider = providerSelect.value;
+                const type = typeSelect.value;
+
+                if (!prompt) return;
+
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                statusDiv.textContent = 'Contacting AI Service...';
+
+                const flowContainer = body.querySelector('#draw-flow-container');
+                flowContainer.innerHTML = '';
+                let currentNodeCount = 0;
+
+                try {
+                    let endpoint = type === 'graph' ? '/api/ai/generate-graph' : '/api/ai/generate-image';
+                    const url = `${endpoint}?provider=${encodeURIComponent(provider)}&prompt=${encodeURIComponent(prompt)}`;
+
+                    const eventSource = new EventSource(url);
+
+                    eventSource.addEventListener('trace', (e) => {
+                        const event = JSON.parse(e.data);
+
+                        const existingNode = flowContainer.querySelector(`[data-step="${event.step.replace(/\\s/g, '-')}"]`);
+
+                        let node = existingNode;
+                        if (!node) {
+                            if (currentNodeCount === 0) flowContainer.innerHTML = '';
+                            else {
+                                const connector = document.createElement('div');
+                                connector.style.cssText = 'width:2px; height:20px; background:#30363d; margin-left:14px;';
+                                flowContainer.appendChild(connector);
+                            }
+
+                            node = document.createElement('div');
+                            node.dataset.step = event.step.replace(/\\s/g, '-');
+                            node.style.cssText = `
+                                background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                                font-size: 12px; position:relative;
+                            `;
+                            flowContainer.appendChild(node);
+                        }
+
+                        let dotColor = '#8b949e';
+                        let statusLabel = 'Pending';
+                        if (event.status === 'running') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
+                        else if (event.status === 'completed') { dotColor = '#238636'; statusLabel = 'Done'; }
+                        else if (event.status === 'error') { dotColor = '#f85149'; statusLabel = 'Error'; }
+
+                        let durationSpan = '';
+                        if (event.durationMs !== undefined) {
+                            durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
+                        }
+
+                        node.innerHTML = `
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
+                                    <strong style="color:#c9d1d9;">${event.step}</strong>
+                                    ${durationSpan}
+                                </div>
+                                <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
+                            </div>
+                            <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                        `;
+
+                        flowContainer.scrollTop = flowContainer.scrollHeight;
+                        if (!existingNode) currentNodeCount++;
+                    });
+
+                    eventSource.addEventListener('result', (e) => {
+                        const data = JSON.parse(e.data);
+
+                        if (type === 'image') {
+                            const img = new Image();
+                            img.onload = () => {
+                                ctx.drawImage(img, 0, 0, 800, 600);
+                                statusDiv.textContent = 'Image generated!';
+                            };
+                            img.src = data.url;
+                        } else {
+                            mermaidContainer.style.display = 'block';
+                            mermaidTarget.innerHTML = `<pre class="mermaid">${data.code}</pre>`;
+                            try {
+                                if (window.mermaid) {
+                                    window.mermaid.init(undefined, mermaidTarget.querySelectorAll('.mermaid'));
+                                    statusDiv.textContent = 'Graph generated!';
+                                } else {
+                                    statusDiv.textContent = 'Mermaid lib loading... try again.';
+                                }
+                            } catch (err) {
+                                statusDiv.textContent = 'Mermaid render error';
+                                console.error(err);
+                            }
+                        }
+
+                        eventSource.close();
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate';
+                    });
+
+                    eventSource.addEventListener('error', (e) => {
+                        if (e.data) {
+                            try {
+                                const err = JSON.parse(e.data);
+                                statusDiv.innerHTML = `<span style="color:#ff5f56">Error: ${err.message}</span>`;
+                            } catch {
+                                statusDiv.innerHTML = `<span style="color:#ff5f56">Stream Error</span>`;
+                            }
+                        }
+                        eventSource.close();
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate';
+                    });
+
+                } catch (e) {
+                    statusDiv.innerHTML = `<span style="color:#ff5f56">Error: ${e.message}</span>`;
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate';
+                }
+            };
+        }
+
+        // --- App: Video App ---
+        async function openVideoApp() {
+            const body = createWindow('AI Video', 'video', 600, 500);
+            body.innerHTML = document.getElementById('tpl-video').innerHTML;
+
+            const player = body.querySelector('#video-player');
+            const placeholder = body.querySelector('#video-placeholder');
+            const providerSelect = body.querySelector('#video-provider');
+            const promptInput = body.querySelector('#video-prompt');
+            const generateBtn = body.querySelector('#btn-video-gen');
+            const statusDiv = body.querySelector('#video-status');
+
+            generateBtn.onclick = async () => {
+                const prompt = promptInput.value.trim();
+                const provider = providerSelect.value;
+
+                if (!prompt) return;
+
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                statusDiv.textContent = 'Requesting video...';
+
+                // Hide placeholder if it was showing
+                placeholder.style.display = 'flex';
+
+                const flowContainer = body.querySelector('#video-flow-container');
+                flowContainer.innerHTML = '';
+                let currentNodeCount = 0;
+
+                try {
+                    const url = `/api/ai/generate-video?provider=${encodeURIComponent(provider)}&prompt=${encodeURIComponent(prompt)}`;
+                    const eventSource = new EventSource(url);
+
+                    eventSource.addEventListener('trace', (e) => {
+                        const event = JSON.parse(e.data);
+
+                        const existingNode = flowContainer.querySelector(`[data-step="${event.step.replace(/\\s/g, '-')}"]`);
+
+                        let node = existingNode;
+                        if (!node) {
+                            if (currentNodeCount === 0) flowContainer.innerHTML = '';
+                            else {
+                                const connector = document.createElement('div');
+                                connector.style.cssText = 'width:2px; height:20px; background:#30363d; margin-left:14px;';
+                                flowContainer.appendChild(connector);
+                            }
+
+                            node = document.createElement('div');
+                            node.dataset.step = event.step.replace(/\\s/g, '-');
+                            node.style.cssText = `
+                                background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                                font-size: 12px; position:relative;
+                            `;
+                            flowContainer.appendChild(node);
+                        }
+
+                        let dotColor = '#8b949e';
+                        let statusLabel = 'Pending';
+                        if (event.status === 'running') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
+                        else if (event.status === 'completed') { dotColor = '#238636'; statusLabel = 'Done'; }
+                        else if (event.status === 'error') { dotColor = '#f85149'; statusLabel = 'Error'; }
+
+                        let durationSpan = '';
+                        if (event.durationMs !== undefined) {
+                            durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${(event.durationMs / 1000).toFixed(2)}s</span>`;
+                        }
+
+                        node.innerHTML = `
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
+                                    <strong style="color:#c9d1d9;">${event.step}</strong>
+                                    ${durationSpan}
+                                </div>
+                                <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
+                            </div>
+                            <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                        `;
+
+                        flowContainer.scrollTop = flowContainer.scrollHeight;
+                        if (!existingNode) currentNodeCount++;
+                    });
+
+                    eventSource.addEventListener('result', async (e) => {
+                        const data = JSON.parse(e.data);
+
+                        placeholder.style.display = 'none';
+
+                        let finalUrl = data.url;
+                        if (finalUrl.startsWith('https://generativelanguage.googleapis.com')) {
+                            finalUrl = `/api/media/fetch?uri=${encodeURIComponent(finalUrl)}`;
+                        }
+
+                        player.pause();
+                        player.removeAttribute('src');
+                        player.load();
+                        player.src = finalUrl;
+                        player.load();
+
+                        try {
+                            await player.play();
+                            statusDiv.textContent = 'Video playing';
+                        } catch (err) {
+                            console.error('Autoplay prevented:', err);
+                            statusDiv.textContent = 'Video loaded (Click to play)';
+                        }
+
+                        eventSource.close();
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate';
+                    });
+
+                    eventSource.addEventListener('error', (e) => {
+                        if (e.data) {
+                            try {
+                                const err = JSON.parse(e.data);
+                                statusDiv.innerHTML = `<span style="color:#ff5f56">Error: ${err.message}</span>`;
+                            } catch {
+                                statusDiv.innerHTML = `<span style="color:#ff5f56">Stream Error</span>`;
+                            }
+                        }
+                        eventSource.close();
+                        generateBtn.disabled = false;
+                        generateBtn.textContent = 'Generate';
+                    });
+
+                } catch (e) {
+                    statusDiv.innerHTML = `<span style="color:#ff5f56">Error: ${e.message}</span>`;
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate';
+                }
+            };
+        }
+
+        // ==========================================
+        //         SMART SEARCH APP LOGIC
+        // ==========================================
+        async function openSearchApp() {
+            const win = createWindow('Smart Search', 'tpl-search', 900, 550);
+            win.innerHTML = document.getElementById('tpl-search').innerHTML;
+
+            const input = win.querySelector('#search-input');
+            const btn = win.querySelector('#search-btn');
+            const results = win.querySelector('#search-results');
+            const flowContainer = win.querySelector('#search-flow-container');
+
+            const doSearch = () => {
+                const query = input.value.trim();
+                if (!query) return;
+
+                btn.disabled = true;
+                btn.textContent = 'Searching...';
+
+                results.innerHTML = `<div style="color:#58a6ff; text-align:center; margin-top:20px;">Evaluating ${query}...</div>`;
+                flowContainer.innerHTML = ''; // Clear previous flow
+
+                let currentNodeCount = 0;
+
+                const eventSource = new EventSource(`/api/apps/search?q=${encodeURIComponent(query)}`);
+
+                eventSource.addEventListener('trace', (e) => {
+                    const event = JSON.parse(e.data);
+
+                    // Render line connector if not first node
+                    if (currentNodeCount > 0) {
+                        const line = document.createElement('div');
+                        line.style.cssText = `width:2px; height:15px; background:#30363d; margin-left:14px;`;
+                        flowContainer.appendChild(line);
+                    }
+
+                    // Render Node
+                    const node = document.createElement('div');
+                    node.style.cssText = `
+                        background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                        font-size: 12px; position:relative;
+                    `;
+
+                    // Status Colors
+                    let dotColor = '#8b949e';
+                    let statusLabel = 'Pending';
+                    if (event.status === 'running') {
+                        dotColor = '#ffbd2e';
+                        statusLabel = 'Running...';
+                    } else if (event.status === 'completed') {
+                        dotColor = '#238636';
+                        statusLabel = 'Done';
+                    } else if (event.status === 'error') {
+                        dotColor = '#f85149';
+                        statusLabel = 'Error';
+                    }
+
+                    let durationSpan = '';
+                    if (event.durationMs !== undefined) {
+                        const seconds = (event.durationMs / 1000).toFixed(2);
+                        durationSpan = `<span style="color:#6e7681; font-size:10px; margin-left:8px;">${seconds}s</span>`;
+                    }
+
+                    node.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
+                                <strong style="color:#c9d1d9;">${event.step}</strong>
+                                ${durationSpan}
+                            </div>
+                            <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
+                        </div>
+                        <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${event.details || ''}</div>
+                    `;
+
+                    flowContainer.appendChild(node);
+                    flowContainer.scrollTop = flowContainer.scrollHeight;
+                    currentNodeCount++;
+                });
+
+                eventSource.addEventListener('result', (e) => {
+                    const data = JSON.parse(e.data);
+
+                    const sourceIcon = data.source === 'local' ? '📁 Local Knowledge' : '🌐 Web Search';
+                    const sourceColor = data.source === 'local' ? '#238636' : '#58a6ff';
+
+                    results.innerHTML = `
+                        <div style="margin-bottom:15px; padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; display:inline-block; border:1px solid ${sourceColor}; color:${sourceColor};">
+                            ${sourceIcon}
+                        </div>
+                        <div style="font-size:14px; white-space:pre-wrap; color:#c9d1d9;">${data.content}</div>
+                    `;
+
+                    btn.disabled = false;
+                    btn.textContent = 'Search';
+                    eventSource.close();
+                });
+
+                eventSource.addEventListener('error', (e) => {
+                    if (e.data) {
+                        try {
+                            const errData = JSON.parse(e.data);
+                            results.innerHTML = `<div style="color:#ff5f56; padding:10px;">Error: ${errData.message}</div>`;
+                        } catch (err) {
+                            results.innerHTML = `<div style="color:#ff5f56; padding:10px;">Stream Error</div>`;
+                        }
+                    } else {
+                        // Connection lost or unhandled close
+                        if (btn.disabled) {
+                            results.innerHTML = `<div style="color:#ff5f56; padding:10px;">Connection to server lost.</div>`;
+                        }
+                    }
+
+                    btn.disabled = false;
+                    btn.textContent = 'Search';
+                    eventSource.close();
+                });
+            };
+
+            btn.onclick = doSearch;
+            input.onkeypress = (e) => { if (e.key === 'Enter') doSearch(); };
+            input.focus();
+        }
+
+        // ==========================================
+        //         AI FLOW APP LOGIC
+        // ==========================================
+        async function openFlowApp() {
+            try { await fetchStoreApps(); } catch (e) { console.error("Failed to fetch apps for flow", e); }
+            const win = createWindow('AI Flow', 'tpl-flow', 800, 600);
+            win.innerHTML = document.getElementById('tpl-flow').innerHTML;
+
+            const palette = win.querySelector('#flow-palette');
+            const canvasContainer = win.querySelector('#flow-canvas-container');
+            const canvas = win.querySelector('#flow-canvas');
+            const svgEdges = win.querySelector('#flow-edges');
+            const propertiesPane = win.querySelector('#flow-properties');
+            const propCloseBtn = win.querySelector('#flow-prop-close');
+            const propSaveBtn = win.querySelector('#prop-save-btn');
+
+            let nodes = [
+                { id: 'node_1', type: 'chat', label: '💬 Ollama Chat', cat: 'Conversational', domain: 'General', func: 'Local LLM text generation', in: 'Text', out: 'Text', x: 50, y: 100, manualInput: 'Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: [REPLACE THIS WITH YOUR TOPIC]' },
+                { id: 'node_2', type: 'draw', label: '🎨 AI Draw', cat: 'Generative', domain: 'Art', func: 'Generates images from prompts', in: 'Text', out: 'Image URL', x: 350, y: 100 }
+            ];
+            let edges = [
+                { source: 'node_1', target: 'node_2' }
+            ];
+            let activeNodeId = null;
+            let nodeCounter = 2;
+            let isDraggingNode = false;
+            let draggedNode = null;
+            let dragOffset = { x: 0, y: 0 };
+            let isDrawingLine = false;
+            let activeSourcePort = null; // { nodeId, portType: 'out' }
+            let tempLine = null;
+
+            // Render default demo nodes
+            setTimeout(() => {
+                nodes.forEach(n => renderNode(n));
+                updateEdges();
+            }, 50);
+
+            // Palette definitions
+            const tools = [
+                { type: 'chat', label: '💬 Ollama Chat', cat: 'Conversational', domain: 'General', func: 'Local LLM text generation', in: 'Text', out: 'Text' },
+                { type: 'draw', label: '🎨 AI Draw', cat: 'Generative', domain: 'Art', func: 'Generates images from prompts', in: 'Text', out: 'Image URL' },
+                { type: 'video', label: '🎬 AI Video', cat: 'Generative', domain: 'Media', func: 'Generates video clips', in: 'Text', out: 'Video Stream' },
+                { type: 'search', label: '🔍 Web Search', cat: 'Search', domain: 'General', func: 'Queries real-time web data', in: 'Search Query', out: 'JSON Results' },
+            ];
+
+            // Add installed apps to palette dynamically
+            // We already awaited fetchStoreApps() so storeApps contains the rich kernel tool schema
+            const installedStr = localStorage.getItem('installedStoreApps') || '[]';
+            let installedList = [];
+            try { installedList = JSON.parse(installedStr); } catch (e) { }
+
+            if (typeof storeApps !== 'undefined') {
+                storeApps.forEach(app => {
+                    if (installedList.includes(app.id)) {
+                        tools.push(app.protocol);
+                    }
+                });
+            }
+
+            // Render Palette
+            tools.forEach(tool => {
+                const item = document.createElement('div');
+                item.textContent = tool.label;
+                item.style.cssText = `
+                    background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
+                    cursor: grab; font-size: 13px; font-weight: 500; user-select: none;
+                    display: flex; align-items: center; justify-content: flex-start;
+                    z-index: 50; position: relative;
+                `;
+                item.draggable = true;
+                item.ondragstart = (e) => {
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                    e.dataTransfer.setData('text/plain', JSON.stringify({ ...tool, id: `node_${++nodeCounter}` }));
+                };
+                console.log(`Appending tool ${tool.label} to palette`);
+                palette.appendChild(item);
+            });
+
+            // Canvas drag over
+            canvasContainer.ondragover = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            };
+
+            // Canvas drop
+            canvasContainer.ondrop = (e) => {
+                e.preventDefault();
+                let dataStr = e.dataTransfer.getData('text/plain');
+                if (!dataStr) dataStr = e.dataTransfer.getData('text');
+                if (!dataStr) return;
+                try {
+                    const nodeData = JSON.parse(dataStr);
+                    const rect = canvasContainer.getBoundingClientRect();
+
+                    // Simple absolute positioning inside canvas
+                    nodeData.x = Math.max(0, e.clientX - rect.left - 60);
+                    nodeData.y = Math.max(0, e.clientY - rect.top - 20);
+
+                    addNode(nodeData);
+                } catch (err) {
+                    console.error("Drop error", err);
+                }
+            };
+
+            function addNode(data) {
+                nodes.push(data);
+                renderNode(data);
+            }
+
+            function renderNode(data) {
+                const el = document.createElement('div');
+                el.id = data.id;
+                el.className = 'flow-node';
+                el.style.cssText = `
+                    position: absolute; left: ${data.x}px; top: ${data.y}px;
+                    width: 200px; background: #21262d; border: 1px solid #30363d;
+                    border-radius: 6px; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                    cursor: move; z-index: 10;
+                    display: flex; flex-direction: column; align-items: stretch;
+                `;
+
+                // Base Content structure
+                let contentHTML = `
+                    <div style="font-size:13px; font-weight:600; margin-bottom:10px; pointer-events:none; text-align:center;">${data.label}</div>
+                    <textarea class="node-input" placeholder="Enter input here..." style="
+                        width:100%; height:60px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; 
+                        border-radius:4px; font-size:11px; resize:none; margin-bottom:10px; 
+                        box-sizing:border-box; padding:4px; font-family:inherit;
+                    ">${data.manualInput || ''}</textarea>
+                    
+                    <!-- Output Image Display (Hidden initially) -->
+                    <div class="node-image-output" style="display:none; width:100%; margin-bottom:10px; border-radius:4px; overflow:hidden;">
+                        <img src="" style="width:100%; height:auto; display:block;" />
+                    </div>
+
+                    <!-- Ports wrapper -->
+                    <div style="width:100%; position:relative; height:12px; margin-top:auto;">
+                        <!-- In Port -->
+                        <div class="port-in" data-nodeid="${data.id}" style="
+                            position:absolute; left:-16px; top:0; width:12px; height:12px; border-radius:50%;
+                            background:#58a6ff; border:2px solid #0d1117; cursor:crosshair;
+                        "></div>
+                        
+                        <!-- Out Port -->
+                        <div class="port-out" data-nodeid="${data.id}" style="
+                            position:absolute; right:-16px; top:0; width:12px; height:12px; border-radius:50%;
+                            background:#238636; border:2px solid #0d1117; cursor:crosshair;
+                        "></div>
+                    </div>
+                `;
+
+                el.innerHTML = contentHTML;
+
+                // Sync textarea with data model
+                const textArea = el.querySelector('.node-input');
+                textArea.oninput = (e) => {
+                    data.manualInput = e.target.value;
+                    // Keep Properties pane in sync if open
+                    const propInput = propertiesPane.querySelector('#prop-input-value');
+                    if (propInput && activeNodeId === data.id) {
+                        propInput.value = e.target.value;
+                    }
+                };
+                // Stop drag on textarea
+                textArea.onmousedown = (e) => e.stopPropagation();
+
+                // Node Selection & Dragging
+                el.onmousedown = (e) => {
+                    if (e.target.classList.contains('port-in') || e.target.classList.contains('port-out')) return;
+                    isDraggingNode = true;
+                    draggedNode = data;
+                    const rect = el.getBoundingClientRect();
+                    dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+                    selectNode(data.id);
+                };
+
+                // Port interactions
+                const outPort = el.querySelector('.port-out');
+                outPort.onmousedown = (e) => startDrawingLine(e, data.id, 'out');
+
+                const inPort = el.querySelector('.port-in');
+                inPort.onmousedown = (e) => startDrawingLine(e, data.id, 'in');
+                inPort.onmouseup = (e) => finishDrawingLine(data.id);
+
+                canvas.appendChild(el);
+            }
+
+            // --- Canvas Global Mouse Events for Dragging/Drawing ---
+            canvasContainer.onmousemove = (e) => {
+                const rect = canvasContainer.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                if (isDraggingNode && draggedNode) {
+                    const el = document.getElementById(draggedNode.id);
+                    let newX = mouseX - dragOffset.x;
+                    let newY = mouseY - dragOffset.y;
+
+                    // Simple bounds
+                    newX = Math.max(0, newX);
+                    newY = Math.max(0, newY);
+
+                    el.style.left = newX + 'px';
+                    el.style.top = newY + 'px';
+                    draggedNode.x = newX;
+                    draggedNode.y = newY;
+
+                    updateEdges();
+                }
+
+                if (isDrawingLine && tempLine && activeSourcePort) {
+                    const sourceNode = document.getElementById(activeSourcePort.nodeId);
+                    const sourceRect = sourceNode.getBoundingClientRect();
+                    const containerRect = canvasContainer.getBoundingClientRect();
+
+                    // Start point (center of out port approx)
+                    let startX = sourceRect.left - containerRect.left + sourceRect.width + 10;
+                    let startY = sourceRect.top - containerRect.top + sourceRect.height - 15;
+
+                    tempLine.setAttribute('d', `M ${startX} ${startY} L ${mouseX} ${mouseY}`);
+                }
+            };
+
+            canvasContainer.onmouseup = () => {
+                isDraggingNode = false;
+                draggedNode = null;
+
+                if (isDrawingLine) {
+                    if (tempLine) tempLine.remove();
+                    isDrawingLine = false;
+                    tempLine = null;
+                    activeSourcePort = null;
+                }
+            };
+
+            // --- Edge Drawing Logic ---
+            function startDrawingLine(e, nodeId, type) {
+                e.stopPropagation();
+                if (type !== 'out') return; // Only start from Out
+
+                isDrawingLine = true;
+                activeSourcePort = { nodeId, type };
+
+                tempLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                tempLine.setAttribute('stroke', '#8b949e');
+                tempLine.setAttribute('stroke-width', '2');
+                tempLine.setAttribute('fill', 'none');
+                tempLine.setAttribute('stroke-dasharray', '5,5');
+                svgEdges.appendChild(tempLine);
+            }
+
+            function finishDrawingLine(targetNodeId) {
+                if (isDrawingLine && activeSourcePort && activeSourcePort.nodeId !== targetNodeId) {
+                    // Create connection
+                    edges.push({
+                        from: activeSourcePort.nodeId,
+                        to: targetNodeId
+                    });
+                    renderEdges();
+                }
+            }
+
+            function renderEdges() {
+                svgEdges.innerHTML = '';
+                edges.forEach(edge => {
+                    const fromNode = document.getElementById(edge.from);
+                    const toNode = document.getElementById(edge.to);
+                    if (!fromNode || !toNode) return;
+
+                    const containerRect = canvasContainer.getBoundingClientRect();
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+
+                    // Approximation of port centers
+                    const x1 = fromRect.left - containerRect.left + fromRect.width + 10;
+                    const y1 = fromRect.top - containerRect.top + fromRect.height - 15;
+
+                    const x2 = toRect.left - containerRect.left - 10;
+                    const y2 = toRect.top - containerRect.top + toRect.height - 15;
+
+                    // Bezier curve
+                    const curve = Math.abs(x2 - x1) * 0.5;
+                    const pathD = `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', pathD);
+                    path.setAttribute('stroke', '#58a6ff');
+                    path.setAttribute('stroke-width', '3');
+                    path.setAttribute('fill', 'none');
+                    svgEdges.appendChild(path);
+                });
+            }
+
+            function updateEdges() {
+                if (edges.length > 0) renderEdges();
+            }
+
+            // --- Properties Pane Logic ---
+            function selectNode(id) {
+                activeNodeId = id;
+                const node = nodes.find(n => n.id === id);
+                if (!node) return;
+
+                // Highlight UI
+                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = '#30363d');
+                document.getElementById(id).style.borderColor = '#58a6ff';
+
+                // Open pane
+                propertiesPane.style.display = 'flex';
+
+                // Populate pane
+                content.querySelector('#prop-node-id').value = node.id;
+                content.querySelector('#prop-category').value = node.cat || 'Tools';
+                content.querySelector('#prop-domain').value = node.domain || '';
+                content.querySelector('#prop-func').value = node.func || '';
+                content.querySelector('#prop-in-format').value = node.in || '';
+                content.querySelector('#prop-out-format').value = node.out || '';
+            }
+
+            propCloseBtn.onclick = () => {
+                propertiesPane.style.display = 'none';
+                activeNodeId = null;
+                document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = '#30363d');
+            };
+
+            propSaveBtn.onclick = () => {
+                const id = content.querySelector('#prop-node-id').value;
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    node.cat = content.querySelector('#prop-category').value;
+                    node.domain = content.querySelector('#prop-domain').value;
+                    node.func = content.querySelector('#prop-func').value;
+                    node.in = content.querySelector('#prop-in-format').value;
+                    node.out = content.querySelector('#prop-out-format').value;
+
+                    propSaveBtn.textContent = 'Saved!';
+                    propSaveBtn.style.background = '#27c93f';
+                    setTimeout(() => {
+                        propSaveBtn.textContent = 'Save Protocol Status';
+                        propSaveBtn.style.background = '#238636';
+                    }, 1500);
+                }
+            };
+
+            // --- Execution Logic ---
+            const runBtn = win.querySelector('#flow-run-btn');
+            runBtn.onclick = async () => {
+                if (nodes.length === 0) return;
+
+                runBtn.disabled = true;
+                runBtn.textContent = '⏳ Running Kernel Job...';
+
+                // Ensure manual inputs are saved from currently selected node
+                if (activeNodeId) {
+                    const node = nodes.find(n => n.id === activeNodeId);
+                    if (node) node.manualInput = propertiesPane.querySelector('#prop-input-value').value;
+                }
+
+                try {
+                    // 1. Submit Job to Kernel Scheduler
+                    const res = await fetch('/api/kernel/run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nodes, edges })
+                    });
+                    const { jobId } = await res.json();
+                    if (!jobId) throw new Error("Failed to start job.");
+
+                    // 2. Poll Status
+                    let polling = true;
+                    const flowTaskContainer = win.querySelector('#flow-task-container');
+                    flowTaskContainer.innerHTML = '';
+
+                    while (polling) {
+                        const statusRes = await fetch(`/api/kernel/status/${jobId}`);
+                        const jobState = await statusRes.json();
+
+                        // Update UI for each task
+                        for (const taskId in jobState.tasks) {
+                            const task = jobState.tasks[taskId];
+                            const currEl = document.getElementById(taskId);
+                            if (!currEl) continue;
+
+                            const node = nodes.find(n => n.id === taskId);
+                            if (!node) continue;
+
+                            // -- Task Trace UI Update --
+                            let traceEl = flowTaskContainer.querySelector(`#task-trace-${taskId}`);
+                            if (!traceEl) {
+                                traceEl = document.createElement('div');
+                                traceEl.id = `task-trace-${taskId}`;
+                                traceEl.style.cssText = 'margin-bottom:10px; padding:10px; background:#0d1117; border-radius:6px; border:1px solid #30363d; font-size:12px; position:relative;';
+                                flowTaskContainer.appendChild(traceEl);
+                            }
+
+                            let dotColor = '#8b949e';
+                            let statusLabel = 'Pending';
+                            if (task.status === 'RUNNING') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
+                            else if (task.status === 'DONE') { dotColor = '#238636'; statusLabel = 'Done'; }
+                            else if (task.status === 'ERROR') { dotColor = '#f85149'; statusLabel = 'Error'; }
+
+                            // Check if output is image url to show nicely instead of long raw HTML string
+                            let outSnippet = task.output || '';
+                            if (outSnippet.startsWith('http') || outSnippet.startsWith('/api/')) outSnippet = '[Image URL Generated]';
+                            if (outSnippet.length > 200) outSnippet = outSnippet.substring(0, 200) + '...';
+
+                            traceEl.innerHTML = `
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
+                                        <strong style="color:#c9d1d9;">${node.label.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDC00-\uDFFF])/g, '')}</strong>
+                                    </div>
+                                    <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
+                                </div>
+                                ${outSnippet ? `<div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto; overflow-wrap:anywhere;">${outSnippet}</div>` : ''}
+                            `;
+                            traceEl.style.borderColor = dotColor;
+
+                            if (node && task.output) {
+                                node.lastOutput = task.output;
+
+                                // Show image on node if output is a URL
+                                if (task.output.startsWith('http') || task.output.startsWith('/api/')) {
+                                    const imgContainer = currEl.querySelector('.node-image-output');
+                                    const img = imgContainer?.querySelector('img');
+                                    if (imgContainer && img) {
+                                        img.src = task.output;
+                                        imgContainer.style.display = 'block';
+                                    }
+                                }
+                            }
+
+                            if (task.status === 'WAITING' || task.status === 'RUNNING') {
+                                currEl.style.boxShadow = '0 0 10px #ffbd2e'; // Yellow
+                                currEl.style.borderColor = '#ffbd2e';
+                            } else if (task.status === 'DONE') {
+                                currEl.style.boxShadow = '0 0 10px #238636'; // Green
+                                currEl.style.borderColor = '#238636';
+                            } else if (task.status === 'ERROR') {
+                                currEl.style.boxShadow = '0 0 10px #ff5f56'; // Red
+                                currEl.style.borderColor = '#ff5f56';
+                            } else {
+                                // READY
+                                currEl.style.boxShadow = 'none';
+                                currEl.style.borderColor = '#30363d';
+                            }
+
+                            // Update properties pane if active
+                            if (activeNodeId === taskId && node) {
+                                propertiesPane.querySelector('#prop-output-value').value = node.lastOutput || '';
+                            }
+                        }
+
+                        if (jobState.status === 'COMPLETED' || jobState.status === 'FAILED') {
+                            polling = false;
+                        } else {
+                            // Wait 500ms before next poll
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    }
+                } catch (err) {
+                    console.error('Kernel execution error:', err);
+                    alert("A Kernel-level error occurred during execution.");
+                }
+
+                runBtn.textContent = '▶ Run Graph';
+                runBtn.disabled = false;
+            };
+
+            // Update Properties pane initialization to handle input/output fields
+            const originalSelectNode = selectNode;
+            selectNode = function (id) {
+                originalSelectNode(id);
+                const node = nodes.find(n => n.id === id);
+                if (node) {
+                    propertiesPane.querySelector('#prop-input-value').value = node.manualInput || '';
+                    propertiesPane.querySelector('#prop-output-value').value = node.lastOutput || '';
+
+                    // Allow input to update state as they type
+                    const inputEl = propertiesPane.querySelector('#prop-input-value');
+                    inputEl.oninput = (e) => { node.manualInput = e.target.value; };
+                }
+            };
+        }
+
+        // --- App Store Logic ---
+        let storeApps = [];
+
+        async function fetchStoreApps() {
+            try {
+                const res = await fetch('/api/kernel/tools');
+                if (!res.ok) throw new Error('Failed to fetch tools');
+                const tools = await res.json();
+
+                storeApps = tools.map((t) => {
+                    const icon = t.uiMetadata?.icon || '⚙️';
+                    const label = t.uiMetadata?.label || t.name;
+                    return {
+                        id: 'tool-' + t.name,
+                        name: label,
+                        publisher: t.uiMetadata?.publisher || 'System',
+                        category: t.uiMetadata?.category || 'utility',
+                        icon: icon,
+                        desc: t.description,
+                        protocol: {
+                            type: 'tool-' + t.name,
+                            label: icon + ' ' + label,
+                            cat: t.uiMetadata?.category || 'Utility',
+                            domain: t.uiMetadata?.publisher || 'System Tool',
+                            func: t.description,
+                            in: 'JSON Schema (Kernel Handled)',
+                            out: 'JSON Result',
+                            _toolName: t.name,
+                            _parameters: t.parameters
+                        }
+                    };
+                });
+            } catch (err) {
+                console.error("[AppStore] Failed to fetch tools:", err);
+            }
+        }
+
+        let installedStoreApps = JSON.parse(localStorage.getItem('installedStoreApps') || '[]');
+
+        async function openAppStore() {
+            await fetchStoreApps(); // Ensure we have the latest tools from Kernel
+            const win = createWindow('Agent App Store', 'tpl-store', 850, 600);
+            win.innerHTML = document.getElementById('tpl-store').innerHTML;
+
+            const grid = win.querySelector('#store-grid');
+            const searchInput = win.querySelector('#store-search');
+            const catSelect = win.querySelector('#store-category');
+
+            function renderGrid() {
+                grid.innerHTML = '';
+                const searchTerm = searchInput.value.toLowerCase();
+                const category = catSelect.value;
+
+                const filtered = storeApps.filter(app => {
+                    const matchesSearch = app.name.toLowerCase().includes(searchTerm) || app.desc.toLowerCase().includes(searchTerm);
+                    const matchesCat = category === 'all' || app.category === category;
+                    return matchesSearch && matchesCat;
+                });
+
+                filtered.forEach(app => {
+                    const isInstalled = installedStoreApps.includes(app.id);
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 15px;
+                        display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s, box-shadow 0.2s;
+                    `;
+                    card.onmouseenter = () => { card.style.transform = 'translateY(-2px)'; card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)'; };
+                    card.onmouseleave = () => { card.style.transform = 'none'; card.style.boxShadow = 'none'; };
+
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="font-size:32px; background:#161b22; width:50px; height:50px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid #30363d;">${app.icon}</div>
+                            <div>
+                                <div style="font-weight:600; font-size:14px;">${app.name}</div>
+                                <div style="font-size:11px; color:#8b949e;">by ${app.publisher}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:12px; color:#c9d1d9; flex:1; line-height:1.4;">${app.desc}</div>
+                        <button class="install-btn" style="
+                            padding:8px; border-radius:4px; font-weight:600; font-size:12px; cursor:pointer; border:none;
+                            ${isInstalled ? 'background:#30363d; color:#8b949e;' : 'background:#238636; color:white;'}
+                        ">${isInstalled ? 'Installed' : 'Install'}</button>
+                    `;
+
+                    const btn = card.querySelector('.install-btn');
+                    if (!isInstalled) {
+                        btn.onclick = () => installApp(app, btn);
+                    }
+
+                    grid.appendChild(card);
+                });
+
+                if (filtered.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 40px; color:#8b949e;">No apps found matching your criteria.</div>';
+                }
+            }
+
+            searchInput.oninput = renderGrid;
+            catSelect.onchange = renderGrid;
+
+            renderGrid();
+        }
+
+        function installApp(storeApp, btnElement) {
+            btnElement.textContent = 'Installing...';
+            btnElement.style.background = '#1f6feb';
+
+            setTimeout(() => {
+                if (!installedStoreApps.includes(storeApp.id)) {
+                    installedStoreApps.push(storeApp.id);
+                    localStorage.setItem('installedStoreApps', JSON.stringify(installedStoreApps));
+
+                    // Add to global apps dict dynamically so it can be opened / added to taskbar
+                    registerInstalledApp(storeApp);
+                    initDesktop(); // Re-render desktop/taskbar to show new app
+                }
+
+                btnElement.textContent = 'Installed';
+                btnElement.style.background = '#30363d';
+                btnElement.style.color = '#8b949e';
+                btnElement.onclick = null;
+            }, 800);
+        }
+
+        function registerInstalledApp(storeApp) {
+            // Give it a generic action or specific one if needed. For now just an alert since they are meant for AI Flow.
+            apps[storeApp.id] = {
+                id: storeApp.id,
+                name: storeApp.name,
+                icon: storeApp.icon,
+                type: 'app',
+                action: () => alert(`Opening ${storeApp.name}... This agent is best used inside AI Flow!`)
+            };
+            if (!defaultDesktopApps.includes(storeApp.id)) {
+                defaultDesktopApps.push(storeApp.id);
+            }
+        }
+
+        // Restore installed apps on load
+        storeApps.forEach(app => {
+            if (installedStoreApps.includes(app.id)) {
+                registerInstalledApp(app);
+            }
+        });
+
+        // --- System Settings & App Authorization ---
+        let appAuthTiers = JSON.parse(localStorage.getItem('appAuthTiers') || '{}');
+
+        // Helper to show an OS-level dialog window
+        function showOSDialog(title, message, type, onConfirm) {
+            const win = createWindow(title, 'dialog', 400, 200);
+
+            let color = type === 'warning' ? '#ffbd2e' : type === 'danger' ? '#ff5f56' : '#58a6ff';
+
+            win.innerHTML = `
+                <div style="padding: 20px; display:flex; flex-direction:column; height:100%; box-sizing:border-box;">
+                    <div style="display:flex; gap:15px; align-items:start;">
+                        <span style="font-size:30px;">⚠️</span>
+                        <div style="font-size:14px; line-height:1.5; color:#c9d1d9;">${message}</div>
+                    </div>
+                    <div style="margin-top:auto; display:flex; justify-content:flex-end; gap:10px;">
+                        <button id="dialog-deny" style="padding:8px 15px; background:#21262d; border:1px solid #30363d; color:#c9d1d9; border-radius:4px; cursor:pointer;">Deny</button>
+                        <button id="dialog-allow" style="padding:8px 15px; background:${color}; color:${type === 'warning' ? 'black' : 'white'}; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Allow</button>
+                    </div>
+                </div>
+            `;
+
+            win.querySelector('#dialog-deny').onclick = () => {
+                closeWindow(win.parentElement.id);
+            };
+
+            win.querySelector('#dialog-allow').onclick = () => {
+                closeWindow(win.parentElement.id);
+                if (onConfirm) onConfirm();
+            };
+        }
+
+        // The Interceptor: Wraps app launches to check authorization tiers
+        function launchAppWithAuthRow(appId, originAction) {
+            // Settings and App Store are systemic exceptions to prevent locking oneself out
+            if (appId === 'settings' || appId === 'store') return originAction();
+
+            const tier = appAuthTiers[appId] || '1';
+            const appInfo = apps[appId];
+
+            if (tier === '1') {
+                // Tier 1: Low Risk (No interruptions)
+                originAction();
+            } else if (tier === '2') {
+                // Tier 2: Medium Risk (Ask before launch)
+                showOSDialog(
+                    'Authorization Required',
+                    `<strong>${appInfo.name}</strong> is attempting to launch. Do you want to allow this application to run?`,
+                    'warning',
+                    () => originAction()
+                );
+            } else if (tier === '3') {
+                // Tier 3: High Risk (Strict warning)
+                showOSDialog(
+                    'Restricted Access Warning',
+                    `<strong>${appInfo.name}</strong> is marked as highly restricted (Tier 3).<br><br>It requires explicit permission to access basic functions. Do you want to allow it this one time?`,
+                    'danger',
+                    () => originAction()
+                );
+            }
+        }
+
+        function openSettingsApp() {
+            const win = createWindow('Settings', 'tpl-settings', 700, 500);
+            win.innerHTML = document.getElementById('tpl-settings').innerHTML;
+
+            const listContainer = win.querySelector('#settings-app-list');
+
+            function renderAppPerms() {
+                listContainer.innerHTML = '';
+
+                // We only let users configure standard apps and installed Dapps
+                const configurableApps = defaultDesktopApps.filter(id => id !== 'settings' && id !== 'store');
+
+                configurableApps.forEach(appId => {
+                    const app = apps[appId];
+                    if (!app) return;
+
+                    const currentTier = appAuthTiers[appId] || '1';
+
+                    const row = document.createElement('div');
+                    row.style.cssText = `
+                        display:flex; align-items:center; justify-content:space-between; 
+                        padding:12px; background:#21262d; border:1px solid #30363d; border-radius:6px;
+                    `;
+
+                    row.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:20px;">${app.icon}</span>
+                            <span style="font-weight:600; font-size:13px;">${app.name}</span>
+                        </div>
+                        <select class="tier-select" data-appid="${appId}" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:4px; font-size:13px; width:150px;">
+                            <option value="1" ${currentTier === '1' ? 'selected' : ''}>Tier 1 (Full)</option>
+                            <option value="2" ${currentTier === '2' ? 'selected' : ''}>Tier 2 (Medium)</option>
+                            <option value="3" ${currentTier === '3' ? 'selected' : ''}>Tier 3 (Strict)</option>
+                        </select>
+                    `;
+
+                    const selectEl = row.querySelector('.tier-select');
+                    selectEl.onchange = (e) => {
+                        appAuthTiers[appId] = e.target.value;
+                        localStorage.setItem('appAuthTiers', JSON.stringify(appAuthTiers));
+                    };
+
+                    listContainer.appendChild(row);
+                });
+            }
+
+            renderAppPerms();
+        }
+
+        // --- Init ---
+        // Patch the apps dictionary to route through auth before loading the desktop
+        Object.keys(apps).forEach(appId => {
+            if (appId === 'settings') {
+                apps[appId].action = () => openSettingsApp();
+            } else {
+                const originalAction = apps[appId].action;
+                if (originalAction && appId !== 'store') {
+                    apps[appId].action = () => launchAppWithAuthRow(appId, originalAction);
+                }
+            }
+        });
+
+        initDesktop();
+
+    </script>
+</body>
+
+</html>
