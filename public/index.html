@@ -5818,7 +5818,10 @@
 
                 // Base Content structure
                 let contentHTML = `
-                    <div style="font-size:13px; font-weight:600; margin-bottom:10px; pointer-events:none; text-align:center;">${data.label}</div>
+                    <div style="font-size:13px; font-weight:600; margin-bottom:10px; pointer-events:none; text-align:center; position:relative;">
+                        ${data.label}
+                        <div class="node-delete-btn" title="Remove Node" style="position:absolute; right:-5px; top:-5px; width:16px; height:16px; line-height:14.5px; background:#FF3B30; color:white; border-radius:50%; font-size:11px; font-weight:bold; cursor:pointer; pointer-events:auto; display:flex; justify-content:center; align-items:center;">&times;</div>
+                    </div>
                     <textarea class="node-input" placeholder="Enter input here..." style="
                         width:100%; height:60px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); 
                         border-radius:6px; font-size:11px; resize:none; margin-bottom:10px; 
@@ -5860,6 +5863,16 @@
                 };
                 // Stop drag on textarea
                 textArea.onmousedown = (e) => e.stopPropagation();
+
+                // Delete Button handler
+                const delBtn = el.querySelector('.node-delete-btn');
+                if (delBtn) {
+                    delBtn.onmousedown = (e) => e.stopPropagation();
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteNode(data.id);
+                    };
+                }
 
                 // Node Selection & Dragging
                 el.onmousedown = (e) => {
@@ -5990,7 +6003,33 @@
             }
 
             function updateEdges() {
-                if (edges.length > 0) renderEdges();
+                if (edges.length > 0) {
+                    renderEdges();
+                } else {
+                    svgEdges.innerHTML = '';
+                }
+            }
+
+            function deleteNode(nodeId) {
+                // Remove from nodes array
+                nodes = nodes.filter(n => n.id !== nodeId);
+
+                // Remove connected edges
+                edges = edges.filter(e => e.from !== nodeId && e.to !== nodeId);
+
+                // Remove DOM element
+                const el = document.getElementById(nodeId);
+                if (el) el.remove();
+
+                // Close properties pane if the deleted node was selected
+                if (activeNodeId === nodeId) {
+                    propertiesPane.style.display = 'none';
+                    activeNodeId = null;
+                    document.querySelectorAll('.flow-node').forEach(el => el.style.borderColor = 'rgba(0,0,0,0.1)');
+                }
+
+                // Update connections
+                updateEdges();
             }
 
             // --- Properties Pane Logic ---
