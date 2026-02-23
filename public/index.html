@@ -7,7 +7,9 @@
     <title>Agent OS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         /*
@@ -35,112 +37,145 @@
 
         /* ── Phase 5.5 Design Tokens (single source for theme) ───────────── */
         :root {
-            --bg:               #eef2ff;
-            --glass:            rgba(255,255,255,0.62);
-            --glass-strong:     rgba(255,255,255,0.72);
-            --glass-border:     rgba(255,255,255,0.50);
-            --glass-border-soft: rgba(255,255,255,0.35);
-            --text:             #111827;
-            --muted:            rgba(17,24,39,0.55);
-            --muted-2:          rgba(17,24,39,0.35);
-            --shadow-1:         0 10px 30px rgba(0,0,0,0.08);
-            --shadow-2:         0 20px 60px rgba(0,0,0,0.12);
-            --shadow-3:         0 40px 100px rgba(0,0,0,0.18);
-            --inset:            inset 0 1px 0 rgba(255,255,255,0.80);
-            --blur-weak:        blur(14px);
-            --blur-strong:      blur(30px);
-            --radius-window:    24px;
-            --radius-card:      18px;
-            --radius-pill:      999px;
-            --pad-window:       14px;
-            --pad-card:         16px;
-            --line:             rgba(17,24,39,0.08);
-            --accent:            rgba(99,102,241,0.95);
-            --accent-glow:      rgba(99,102,241,0.18);
-            --ok:               #10b981;
-            --warn:             #f59e0b;
-            --bad:              #ef4444;
+            --bg: #eef2ff;
+            --glass: rgba(255, 255, 255, 0.62);
+            --glass-strong: rgba(255, 255, 255, 0.72);
+            --glass-border: rgba(255, 255, 255, 0.50);
+            --glass-border-soft: rgba(255, 255, 255, 0.35);
+            --text: #111827;
+            --muted: rgba(17, 24, 39, 0.55);
+            --muted-2: rgba(17, 24, 39, 0.35);
+            --shadow-1: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --shadow-2: 0 20px 60px rgba(0, 0, 0, 0.12);
+            --shadow-3: 0 40px 100px rgba(0, 0, 0, 0.18);
+            --inset: inset 0 1px 0 rgba(255, 255, 255, 0.80);
+            --blur-weak: blur(14px);
+            --blur-strong: blur(30px);
+            --radius-window: 24px;
+            --radius-card: 18px;
+            --radius-pill: 999px;
+            --pad-window: 14px;
+            --pad-card: 16px;
+            --line: rgba(17, 24, 39, 0.08);
+            --accent: rgba(99, 102, 241, 0.95);
+            --accent-glow: rgba(99, 102, 241, 0.18);
+            --ok: #10b981;
+            --warn: #f59e0b;
+            --bad: #ef4444;
 
             /* Legacy / aliases (keep app code working) */
-            --accent-light:     rgba(37,99,235,0.08);
-            --text-primary:     var(--text);
-            --text-secondary:   var(--muted);
-            --text-muted:       var(--muted-2);
-            --success:         var(--ok);
-            --warning:          var(--warn);
-            --error:            var(--bad);
-            --glass-bg:         var(--glass);
-            --glass-blur:       var(--blur-strong);
-            --glass-window-bg:  var(--glass);
+            --accent-light: rgba(37, 99, 235, 0.08);
+            --text-primary: var(--text);
+            --text-secondary: var(--muted);
+            --text-muted: var(--muted-2);
+            --success: var(--ok);
+            --warning: var(--warn);
+            --error: var(--bad);
+            --glass-bg: var(--glass);
+            --glass-blur: var(--blur-strong);
+            --glass-window-bg: var(--glass);
             --glass-window-border: 1px solid var(--glass-border);
             --glass-window-shadow: var(--shadow-2);
-            --glass-window-inner:  var(--inset);
-            --glass-window-focus:  0 0 0 1px rgba(99,102,241,0.22), var(--shadow-3);
-            --r-window:         var(--radius-window);
-            --r-card:           var(--radius-card);
-            --r-btn:            10px;
-            --r-dock-item:      14px;
-            --r-dock:           26px;
-            --top-bar-h:        48px;
-            --dock-w:           76px;
-            --sidebar-w:        200px;
-            --bg-color:          #EFF2F8;
-            --window-border:     1px solid rgba(255,255,255,0.8);
-            --window-bg:         rgba(255,255,255,0.72);
-            --header-bg:         rgba(250,251,253,0.9);
-            --text-color:        #111827;
-            --accent-color:      #2563EB;
-            --selection-color:   rgba(37,99,235,0.08);
-            --taskbar-height:    0px;
-            --surface-1:         rgba(255,255,255,0.9);
-            --surface-2:         rgba(248,250,252,0.85);
-            --surface-3:         rgba(240,243,248,0.8);
-            --border:            rgba(0,0,0,0.05);
-            --border-active:     rgba(0,0,0,0.12);
-            --radius-sm:         6px;
-            --radius-md:         var(--r-card);
-            --radius-lg:         var(--r-window);
+            --glass-window-inner: var(--inset);
+            --glass-window-focus: 0 0 0 1px rgba(99, 102, 241, 0.22), var(--shadow-3);
+            --r-window: var(--radius-window);
+            --r-card: var(--radius-card);
+            --r-btn: 10px;
+            --r-dock-item: 14px;
+            --r-dock: 26px;
+            --top-bar-h: 48px;
+            --dock-w: 76px;
+            --sidebar-w: 200px;
+            --bg-color: #EFF2F8;
+            --window-border: 1px solid rgba(255, 255, 255, 0.8);
+            --window-bg: rgba(255, 255, 255, 0.72);
+            --header-bg: rgba(250, 251, 253, 0.9);
+            --text-color: #111827;
+            --accent-color: #2563EB;
+            --selection-color: rgba(37, 99, 235, 0.08);
+            --taskbar-height: 0px;
+            --surface-1: rgba(255, 255, 255, 0.9);
+            --surface-2: rgba(248, 250, 252, 0.85);
+            --surface-3: rgba(240, 243, 248, 0.8);
+            --border: rgba(0, 0, 0, 0.05);
+            --border-active: rgba(0, 0, 0, 0.12);
+            --radius-sm: 6px;
+            --radius-md: var(--r-card);
+            --radius-lg: var(--r-window);
 
             /* ── Layer 1: Systematic Token Names ──────────────────────── */
             /* Color tokens */
-            --c-accent:          var(--accent);
-            --c-accent-dim:      var(--accent-light);
-            --c-text-1:          var(--text-primary);
-            --c-text-2:          var(--text-secondary);
-            --c-text-3:          var(--text-muted);
-            --c-success:         var(--success);
-            --c-warning:         var(--warning);
-            --c-error:           var(--error);
+            --c-accent: var(--accent);
+            --c-accent-dim: var(--accent-light);
+            --c-text-1: var(--text-primary);
+            --c-text-2: var(--text-secondary);
+            --c-text-3: var(--text-muted);
+            --c-success: var(--success);
+            --c-warning: var(--warning);
+            --c-error: var(--error);
             /* Glass tokens */
-            --gl-bg:             var(--glass-bg);
-            --gl-blur:           var(--glass-blur);
-            --gl-border:         var(--glass-border);
+            --gl-bg: var(--glass-bg);
+            --gl-blur: var(--glass-blur);
+            --gl-border: var(--glass-border);
             /* Shadow tokens */
-            --sh-1:              var(--shadow-1);
-            --sh-2:              var(--shadow-2);
-            --sh-3:              var(--shadow-3);
+            --sh-1: var(--shadow-1);
+            --sh-2: var(--shadow-2);
+            --sh-3: var(--shadow-3);
             /* Radius tokens */
-            --r-panel:           18px;
-            --r-pill:            999px;
+            --r-panel: 18px;
+            --r-pill: 999px;
             /* Spacing scale */
-            --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
-            --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+            --sp-1: 4px;
+            --sp-2: 8px;
+            --sp-3: 12px;
+            --sp-4: 16px;
+            --sp-5: 20px;
+            --sp-6: 24px;
+            --sp-8: 32px;
             /* Type scale */
-            --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px;
-            --fs-base: 13px; --fs-md: 15px; --fs-lg: 18px;
+            --fs-2xs: 10px;
+            --fs-xs: 11px;
+            --fs-sm: 12px;
+            --fs-base: 13px;
+            --fs-md: 15px;
+            --fs-lg: 18px;
             /* Z-index scale */
-            --z-base: 1; --z-dock: 2000; --z-topbar: 3000;
-            --z-cmd: 9000; --z-toast: 9500;
+            --z-base: 1;
+            --z-dock: 2000;
+            --z-topbar: 3000;
+            --z-cmd: 9000;
+            --z-toast: 9500;
             /* Motion */
-            --dur-fast: 150ms; --dur-base: 180ms; --dur-slow: 280ms;
+            --dur-fast: 150ms;
+            --dur-base: 180ms;
+            --dur-slow: 280ms;
             --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
             --dur-breathe: 3s;
         }
 
         /* ── Reset + premium defaults ─────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        button, input, select, textarea { font: inherit; outline: none; }
-        button, input, select, textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+            outline: none;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
 
         /* ── Body & Background (soft wallpaper gradient, Apple-like) ──────── */
         body {
@@ -169,9 +204,11 @@
         body::before {
             content: '';
             position: fixed;
-            top: 0; right: 0;
-            width: 60vw; height: 55vh;
-            background: radial-gradient(ellipse at top right, rgba(230,228,245,0.5) 0%, transparent 55%);
+            top: 0;
+            right: 0;
+            width: 60vw;
+            height: 55vh;
+            background: radial-gradient(ellipse at top right, rgba(230, 228, 245, 0.5) 0%, transparent 55%);
             pointer-events: none;
             z-index: 0;
         }
@@ -180,9 +217,11 @@
         body::after {
             content: '';
             position: fixed;
-            bottom: 0; right: 0;
-            width: 70vw; height: 60vh;
-            background: radial-gradient(ellipse at bottom right, rgba(245,232,228,0.35) 0%, transparent 60%);
+            bottom: 0;
+            right: 0;
+            width: 70vw;
+            height: 60vh;
+            background: radial-gradient(ellipse at bottom right, rgba(245, 232, 228, 0.35) 0%, transparent 60%);
             pointer-events: none;
             z-index: 0;
         }
@@ -202,19 +241,21 @@
         /* ── Top System Bar (glassmorphism, design-aligned) ───────────────── */
         #top-bar {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: var(--top-bar-h);
             background: linear-gradient(to bottom,
-                rgba(255,255,255,0.72) 0%,
-                rgba(248,250,253,0.58) 100%);
+                    rgba(255, 255, 255, 0.72) 0%,
+                    rgba(248, 250, 253, 0.58) 100%);
             backdrop-filter: blur(32px) saturate(160%);
             -webkit-backdrop-filter: blur(32px) saturate(160%);
-            border-bottom: 1px solid rgba(255,255,255,0.65);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.65);
             display: flex;
             align-items: center;
             padding: 0 20px;
             z-index: var(--z-topbar);
-            box-shadow: 0 1px 0 rgba(255,255,255,0.5), 0 4px 24px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 24px rgba(0, 0, 0, 0.04);
         }
 
         .tb-left {
@@ -222,14 +263,22 @@
             align-items: center;
             min-width: 140px;
         }
+
         .tb-datetime {
             font-size: 13px;
             font-weight: 500;
             color: var(--c-text-2);
             letter-spacing: -0.01em;
         }
-        .tb-time { font-weight: 500; }
-        .tb-date { color: var(--c-text-3); font-weight: 400; }
+
+        .tb-time {
+            font-weight: 500;
+        }
+
+        .tb-date {
+            color: var(--c-text-3);
+            font-weight: 400;
+        }
 
         .tb-center {
             flex: 1;
@@ -237,19 +286,20 @@
             justify-content: center;
             padding: 0 16px;
         }
+
         /* AI Command Pill — search bar, glass style */
         .ai-cmd-pill {
             width: 420px;
             max-width: calc(100vw - 320px);
             height: 38px;
-            background: rgba(255,255,255,0.65);
+            background: rgba(255, 255, 255, 0.65);
             backdrop-filter: blur(24px) saturate(140%);
             -webkit-backdrop-filter: blur(24px) saturate(140%);
             border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.6);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.9),
-                0 6px 20px rgba(0,0,0,0.05);
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                0 6px 20px rgba(0, 0, 0, 0.05);
             display: flex;
             align-items: center;
             padding: 0 18px 0 16px;
@@ -262,21 +312,31 @@
             transition: background 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
             user-select: none;
         }
+
         .ai-cmd-pill:hover {
-            background: rgba(255,255,255,0.82);
-            border-color: rgba(255,255,255,0.75);
+            background: rgba(255, 255, 255, 0.82);
+            border-color: rgba(255, 255, 255, 0.75);
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.95),
-                0 8px 28px rgba(0,0,0,0.06),
-                0 0 0 1px rgba(255,255,255,0.5);
+                inset 0 1px 0 rgba(255, 255, 255, 0.95),
+                0 8px 28px rgba(0, 0, 0, 0.06),
+                0 0 0 1px rgba(255, 255, 255, 0.5);
         }
+
         .ai-cmd-pill .ai-cmd-magnifier {
             flex-shrink: 0;
             color: var(--c-text-3);
             opacity: 0.85;
         }
-        .ai-cmd-pill .ai-cmd-magnifier svg { width: 16px; height: 16px; }
-        .ai-cmd-label { flex: 1; text-align: left; }
+
+        .ai-cmd-pill .ai-cmd-magnifier svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .ai-cmd-label {
+            flex: 1;
+            text-align: left;
+        }
 
         /* Right-side status area — deliberately reduced contrast */
         .tb-right {
@@ -288,52 +348,78 @@
             opacity: 0.70;
             transition: opacity 0.2s ease;
         }
-        .tb-right:hover { opacity: 1; }
+
+        .tb-right:hover {
+            opacity: 1;
+        }
+
         .tb-icon-btn {
-            width: 28px; height: 28px;
+            width: 28px;
+            height: 28px;
             border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             font-size: 14px;
             color: var(--c-text-2);
             transition: background 0.15s ease-out;
             position: relative;
         }
-        .tb-icon-btn:hover { background: rgba(0,0,0,0.05); }
+
+        .tb-icon-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
         .tb-icon-btn .notif-dot {
             position: absolute;
-            top: 4px; right: 4px;
-            width: 6px; height: 6px;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
             background: var(--c-error);
             border-radius: 50%;
-            border: 1.5px solid rgba(246,248,251,0.9);
+            border: 1.5px solid rgba(246, 248, 251, 0.9);
         }
+
         .tb-avatar-wrap {
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
         .tb-avatar {
-            width: 28px; height: 28px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; font-weight: 600; color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(99,102,241,0.20);
+            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.20);
         }
+
         .tb-avatar-badge {
             position: absolute;
-            top: -2px; right: -2px;
-            min-width: 16px; height: 16px;
+            top: -2px;
+            right: -2px;
+            min-width: 16px;
+            height: 16px;
             padding: 0 4px;
             border-radius: 8px;
             background: var(--c-error);
             color: #fff;
-            font-size: 10px; font-weight: 600;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid rgba(246,248,251,0.95);
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(246, 248, 251, 0.95);
         }
 
         /* ── Notification Panel ─────────────────────────────────────────── */
@@ -356,6 +442,7 @@
             pointer-events: none;
             transition: transform 0.18s ease-in-out, opacity 0.18s ease-in-out;
         }
+
         #notif-panel.open {
             transform: scale(1) translateY(0);
             opacity: 1;
@@ -382,11 +469,13 @@
             z-index: 2000;
             transition: width 0.2s ease;
         }
+
         #dock.compact {
             width: 56px;
             align-items: center;
             padding: 12px 0 14px;
         }
+
         #dock.compact .nav-item {
             width: 40px;
             height: 40px;
@@ -394,10 +483,22 @@
             justify-content: center;
             border-radius: var(--r-dock-item);
         }
-        #dock.compact .nav-item .nav-label { display: none; }
-        #dock.compact .nav-item .nav-icon { margin: 0; }
-        #dock.compact .nav-sep { margin: 5px 0; }
-        #dock.compact .dock-toggle { margin-top: 4px; }
+
+        #dock.compact .nav-item .nav-label {
+            display: none;
+        }
+
+        #dock.compact .nav-item .nav-icon {
+            margin: 0;
+        }
+
+        #dock.compact .nav-sep {
+            margin: 5px 0;
+        }
+
+        #dock.compact .dock-toggle {
+            margin-top: 4px;
+        }
 
         .nav-item {
             display: flex;
@@ -410,60 +511,86 @@
             transition: background 0.18s ease-out, color 0.18s ease-out;
             flex-shrink: 0;
         }
+
         .nav-item:hover {
-            background: rgba(255,255,255,0.6);
+            background: rgba(255, 255, 255, 0.6);
             color: var(--text-primary);
         }
+
         .nav-item.active {
-            background: rgba(37,99,235,0.08);
+            background: rgba(37, 99, 235, 0.08);
             color: var(--accent);
         }
-        .nav-item.active:hover { background: rgba(37,99,235,0.12); }
+
+        .nav-item.active:hover {
+            background: rgba(37, 99, 235, 0.12);
+        }
+
         #dock.compact .nav-item:hover {
             transform: scale(1.08);
-            background: rgba(255,255,255,0.75);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
+
         .nav-item .nav-icon {
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
         .nav-item .nav-icon svg {
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             fill: none;
             stroke: currentColor;
             stroke-width: 1.65;
             stroke-linecap: round;
             stroke-linejoin: round;
         }
+
         .nav-item .nav-label {
             font-size: 13px;
             font-weight: 500;
             letter-spacing: -0.01em;
         }
+
         .nav-item.running::after {
             content: '';
             position: absolute;
-            bottom: 4px; left: 50%;
+            bottom: 4px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 4px; height: 4px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--accent);
             opacity: 0.85;
         }
-        .nav-item { position: relative; }
+
+        .nav-item {
+            position: relative;
+        }
+
         .nav-sep {
             width: 100%;
             height: 1px;
-            background: rgba(0,0,0,0.07);
+            background: rgba(0, 0, 0, 0.07);
             margin: 6px 0;
             flex-shrink: 0;
         }
-        #dock.compact .nav-sep { width: 22px; }
-        .dock-spacer { flex: 1; min-height: 8px; }
+
+        #dock.compact .nav-sep {
+            width: 22px;
+        }
+
+        .dock-spacer {
+            flex: 1;
+            min-height: 8px;
+        }
+
         .dock-toggle {
             width: 100%;
             height: 32px;
@@ -476,8 +603,18 @@
             transition: background 0.15s ease, color 0.15s ease;
             flex-shrink: 0;
         }
-        .dock-toggle:hover { background: rgba(0,0,0,0.05); color: var(--c-text-2); }
-        #dock.compact .dock-toggle { width: 40px; height: 40px; margin: 0 auto; }
+
+        .dock-toggle:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--c-text-2);
+        }
+
+        #dock.compact .dock-toggle {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+        }
+
         /* Compact mode: tooltip on the right */
         #dock.compact .nav-item::before {
             content: attr(data-tip);
@@ -485,8 +622,8 @@
             left: calc(100% + 14px);
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(15,20,32,0.86);
-            color: rgba(255,255,255,0.93);
+            background: rgba(15, 20, 32, 0.86);
+            color: rgba(255, 255, 255, 0.93);
             padding: 5px 10px;
             border-radius: 10px;
             font-size: 12px;
@@ -497,43 +634,56 @@
             transition: opacity 0.12s ease;
             z-index: 9999;
         }
-        #dock.compact .nav-item:hover::before { opacity: 1; }
+
+        #dock.compact .nav-item:hover::before {
+            opacity: 1;
+        }
 
         .dock-item {
-            width: 40px; height: 40px;
+            width: 40px;
+            height: 40px;
             border-radius: var(--r-dock-item);
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             color: var(--text-secondary);
             transition: transform 0.18s ease-out, background 0.18s ease-out,
-                        box-shadow 0.18s ease-out, color 0.18s ease-out;
+                box-shadow 0.18s ease-out, color 0.18s ease-out;
             position: relative;
             flex-shrink: 0;
         }
+
         .dock-item:hover {
             transform: scale(1.13);
-            background: rgba(255,255,255,0.75);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.09);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
             color: var(--text-primary);
         }
+
         .dock-item.running {
-            background: rgba(37,99,235,0.07);
+            background: rgba(37, 99, 235, 0.07);
             color: var(--accent);
         }
+
         .dock-item.running:hover {
-            background: rgba(37,99,235,0.12);
+            background: rgba(37, 99, 235, 0.12);
         }
+
         /* Running indicator dot */
         .dock-item.running::after {
             content: '';
             position: absolute;
-            bottom: -4px; left: 50%;
+            bottom: -4px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 4px; height: 4px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--accent);
             opacity: 0.85;
         }
+
         /* Tooltip */
         .dock-item::before {
             content: attr(data-tip);
@@ -541,8 +691,8 @@
             left: calc(100% + 14px);
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(15,20,32,0.86);
-            color: rgba(255,255,255,0.93);
+            background: rgba(15, 20, 32, 0.86);
+            color: rgba(255, 255, 255, 0.93);
             padding: 5px 10px;
             border-radius: 10px;
             font-size: 12px;
@@ -553,14 +703,18 @@
             transition: opacity 0.12s ease;
             z-index: 9999;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             letter-spacing: -0.01em;
         }
-        .dock-item:hover::before { opacity: 1; }
+
+        .dock-item:hover::before {
+            opacity: 1;
+        }
 
         /* SVG stroke icons */
         .dock-item svg {
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             fill: none;
             stroke: currentColor;
             stroke-width: 1.65;
@@ -569,19 +723,24 @@
         }
 
         .dock-sep {
-            width: 22px; height: 1px;
-            background: rgba(0,0,0,0.07);
+            width: 22px;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.07);
             margin: 5px 0;
             flex-shrink: 0;
         }
-        .dock-spacer { flex: 1; }
+
+        .dock-spacer {
+            flex: 1;
+        }
 
         /* ── Desktop Surface ────────────────────────────────────────────── */
         #desktop {
             position: fixed;
             top: var(--top-bar-h);
             left: var(--sidebar-offset, 190px);
-            right: 0; bottom: 0;
+            right: 0;
+            bottom: 0;
             overflow: hidden;
             z-index: 1;
             transition: left 0.2s ease;
@@ -606,23 +765,33 @@
             opacity: 0.92;
             transition: box-shadow 0.2s ease, opacity 0.2s ease;
         }
+
         .window.active {
             box-shadow: var(--glass-window-focus), var(--glass-window-inner);
             opacity: 1;
         }
+
         .window:not(.active) {
-            box-shadow: 0 12px 40px rgba(0,0,0,0.08), var(--glass-window-inner);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), var(--glass-window-inner);
         }
+
         @keyframes openWindow {
-            from { transform: scale(0.96) translateY(8px); opacity: 0; }
-            to   { transform: scale(1) translateY(0); opacity: 1; }
+            from {
+                transform: scale(0.96) translateY(8px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
 
         .window-header {
             height: 44px;
             min-height: 44px;
-            background: rgba(255,255,255,0.4);
-            border-bottom: 1px solid rgba(255,255,255,0.35);
+            background: rgba(255, 255, 255, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35);
             display: flex;
             align-items: center;
             padding: 0 14px 0 12px;
@@ -631,40 +800,74 @@
             flex-shrink: 0;
             gap: 12px;
         }
+
         .window-controls {
             display: flex;
             gap: 6px;
             flex-shrink: 0;
         }
+
         .control-btn {
-            width: 12px; height: 12px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             cursor: pointer;
             border: none;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 7px; line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            line-height: 1;
             color: transparent;
             transition: color 0.12s ease, transform 0.1s ease;
         }
-        .control-btn:hover { transform: scale(1.1); }
-        .close-btn { background: #FF5F57; }
-        .min-btn   { background: #FFBD2E; }
-        .max-btn   { background: #28C840; }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .close-btn {
+            background: #FF5F57;
+        }
+
+        .min-btn {
+            background: #FFBD2E;
+        }
+
+        .max-btn {
+            background: #28C840;
+        }
+
         .window-header:hover .close-btn,
         .window-header:hover .min-btn,
-        .window-header:hover .max-btn { color: rgba(0,0,0,0.35); }
-        .close-btn::after { content: '×'; }
-        .min-btn::after   { content: '–'; }
-        .max-btn::after   { content: '+'; }
+        .window-header:hover .max-btn {
+            color: rgba(0, 0, 0, 0.35);
+        }
+
+        .close-btn::after {
+            content: '×';
+        }
+
+        .min-btn::after {
+            content: '–';
+        }
+
+        .max-btn::after {
+            content: '+';
+        }
 
         .window-frame-icon {
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             border-radius: 6px;
-            background: rgba(0,0,0,0.06);
+            background: rgba(0, 0, 0, 0.06);
             flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 11px;
         }
+
         .window-frame-title-wrap {
             flex: 1;
             min-width: 0;
@@ -673,6 +876,7 @@
             justify-content: center;
             gap: 0;
         }
+
         .window-title {
             font-size: 13px;
             font-weight: 600;
@@ -682,6 +886,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .window-subtitle {
             font-size: 11px;
             color: var(--text-muted);
@@ -689,15 +894,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .window-frame-status {
             padding: 3px 8px;
             border-radius: 999px;
             font-size: 10px;
             font-weight: 600;
             color: var(--text-muted);
-            background: rgba(0,0,0,0.04);
+            background: rgba(0, 0, 0, 0.04);
             flex-shrink: 0;
         }
+
         .window-frame-actions {
             flex-shrink: 0;
             display: flex;
@@ -709,7 +916,7 @@
             flex-grow: 1;
             position: relative;
             overflow: auto;
-            background: rgba(252,253,255,0.5);
+            background: rgba(252, 253, 255, 0.5);
         }
 
         /* ── Phase 5.5: .os-window shell (BEM) ───────────────────────────── */
@@ -730,11 +937,13 @@
             animation: openWindow 0.2s ease-out;
             resize: both;
         }
+
         .os-window.active,
         .os-window.is-active {
             box-shadow: var(--shadow-3), var(--inset);
-            border-color: rgba(99,102,241,0.22);
+            border-color: rgba(99, 102, 241, 0.22);
         }
+
         .os-window.active::after,
         .os-window.is-active::after {
             content: '';
@@ -742,12 +951,14 @@
             inset: -1px;
             border-radius: var(--radius-window);
             pointer-events: none;
-            box-shadow: 0 0 0 1px rgba(99,102,241,0.12);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12);
         }
+
         .os-window:not(.active):not(.is-active) {
             opacity: 0.98;
             filter: saturate(0.98);
         }
+
         .os-window__chrome {
             height: 48px;
             min-height: 48px;
@@ -755,25 +966,43 @@
             align-items: center;
             padding: 0 14px 0 12px;
             gap: 12px;
-            background: rgba(255,255,255,0.35);
+            background: rgba(255, 255, 255, 0.35);
             border-bottom: 1px solid var(--line);
             flex-shrink: 0;
         }
+
         .os-window__traffic {
             display: flex;
             gap: 6px;
             flex-shrink: 0;
         }
+
         .os-window__traffic .dot {
             width: 12px;
             height: 12px;
             border-radius: 50%;
         }
-        .os-window__traffic .dot.red { background: #FF5F57; }
-        .os-window__traffic .dot.yellow { background: #FFBD2E; }
-        .os-window__traffic .dot.green { background: #28C840; }
-        .os-window__traffic .dot { cursor: pointer; }
-        .os-window__traffic .dot:hover { filter: brightness(0.92); }
+
+        .os-window__traffic .dot.red {
+            background: #FF5F57;
+        }
+
+        .os-window__traffic .dot.yellow {
+            background: #FFBD2E;
+        }
+
+        .os-window__traffic .dot.green {
+            background: #28C840;
+        }
+
+        .os-window__traffic .dot {
+            cursor: pointer;
+        }
+
+        .os-window__traffic .dot:hover {
+            filter: brightness(0.92);
+        }
+
         .os-window__title {
             flex: 1;
             min-width: 0;
@@ -782,11 +1011,13 @@
             justify-content: center;
             gap: 0;
         }
+
         .os-window__titleRow {
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .os-window__icon {
             width: 20px;
             height: 20px;
@@ -794,6 +1025,7 @@
             object-fit: contain;
             flex-shrink: 0;
         }
+
         .os-window__name {
             font-size: 13px;
             font-weight: 600;
@@ -803,15 +1035,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .os-window__statusPill {
             padding: 3px 8px;
             border-radius: var(--radius-pill);
             font-size: 10px;
             font-weight: 600;
             color: var(--muted);
-            background: rgba(0,0,0,0.04);
+            background: rgba(0, 0, 0, 0.04);
             flex-shrink: 0;
         }
+
         .os-window__subtitle {
             font-size: 11px;
             color: var(--muted);
@@ -819,24 +1053,30 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .os-window__actions {
             flex-shrink: 0;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .os-window__actions:empty { display: none; }
+
+        .os-window__actions:empty {
+            display: none;
+        }
+
         .os-window__body {
             flex: 1;
             min-height: 0;
             position: relative;
             overflow: hidden;
             padding: var(--pad-window);
-            background: rgba(252,253,255,0.45);
+            background: rgba(252, 253, 255, 0.45);
             display: flex;
             flex-direction: column;
         }
-        .os-window__body > * {
+
+        .os-window__body>* {
             flex: 1;
             min-height: 0;
             overflow: auto;
@@ -852,6 +1092,7 @@
             box-shadow: var(--shadow-1), var(--inset);
             padding: var(--pad-card);
         }
+
         .os-sectionTitle {
             font-size: 11px;
             font-weight: 600;
@@ -862,7 +1103,11 @@
             padding-bottom: 6px;
             border-bottom: 1px solid var(--glass-border-soft);
         }
-        .os-subtle { color: var(--muted); }
+
+        .os-subtle {
+            color: var(--muted);
+        }
+
         .os-pill {
             display: inline-flex;
             align-items: center;
@@ -871,49 +1116,85 @@
             font-size: 11px;
             font-weight: 500;
             color: var(--muted);
-            background: rgba(0,0,0,0.04);
+            background: rgba(0, 0, 0, 0.04);
         }
-        .os-button, .os-input, .os-textarea, .os-select {
+
+        .os-button,
+        .os-input,
+        .os-textarea,
+        .os-select {
             font: inherit;
             transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
+
         .os-button {
             min-height: 32px;
             padding: 6px 14px;
             font-size: 12px;
             font-weight: 500;
             color: var(--text);
-            background: rgba(255,255,255,0.8);
+            background: rgba(255, 255, 255, 0.8);
             border: 1px solid var(--glass-border-soft);
             border-radius: var(--radius-card);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
             cursor: pointer;
         }
-        .os-button:hover { background: rgba(255,255,255,0.95); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-        .os-button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-        .os-button.primary:hover { box-shadow: 0 2px 8px rgba(99,102,241,0.25); }
-        .os-button.secondary { background: rgba(0,0,0,0.05); }
-        .os-button.ghost { background: transparent; box-shadow: none; }
-        .os-input, .os-textarea, .os-select {
+
+        .os-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .os-button.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .os-button.primary:hover {
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+        }
+
+        .os-button.secondary {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .os-button.ghost {
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .os-input,
+        .os-textarea,
+        .os-select {
             padding: 8px 12px;
             font-size: 13px;
             color: var(--text);
-            background: rgba(255,255,255,0.7);
+            background: rgba(255, 255, 255, 0.7);
             border: 1px solid var(--glass-border-soft);
             border-radius: var(--radius-card);
             box-shadow: var(--inset);
             outline: none;
         }
-        .os-input:focus, .os-textarea:focus, .os-select:focus {
-            border-color: rgba(0,0,0,0.1);
+
+        .os-input:focus,
+        .os-textarea:focus,
+        .os-select:focus {
+            border-color: rgba(0, 0, 0, 0.1);
             box-shadow: var(--inset), 0 0 0 2px var(--accent-glow);
         }
-        .os-textarea { resize: vertical; min-height: 60px; }
+
+        .os-textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
         .os-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
         }
+
         .os-table thead th {
             padding: 10px 14px;
             text-align: left;
@@ -922,13 +1203,26 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--muted);
-            background: rgba(0,0,0,0.03);
+            background: rgba(0, 0, 0, 0.03);
             border-bottom: 1px solid var(--line);
         }
-        .os-table tbody tr { transition: background 0.15s ease; }
-        .os-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
-        .os-table tbody tr:hover { background: rgba(0,0,0,0.05); }
-        .os-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--glass-border-soft); }
+
+        .os-table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        .os-table tbody tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .os-table tbody tr:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .os-table tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--glass-border-soft);
+        }
 
         /*
          * ── Phase 5.6: App Interior Skeleton (Title → Toolbar → Body → Inspector) ─
@@ -943,6 +1237,7 @@
             min-height: 0;
             gap: 12px;
         }
+
         .app-skeleton__header {
             padding: 4px 6px 0 6px;
             display: flex;
@@ -950,17 +1245,20 @@
             justify-content: space-between;
             gap: 12px;
         }
+
         .app-skeleton__title {
             font-size: 18px;
             font-weight: 650;
             letter-spacing: -0.01em;
             line-height: 1.15;
         }
+
         .app-skeleton__subtitle {
             margin-top: 6px;
             font-size: 12.5px;
             color: var(--muted);
         }
+
         .app-skeleton__toolbar {
             display: flex;
             align-items: center;
@@ -969,57 +1267,68 @@
             padding: 10px;
             border: 1px solid var(--glass-border-soft);
             border-radius: var(--radius-card);
-            background: rgba(255,255,255,0.45);
+            background: rgba(255, 255, 255, 0.45);
             backdrop-filter: var(--blur-weak) saturate(125%);
             -webkit-backdrop-filter: var(--blur-weak) saturate(125%);
-            box-shadow: 0 10px 28px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
         }
-        .toolbar-left, .toolbar-right {
+
+        .toolbar-left,
+        .toolbar-right {
             display: flex;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
         }
+
         .app-skeleton__main {
             display: grid;
             grid-template-columns: 1fr;
             gap: 12px;
             min-height: 0;
         }
+
         .app-skeleton.is-split .app-skeleton__main {
             grid-template-columns: minmax(0, 1fr) 340px;
         }
+
         .app-skeleton__content {
             min-height: 0;
             overflow: auto;
             padding: 8px;
             border-radius: var(--radius-card);
             border: 1px solid var(--glass-border-soft);
-            background: rgba(255,255,255,0.35);
+            background: rgba(255, 255, 255, 0.35);
             backdrop-filter: var(--blur-weak) saturate(125%);
             -webkit-backdrop-filter: var(--blur-weak) saturate(125%);
         }
+
         .app-skeleton__inspector {
             min-height: 0;
             overflow: auto;
             border-radius: var(--radius-card);
             border: 1px solid var(--glass-border-soft);
-            background: rgba(255,255,255,0.52);
+            background: rgba(255, 255, 255, 0.52);
             backdrop-filter: var(--blur-strong) saturate(125%);
             -webkit-backdrop-filter: var(--blur-strong) saturate(125%);
-            box-shadow: 0 14px 40px rgba(0,0,0,0.07);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.07);
         }
+
         .inspector-header {
             position: sticky;
             top: 0;
             z-index: 1;
             padding: 12px;
             border-bottom: 1px solid var(--line);
-            background: rgba(255,255,255,0.55);
+            background: rgba(255, 255, 255, 0.55);
             backdrop-filter: var(--blur-strong) saturate(125%);
             -webkit-backdrop-filter: var(--blur-strong) saturate(125%);
         }
-        .inspector-body { padding: 12px; }
+
+        .inspector-body {
+            padding: 12px;
+        }
+
         .os-empty {
             display: grid;
             place-items: center;
@@ -1029,16 +1338,26 @@
             text-align: center;
             color: var(--muted);
         }
-        .os-empty__title { font-weight: 650; color: var(--text); margin-bottom: 6px; }
-        .os-empty__hint { font-size: 12.5px; }
+
+        .os-empty__title {
+            font-weight: 650;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .os-empty__hint {
+            font-size: 12.5px;
+        }
+
         .os-seg {
             display: inline-flex;
             padding: 4px;
             border-radius: 999px;
             border: 1px solid var(--glass-border-soft);
-            background: rgba(255,255,255,0.45);
+            background: rgba(255, 255, 255, 0.45);
             backdrop-filter: var(--blur-weak) saturate(125%);
         }
+
         .os-seg button {
             border: 0;
             background: transparent;
@@ -1048,11 +1367,13 @@
             color: var(--muted);
             font: inherit;
         }
+
         .os-seg button.is-active {
-            background: rgba(255,255,255,0.75);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             color: var(--text);
         }
+
         .toolbar-icon {
             display: inline-flex;
             align-items: center;
@@ -1060,12 +1381,22 @@
             width: 18px;
             height: 18px;
         }
-        .toolbar-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        .toolbar-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
 
         /* ── Home Dashboard Widget ──────────────────────────────────────── */
         #home-widget {
             position: absolute;
-            top: 20px; right: 20px;
+            top: 20px;
+            right: 20px;
             width: 340px;
             z-index: 500;
         }
@@ -1086,22 +1417,34 @@
             font-size: 13px;
             transition: box-shadow 0.18s ease-out, background 0.18s ease-out;
         }
+
         .hw-pill:hover {
-            box-shadow: 0 12px 32px rgba(0,0,0,0.09);
-            background: rgba(255,255,255,0.82);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.09);
+            background: rgba(255, 255, 255, 0.82);
         }
 
         /* Breathing status indicator */
         .hw-status-dot {
-            width: 8px; height: 8px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--success);
             flex-shrink: 0;
             animation: breathe 3s ease-in-out infinite;
         }
+
         @keyframes breathe {
-            0%, 100% { opacity: 0.6; transform: scale(1);    }
-            50%       { opacity: 1;   transform: scale(1.18); }
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.18);
+            }
         }
 
         .hw-pill-title {
@@ -1110,17 +1453,22 @@
             font-size: 13px;
             letter-spacing: -0.01em;
         }
+
         .hw-pill-sub {
             font-size: 11.5px;
             color: var(--text-muted);
         }
+
         .hw-pill-chevron {
             margin-left: auto;
             font-size: 10px;
             color: var(--text-muted);
             transition: transform 0.2s ease;
         }
-        .hw-pill.expanded .hw-pill-chevron { transform: rotate(180deg); }
+
+        .hw-pill.expanded .hw-pill-chevron {
+            transform: rotate(180deg);
+        }
 
         .hw-expanded {
             margin-top: 8px;
@@ -1133,16 +1481,27 @@
             overflow: hidden;
             animation: expandWidget 0.2s ease-out;
         }
+
         @keyframes expandWidget {
-            from { transform: scale(0.97) translateY(-6px); opacity: 0; }
-            to   { transform: scale(1)    translateY(0);    opacity: 1; }
+            from {
+                transform: scale(0.97) translateY(-6px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
 
         .hw-section {
             padding: 16px 20px;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
         }
-        .hw-section:last-child { border-bottom: none; }
+
+        .hw-section:last-child {
+            border-bottom: none;
+        }
 
         .hw-section-label {
             font-size: 10px;
@@ -1152,6 +1511,7 @@
             letter-spacing: 0.07em;
             margin-bottom: 12px;
         }
+
         .hw-row {
             display: flex;
             justify-content: space-between;
@@ -1160,7 +1520,11 @@
             color: var(--text-primary);
             margin-bottom: 8px;
         }
-        .hw-row:last-child { margin-bottom: 0; }
+
+        .hw-row:last-child {
+            margin-bottom: 0;
+        }
+
         .hw-row .hw-val {
             font-size: 12px;
             color: var(--text-secondary);
@@ -1169,11 +1533,12 @@
         /* Budget bar */
         .hw-budget-track {
             height: 5px;
-            background: rgba(0,0,0,0.06);
+            background: rgba(0, 0, 0, 0.06);
             border-radius: 6px;
             overflow: hidden;
             margin-top: 8px;
         }
+
         .hw-budget-fill {
             height: 100%;
             border-radius: 6px;
@@ -1189,6 +1554,7 @@
             align-items: center;
             padding: 4px 0 8px;
         }
+
         .hw-gauge-label {
             margin-top: 2px;
             font-size: 11px;
@@ -1196,12 +1562,16 @@
         }
 
         /* Quick-launch buttons */
-        .hw-qa-row { display: flex; gap: 8px; }
+        .hw-qa-row {
+            display: flex;
+            gap: 8px;
+        }
+
         .hw-qa-btn {
             flex: 1;
             padding: 8px 6px;
-            background: rgba(255,255,255,0.6);
-            border: 1px solid rgba(0,0,0,0.07);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(0, 0, 0, 0.07);
             border-radius: var(--r-btn);
             cursor: pointer;
             font-size: 11.5px;
@@ -1210,17 +1580,18 @@
             text-align: center;
             transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
         }
+
         .hw-qa-btn:hover {
-            background: rgba(37,99,235,0.06);
+            background: rgba(37, 99, 235, 0.06);
             color: var(--accent);
-            border-color: rgba(37,99,235,0.14);
+            border-color: rgba(37, 99, 235, 0.14);
         }
 
         /* ── Command Palette ────────────────────────────────────────────── */
         #cmd-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.16);
+            background: rgba(0, 0, 0, 0.16);
             backdrop-filter: blur(10px) saturate(130%);
             -webkit-backdrop-filter: blur(10px) saturate(130%);
             z-index: 9000;
@@ -1232,29 +1603,36 @@
             transition: opacity 0.15s ease-in-out;
             pointer-events: none;
         }
-        #cmd-overlay.open { opacity: 1; pointer-events: all; }
+
+        #cmd-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
 
         #cmd-palette {
             width: 100%;
             max-width: 580px;
-            background: rgba(252,253,255,0.91);
+            background: rgba(252, 253, 255, 0.91);
             backdrop-filter: blur(32px) saturate(160%);
             -webkit-backdrop-filter: blur(32px) saturate(160%);
-            border: 1px solid rgba(255,255,255,0.92);
+            border: 1px solid rgba(255, 255, 255, 0.92);
             border-radius: 20px;
-            box-shadow: 0 32px 72px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
+            box-shadow: 0 32px 72px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
             overflow: hidden;
             transform: scale(0.95) translateY(-10px);
             transition: transform 0.16s ease-in-out;
         }
-        #cmd-overlay.open #cmd-palette { transform: scale(1) translateY(0); }
+
+        #cmd-overlay.open #cmd-palette {
+            transform: scale(1) translateY(0);
+        }
 
         #cmd-input {
             width: 100%;
             padding: 17px 22px;
             font-size: 15px;
             border: none !important;
-            border-bottom: 1px solid rgba(0,0,0,0.055) !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.055) !important;
             border-radius: 0 !important;
             background: transparent !important;
             color: var(--text-primary) !important;
@@ -1262,9 +1640,17 @@
             box-shadow: none !important;
             letter-spacing: -0.01em;
         }
-        #cmd-input::placeholder { color: var(--text-muted); font-weight: 400; }
 
-        #cmd-results { max-height: 340px; overflow-y: auto; padding: 8px 0; }
+        #cmd-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        #cmd-results {
+            max-height: 340px;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
 
         .cmd-section-label {
             padding: 8px 22px 4px;
@@ -1274,6 +1660,7 @@
             letter-spacing: 0.07em;
             text-transform: uppercase;
         }
+
         .cmd-item {
             display: flex;
             align-items: center;
@@ -1284,41 +1671,101 @@
             color: var(--text-primary);
             transition: background 0.1s ease;
         }
-        .cmd-item:hover, .cmd-item.selected {
-            background: rgba(37,99,235,0.055);
+
+        .cmd-item:hover,
+        .cmd-item.selected {
+            background: rgba(37, 99, 235, 0.055);
             color: var(--accent);
         }
-        .cmd-item .cmd-icon { width: 22px; text-align: center; flex-shrink: 0; font-size: 16px; }
-        .cmd-item .cmd-meta { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+        .cmd-item .cmd-icon {
+            width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .cmd-item .cmd-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
 
         .cmd-footer {
             padding: 9px 22px;
-            border-top: 1px solid rgba(0,0,0,0.05);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
             font-size: 11px;
             color: var(--text-muted);
             display: flex;
             gap: 16px;
         }
+
         .cmd-footer kbd {
             font-family: inherit;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             padding: 2px 5px;
             border-radius: 4px;
             font-size: 10px;
-            border: 1px solid rgba(0,0,0,0.07);
+            border: 1px solid rgba(0, 0, 0, 0.07);
         }
 
         /* ── File Explorer ──────────────────────────────────────────────── */
-        .file-explorer-container { display: flex; height: 100%; }
-        .fe-sidebar { width: 180px; background: rgba(248,250,253,0.82); border-right: 1px solid rgba(0,0,0,0.05); overflow-y: auto; }
-        .fe-content { flex-grow: 1; padding: 12px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); grid-auto-rows: 100px; gap: 8px; align-content: start; background: rgba(255,255,255,0.6); }
-        .fe-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; border-radius: 10px; cursor: pointer; transition: background 0.15s ease; }
-        .fe-item:hover { background: rgba(37,99,235,0.055); }
-        .fe-icon { font-size: 30px; margin-bottom: 4px; }
-        .fe-name { font-size: 11px; text-align: center; word-break: break-word; color: var(--text-primary); }
+        .file-explorer-container {
+            display: flex;
+            height: 100%;
+        }
+
+        .fe-sidebar {
+            width: 180px;
+            background: rgba(248, 250, 253, 0.82);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+        }
+
+        .fe-content {
+            flex-grow: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-rows: 100px;
+            gap: 8px;
+            align-content: start;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .fe-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .fe-item:hover {
+            background: rgba(37, 99, 235, 0.055);
+        }
+
+        .fe-icon {
+            font-size: 30px;
+            margin-bottom: 4px;
+        }
+
+        .fe-name {
+            font-size: 11px;
+            text-align: center;
+            word-break: break-word;
+            color: var(--text-primary);
+        }
 
         /* ── Graph ──────────────────────────────────────────────────────── */
-        #graph-svg { width: 100%; height: 100%; }
+        #graph-svg {
+            width: 100%;
+            height: 100%;
+        }
 
         /* ── Global resets (OS-wide): inputs, buttons, tables, dividers ──── */
         .window-body input,
@@ -1327,60 +1774,68 @@
             font-family: inherit;
             font-size: 13px;
             color: var(--text-primary);
-            background: rgba(255,255,255,0.7);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: var(--radius-card);
             outline: none;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
             transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
+
         .window-body input:focus,
         .window-body textarea:focus,
         .window-body select:focus {
-            border-color: rgba(0,0,0,0.1);
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.04), 0 0 0 2px rgba(37,99,235,0.08);
-            background: rgba(255,255,255,0.9);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 2px rgba(37, 99, 235, 0.08);
+            background: rgba(255, 255, 255, 0.9);
         }
+
         .window-body button {
             min-height: 32px;
             padding: 6px 14px;
             font-size: 12px;
             font-weight: 500;
             color: var(--text-primary);
-            background: rgba(255,255,255,0.8);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: var(--radius-card);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
             cursor: pointer;
             transition: background 0.15s ease, box-shadow 0.15s ease;
         }
+
         .window-body button:hover {
-            background: rgba(255,255,255,0.95);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
         }
+
         .window-body button.primary,
         .window-body .osbtn.primary {
             background: var(--accent);
             color: #fff;
             border-color: transparent;
         }
+
         .window-body button.primary:hover,
         .window-body .osbtn.primary:hover {
             background: #1d4ed8;
-            box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
         }
+
         .window-body hr,
         .window-body .os-divider {
             border: none;
             height: 1px;
-            background: rgba(255,255,255,0.35);
+            background: rgba(255, 255, 255, 0.35);
             margin: 12px 0;
         }
+
         .window-body table {
             border-collapse: collapse;
             width: 100%;
             font-size: 12px;
         }
+
         .window-body thead th {
             padding: 10px 14px;
             text-align: left;
@@ -1389,49 +1844,78 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
-            background: rgba(0,0,0,0.03);
-            border-bottom: 1px solid rgba(255,255,255,0.4);
+            background: rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
         }
-        .window-body tbody tr { transition: background 0.1s ease; }
-        .window-body tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
-        .window-body tbody tr:hover { background: rgba(0,0,0,0.05); }
-        .window-body tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+
+        .window-body tbody tr {
+            transition: background 0.1s ease;
+        }
+
+        .window-body tbody tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .window-body tbody tr:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .window-body tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
 
         /* ── Global Inputs (legacy / outside windows) ─────────────────────── */
-        input, textarea, select {
+        input,
+        textarea,
+        select {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
-            background: rgba(255,255,255,0.85) !important;
+            background: rgba(255, 255, 255, 0.85) !important;
             color: var(--text-primary) !important;
-            border: 1px solid rgba(0,0,0,0.08) !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
             border-radius: 8px !important;
             outline: none !important;
             transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
-        input:focus, textarea:focus, select:focus {
-            border-color: rgba(37,99,235,0.2) !important;
-            box-shadow: 0 0 0 2px rgba(37,99,235,0.06) !important;
-            background: rgba(255,255,255,0.97) !important;
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: rgba(37, 99, 235, 0.2) !important;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.06) !important;
+            background: rgba(255, 255, 255, 0.97) !important;
         }
 
         /* ── Scrollbar (thin, modern) ────────────────────────────────────── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
         ::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.12);
+            background: rgba(0, 0, 0, 0.12);
             border-radius: 999px;
         }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.18);
+        }
 
         /* ── OS UI Primitives ────────────────────────────────────────────── */
         .oscard {
-            background: rgba(255,255,255,0.6);
+            background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: var(--radius-card);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
             padding: 16px 20px;
         }
+
         .ossection-header {
             font-size: 11px;
             font-weight: 600;
@@ -1440,54 +1924,62 @@
             letter-spacing: 0.06em;
             margin-bottom: 10px;
             padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.35);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35);
         }
+
         .osbtn {
             min-height: 32px;
             padding: 6px 14px;
             font-size: 12px;
             font-weight: 500;
             color: var(--text-primary);
-            background: rgba(255,255,255,0.75);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: var(--radius-card);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
             cursor: pointer;
             transition: background 0.15s ease, box-shadow 0.15s ease;
         }
+
         .osbtn:hover {
-            background: rgba(255,255,255,0.9);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
         }
+
         .osbtn.primary {
             background: var(--accent);
             color: #fff;
             border-color: transparent;
         }
+
         .osbtn.primary:hover {
             background: #1d4ed8;
-            box-shadow: 0 2px 8px rgba(37,99,235,0.2);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
         }
+
         .osinput {
             padding: 8px 12px;
             font-size: 13px;
             color: var(--text-primary);
-            background: rgba(255,255,255,0.7);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: var(--radius-card);
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
             outline: none;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
+
         .osinput:focus {
-            border-color: rgba(0,0,0,0.1);
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.04), 0 0 0 2px rgba(37,99,235,0.08);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 2px rgba(37, 99, 235, 0.08);
         }
+
         .ostable {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
         }
+
         .ostable thead th {
             padding: 10px 14px;
             text-align: left;
@@ -1496,25 +1988,38 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
-            background: rgba(0,0,0,0.03);
-            border-bottom: 1px solid rgba(255,255,255,0.4);
+            background: rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
         }
-        .ostable tbody tr { transition: background 0.1s ease; }
-        .ostable tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
-        .ostable tbody tr:hover { background: rgba(0,0,0,0.05); }
-        .ostable tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.04); }
+
+        .ostable tbody tr {
+            transition: background 0.1s ease;
+        }
+
+        .ostable tbody tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .ostable tbody tr:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .ostable tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
 
         /* ── Utility ────────────────────────────────────────────────────── */
         .tooltip {
             position: absolute;
-            background: rgba(15,20,32,0.86);
+            background: rgba(15, 20, 32, 0.86);
             padding: 5px 9px;
             border-radius: 8px;
             font-size: 12px;
             display: none;
             pointer-events: none;
             z-index: 9999;
-            color: rgba(255,255,255,0.92);
+            color: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(8px);
         }
 
@@ -1541,12 +2046,12 @@
 
         /* Window — heavier glass + window radius + shadow-3 */
         .glass-window {
-            background: rgba(252,253,255,0.76);
+            background: rgba(252, 253, 255, 0.76);
             backdrop-filter: blur(28px) saturate(180%);
             -webkit-backdrop-filter: blur(28px) saturate(180%);
-            border: 1px solid rgba(255,255,255,0.9);
+            border: 1px solid rgba(255, 255, 255, 0.9);
             border-radius: var(--r-window);
-            box-shadow: var(--sh-3), inset 0 1px 0 rgba(255,255,255,0.95);
+            box-shadow: var(--sh-3), inset 0 1px 0 rgba(255, 255, 255, 0.95);
         }
 
         /* Dock strip — glass + 26px radius + shadow-2 */
@@ -1561,17 +2066,20 @@
 
         /* Pill — rounded, inset highlight — for search bar and status chips */
         .glass-pill {
-            background: rgba(255,255,255,0.82);
-            border: 1px solid rgba(0,0,0,0.07);
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(0, 0, 0, 0.07);
             border-radius: var(--r-pill);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.9);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 0 rgba(255, 255, 255, 0.9);
         }
 
         /* Icon tile — 40×40 interactive icon with hover lift, tooltip, running dot */
         .icon-tile {
-            width: 40px; height: 40px;
+            width: 40px;
+            height: 40px;
             border-radius: var(--r-dock-item);
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             color: var(--c-text-2);
             transition:
@@ -1582,71 +2090,100 @@
             position: relative;
             flex-shrink: 0;
         }
+
         .icon-tile:hover {
             transform: scale(1.13);
-            background: rgba(255,255,255,0.75);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.09);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
             color: var(--c-text-1);
         }
+
         .icon-tile.running {
-            background: rgba(37,99,235,0.07);
+            background: rgba(37, 99, 235, 0.07);
             color: var(--c-accent);
         }
-        .icon-tile.running:hover { background: rgba(37,99,235,0.12); }
+
+        .icon-tile.running:hover {
+            background: rgba(37, 99, 235, 0.12);
+        }
+
         /* Running dot */
         .icon-tile.running::after {
             content: '';
             position: absolute;
-            bottom: -4px; left: 50%;
+            bottom: -4px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 4px; height: 4px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--c-accent);
             opacity: 0.85;
         }
+
         /* Tooltip */
         .icon-tile::before {
             content: attr(data-tip);
             position: absolute;
             left: calc(100% + 14px);
-            top: 50%; transform: translateY(-50%);
-            background: rgba(15,20,32,0.86);
-            color: rgba(255,255,255,0.93);
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(15, 20, 32, 0.86);
+            color: rgba(255, 255, 255, 0.93);
             padding: 5px 10px;
             border-radius: 10px;
-            font-size: var(--fs-sm); font-weight: 500;
+            font-size: var(--fs-sm);
+            font-weight: 500;
             white-space: nowrap;
-            pointer-events: none; opacity: 0;
+            pointer-events: none;
+            opacity: 0;
             transition: opacity 0.12s ease;
             z-index: 9999;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             letter-spacing: -0.01em;
         }
-        .icon-tile:hover::before { opacity: 1; }
+
+        .icon-tile:hover::before {
+            opacity: 1;
+        }
+
         /* SVG icons inside icon-tile */
         .icon-tile svg {
-            width: 20px; height: 20px;
-            fill: none; stroke: currentColor;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
             stroke-width: 1.65;
-            stroke-linecap: round; stroke-linejoin: round;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         /* Status dot with breathing animation */
         .status-dot {
-            width: 8px; height: 8px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
             animation: breathe var(--dur-breathe) ease-in-out infinite;
         }
-        .status-dot.success { background: var(--c-success); }
-        .status-dot.warning { background: var(--c-warning); }
-        .status-dot.error   { background: var(--c-error);   }
+
+        .status-dot.success {
+            background: var(--c-success);
+        }
+
+        .status-dot.warning {
+            background: var(--c-warning);
+        }
+
+        .status-dot.error {
+            background: var(--c-error);
+        }
 
         /* Hairline divider */
         .divider {
             height: 1px;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             flex-shrink: 0;
         }
 
@@ -1657,6 +2194,7 @@
             align-items: center;
             gap: 2px;
         }
+
         .kpi-mini .kpi-val {
             font-size: var(--fs-md);
             font-weight: 600;
@@ -1664,6 +2202,7 @@
             line-height: 1;
             letter-spacing: -0.02em;
         }
+
         .kpi-mini .kpi-lbl {
             font-size: var(--fs-2xs);
             color: var(--c-text-3);
@@ -1683,28 +2222,53 @@
             padding: 12px 18px;
             font-size: var(--fs-base);
             color: var(--c-text-1);
-            display: flex; align-items: center; gap: 10px;
-            min-width: 220px; max-width: 340px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 220px;
+            max-width: 340px;
             animation: toastIn var(--dur-base) var(--ease-out);
         }
-        .toast.success .toast-dot { background: var(--c-success); }
-        .toast.warning .toast-dot { background: var(--c-warning); }
-        .toast.error   .toast-dot { background: var(--c-error);   }
+
+        .toast.success .toast-dot {
+            background: var(--c-success);
+        }
+
+        .toast.warning .toast-dot {
+            background: var(--c-warning);
+        }
+
+        .toast.error .toast-dot {
+            background: var(--c-error);
+        }
+
         .toast-dot {
-            width: 7px; height: 7px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             flex-shrink: 0;
         }
+
         @keyframes toastIn {
-            from { transform: translateX(24px); opacity: 0; }
-            to   { transform: translateX(0);    opacity: 1; }
+            from {
+                transform: translateX(24px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         /* Toast container */
         #toast-region {
             position: fixed;
-            bottom: 20px; right: 20px;
-            display: flex; flex-direction: column; gap: 8px;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             z-index: var(--z-toast);
             pointer-events: none;
         }
@@ -1713,7 +2277,7 @@
         #ai-chat-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.15);
+            background: rgba(0, 0, 0, 0.15);
             backdrop-filter: blur(8px) saturate(0.9);
             -webkit-backdrop-filter: blur(8px) saturate(0.9);
             z-index: 8500;
@@ -1725,63 +2289,73 @@
             transition: opacity 0.12s ease-out;
             pointer-events: none;
         }
+
         #ai-chat-overlay.open {
             opacity: 1;
             pointer-events: all;
         }
+
         #ai-chat-panel {
             width: 100%;
             max-width: 720px;
             max-height: 70vh;
             height: 560px;
-            background: rgba(250,251,253,0.94);
+            background: rgba(250, 251, 253, 0.94);
             backdrop-filter: blur(36px) saturate(140%);
             -webkit-backdrop-filter: blur(36px) saturate(140%);
-            border: 1px solid rgba(255,255,255,0.8);
+            border: 1px solid rgba(255, 255, 255, 0.8);
             border-radius: 24px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.9);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             transform: scale(0.98);
             transition: transform 0.12s ease-out;
         }
+
         #ai-chat-overlay.open #ai-chat-panel {
             transform: scale(1);
         }
+
         /* 1) Header strip — thin */
         .ai-chat-header {
             height: 44px;
             padding: 0 20px;
             background: transparent;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
         }
+
         .ai-chat-header-inner {
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .ai-chat-badge {
-            width: 8px; height: 8px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--c-text-2);
             flex-shrink: 0;
         }
+
         .ai-chat-title {
             font-size: 13px;
             font-weight: 500;
             color: var(--c-text-2);
             letter-spacing: -0.01em;
         }
+
         .ai-overlay-header-right {
             display: flex;
             align-items: center;
             gap: 16px;
         }
+
         .ai-overlay-mode-indicator {
             font-size: 11px;
             font-weight: 500;
@@ -1789,46 +2363,59 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
+
         .ai-overlay-kbd-hint {
             font-size: 11px;
             color: var(--c-text-3);
         }
+
         .ai-chat-close {
-            width: 24px; height: 24px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             border: none;
             cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 15px;
             color: var(--c-text-3);
             line-height: 1;
             transition: background 0.12s ease, color 0.12s ease;
             margin-left: 8px;
         }
+
         .ai-chat-close:hover {
-            background: rgba(0,0,0,0.08);
+            background: rgba(0, 0, 0, 0.08);
             color: var(--c-text-1);
         }
+
         /* Model row (below header) */
         .ai-chat-model-row {
             flex-shrink: 0;
             padding: 10px 20px 12px;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
-            background: rgba(248,250,253,0.5);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            background: rgba(248, 250, 253, 0.5);
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .ai-chat-model-label { font-size: 11px; font-weight: 500; color: var(--c-text-3); }
+
+        .ai-chat-model-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--c-text-3);
+        }
+
         .ai-chat-model-select {
             flex: 1;
             max-width: 220px;
             padding: 6px 10px 6px 12px;
             font-size: 12px;
             color: var(--c-text-1);
-            background: rgba(255,255,255,0.8);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: 8px;
             outline: none;
             cursor: pointer;
@@ -1838,8 +2425,15 @@
             background-position: right 8px center;
             padding-right: 24px;
         }
-        .ai-chat-model-select:hover { border-color: rgba(0,0,0,0.1); }
-        .ai-chat-model-select:focus { border-color: rgba(0,0,0,0.12); }
+
+        .ai-chat-model-select:hover {
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-chat-model-select:focus {
+            border-color: rgba(0, 0, 0, 0.12);
+        }
+
         .ai-overlay-body {
             flex: 1;
             min-height: 0;
@@ -1847,6 +2441,7 @@
             flex-direction: column;
             overflow: hidden;
         }
+
         /* 2) Context zone — when idle */
         .ai-overlay-context-zone {
             flex: 1;
@@ -1856,12 +2451,34 @@
             flex-direction: column;
             gap: 24px;
         }
-        .ai-overlay-context-zone.hidden { display: none; }
-        #ai-overlay-context.hidden { display: none; }
-        #ai-chat-panel.ai-overlay-idle #ai-overlay-context { display: flex; }
-        #ai-chat-panel.ai-overlay-idle #ai-chat-messages { display: none; }
-        #ai-chat-panel.ai-overlay-conversing #ai-overlay-context { display: none; }
-        #ai-chat-panel.ai-overlay-conversing #ai-chat-messages { display: flex; flex: 1; min-height: 0; overflow-y: auto; }
+
+        .ai-overlay-context-zone.hidden {
+            display: none;
+        }
+
+        #ai-overlay-context.hidden {
+            display: none;
+        }
+
+        #ai-chat-panel.ai-overlay-idle #ai-overlay-context {
+            display: flex;
+        }
+
+        #ai-chat-panel.ai-overlay-idle #ai-chat-messages {
+            display: none;
+        }
+
+        #ai-chat-panel.ai-overlay-conversing #ai-overlay-context {
+            display: none;
+        }
+
+        #ai-chat-panel.ai-overlay-conversing #ai-chat-messages {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
         .ai-context-section-title {
             font-size: 10px;
             font-weight: 600;
@@ -1870,11 +2487,13 @@
             letter-spacing: 0.06em;
             margin-bottom: 10px;
         }
+
         .ai-context-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
+
         .ai-context-list li {
             padding: 10px 12px;
             font-size: 13px;
@@ -1884,14 +2503,17 @@
             cursor: pointer;
             transition: background 0.1s ease;
         }
+
         .ai-context-list li:hover {
-            background: rgba(0,0,0,0.04);
+            background: rgba(0, 0, 0, 0.04);
         }
+
         .ai-context-list li::before {
             content: '•';
             margin-right: 8px;
             color: var(--c-text-3);
         }
+
         /* 3) Conversation zone — soft, no harsh bubbles */
         #ai-chat-messages {
             flex: 1;
@@ -1902,32 +2524,52 @@
             gap: 16px;
             min-height: 0;
         }
+
         .ai-msg-row {
             display: flex;
             gap: 12px;
             align-items: flex-start;
             animation: aiMsgEnter 0.18s ease-out;
         }
+
         @keyframes aiMsgEnter {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .ai-msg-row.user { flex-direction: row-reverse; }
+
+        .ai-msg-row.user {
+            flex-direction: row-reverse;
+        }
+
         .ai-msg-avatar {
-            width: 24px; height: 24px;
+            width: 24px;
+            height: 24px;
             border-radius: 6px;
             flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
             color: var(--c-text-3);
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
+
         .ai-msg-row.assistant .ai-msg-avatar {
-            background: rgba(0,0,0,0.06);
+            background: rgba(0, 0, 0, 0.06);
         }
+
         .ai-msg-row.user .ai-msg-avatar {
-            background: rgba(0,0,0,0.07);
+            background: rgba(0, 0, 0, 0.07);
         }
+
         .ai-msg-bubble {
             max-width: 78%;
             padding: 12px 16px;
@@ -1937,15 +2579,18 @@
             color: var(--c-text-1);
             word-wrap: break-word;
         }
+
         .ai-msg-row.assistant .ai-msg-bubble {
-            background: rgba(255,255,255,0.7);
+            background: rgba(255, 255, 255, 0.7);
             border: none;
-            box-shadow: 0 1px 0 rgba(255,255,255,0.8);
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
         }
+
         .ai-msg-row.user .ai-msg-bubble {
-            background: rgba(0,0,0,0.06);
+            background: rgba(0, 0, 0, 0.06);
             color: var(--c-text-1);
         }
+
         .ai-chat-empty {
             flex: 1;
             display: flex;
@@ -1955,54 +2600,87 @@
             gap: 8px;
             opacity: 0.5;
         }
+
         .ai-chat-empty-icon {
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             border-radius: 10px;
-            background: rgba(0,0,0,0.06);
-            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .ai-chat-empty-icon svg { width: 14px; height: 14px; fill: var(--c-text-3); stroke: none; }
+
+        .ai-chat-empty-icon svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--c-text-3);
+            stroke: none;
+        }
+
         .ai-chat-empty p {
             font-size: 12px;
             color: var(--c-text-3);
             text-align: center;
             line-height: 1.5;
         }
+
         .ai-msg-thinking {
             display: flex;
             align-items: center;
             gap: 4px;
             padding: 12px 16px;
-            background: rgba(255,255,255,0.6);
+            background: rgba(255, 255, 255, 0.6);
             border-radius: 14px;
         }
+
         .ai-msg-thinking span {
-            width: 4px; height: 4px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
             background: var(--c-text-3);
             animation: thinkDot 1.2s ease-in-out infinite;
         }
-        .ai-msg-thinking span:nth-child(2) { animation-delay: 0.18s; }
-        .ai-msg-thinking span:nth-child(3) { animation-delay: 0.36s; }
-        @keyframes thinkDot {
-            0%, 100% { opacity: 0.3; transform: scale(0.9); }
-            50% { opacity: 0.9; transform: scale(1); }
+
+        .ai-msg-thinking span:nth-child(2) {
+            animation-delay: 0.18s;
         }
+
+        .ai-msg-thinking span:nth-child(3) {
+            animation-delay: 0.36s;
+        }
+
+        @keyframes thinkDot {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(0.9);
+            }
+
+            50% {
+                opacity: 0.9;
+                transform: scale(1);
+            }
+        }
+
         /* 4) Input zone — glass, 16px radius, mode pills */
         .ai-chat-input-bar {
             padding: 14px 20px 18px;
-            border-top: 1px solid rgba(0,0,0,0.04);
-            background: rgba(248,250,252,0.9);
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            background: rgba(248, 250, 252, 0.9);
             display: flex;
             flex-direction: column;
             gap: 12px;
             flex-shrink: 0;
         }
+
         .ai-overlay-mode-pills {
             display: flex;
             align-items: center;
             gap: 4px;
         }
+
         .ai-overlay-mode-pill {
             padding: 5px 12px;
             font-size: 11px;
@@ -2014,13 +2692,23 @@
             cursor: pointer;
             transition: color 0.12s ease, background 0.12s ease;
         }
-        .ai-overlay-mode-pill:hover { color: var(--c-text-2); background: rgba(0,0,0,0.04); }
-        .ai-overlay-mode-pill.active { color: var(--c-text-1); background: rgba(0,0,0,0.06); }
+
+        .ai-overlay-mode-pill:hover {
+            color: var(--c-text-2);
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .ai-overlay-mode-pill.active {
+            color: var(--c-text-1);
+            background: rgba(0, 0, 0, 0.06);
+        }
+
         .ai-chat-input-wrap {
             display: flex;
             align-items: flex-end;
             gap: 10px;
         }
+
         #ai-chat-input {
             flex: 1;
             resize: none;
@@ -2030,53 +2718,75 @@
             font-size: 13px;
             line-height: 1.5;
             color: var(--c-text-1) !important;
-            background: rgba(255,255,255,0.7) !important;
-            border: 1px solid rgba(0,0,0,0.06) !important;
+            background: rgba(255, 255, 255, 0.7) !important;
+            border: 1px solid rgba(0, 0, 0, 0.06) !important;
             border-radius: 16px !important;
             outline: none !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
             font-family: inherit;
             font-weight: 400;
             transition: border-color 0.12s ease, box-shadow 0.12s ease;
         }
-        #ai-chat-input::placeholder { color: var(--c-text-3) !important; }
-        #ai-chat-input:focus {
-            border-color: rgba(0,0,0,0.1) !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important;
+
+        #ai-chat-input::placeholder {
+            color: var(--c-text-3) !important;
         }
+
+        #ai-chat-input:focus {
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+        }
+
         #ai-chat-send {
-            width: 36px; height: 36px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: rgba(0,0,0,0.08);
+            background: rgba(0, 0, 0, 0.08);
             border: none;
             cursor: pointer;
             color: var(--c-text-2);
             font-size: 16px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
             transition: background 0.12s ease, color 0.12s ease;
             line-height: 1;
         }
+
         #ai-chat-send:hover {
-            background: rgba(0,0,0,0.12);
+            background: rgba(0, 0, 0, 0.12);
             color: var(--c-text-1);
         }
-        #ai-chat-send:active { transform: scale(0.96); }
-        #ai-chat-send:disabled { opacity: 0.4; cursor: default; }
+
+        #ai-chat-send:active {
+            transform: scale(0.96);
+        }
+
+        #ai-chat-send:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
         /* Context banner (e.g. "Using Home context") */
         .ai-overlay-context-banner {
             padding: 8px 14px;
             font-size: 11px;
             color: var(--c-text-3);
-            background: rgba(0,0,0,0.03);
+            background: rgba(0, 0, 0, 0.03);
             border-radius: 8px;
             margin: 0 24px 12px;
             flex-shrink: 0;
         }
-        .ai-overlay-context-banner.hidden { display: none; }
+
+        .ai-overlay-context-banner.hidden {
+            display: none;
+        }
 
         /* Legacy — keep existing app code intact */
-        .taskbar-item { display: none; }
+        .taskbar-item {
+            display: none;
+        }
     </style>
 </head>
 
@@ -2089,7 +2799,8 @@
     </div>
     <div id="cmd-overlay">
         <div id="cmd-palette">
-            <input id="cmd-input" type="text" placeholder="Search apps, commands…" autocomplete="off" spellcheck="false">
+            <input id="cmd-input" type="text" placeholder="Search apps, commands…" autocomplete="off"
+                spellcheck="false">
             <div id="cmd-results"></div>
             <div class="cmd-footer">
                 <span><kbd>↑↓</kbd> navigate</span>
@@ -2102,7 +2813,8 @@
         <div style="padding:14px 16px; border-bottom:1px solid rgba(0,0,0,0.06);">
             <div style="font-size:13px; font-weight:600; color:var(--text-primary);">Notifications</div>
         </div>
-        <div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No new notifications</div>
+        <div style="padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px;">No new notifications
+        </div>
     </div>
     <!-- legacy taskbar element — kept so old references don't throw -->
     <div id="taskbar" style="display:none;"></div>
@@ -2155,7 +2867,9 @@
                 <div id="ai-chat-messages">
                     <div class="ai-chat-empty" id="ai-chat-empty">
                         <div class="ai-chat-empty-icon">
-                            <svg viewBox="0 0 14 14"><path d="M7 1L8.1 5.6 13 7 8.1 8.4 7 13 5.9 8.4 1 7 5.9 5.6Z"/></svg>
+                            <svg viewBox="0 0 14 14">
+                                <path d="M7 1L8.1 5.6 13 7 8.1 8.4 7 13 5.9 8.4 1 7 5.9 5.6Z" />
+                            </svg>
                         </div>
                         <p>The system is listening.<br>Ask me anything.</p>
                     </div>
@@ -2169,7 +2883,8 @@
                     <button type="button" class="ai-overlay-mode-pill" data-mode="system">System</button>
                 </div>
                 <div class="ai-chat-input-wrap">
-                    <textarea id="ai-chat-input" placeholder="Ask me anything…" rows="1" autocomplete="off" spellcheck="false"></textarea>
+                    <textarea id="ai-chat-input" placeholder="Ask me anything…" rows="1" autocomplete="off"
+                        spellcheck="false"></textarea>
                     <button id="ai-chat-send" title="Send (↵)">↑</button>
                 </div>
             </div>
@@ -2223,19 +2938,22 @@
         <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
             <div
                 style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">System Hardware</h3>
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">System Hardware
+                </h3>
                 <div id="sys-specs" style="font-size:13px; color:#1D1D1F;">Loading...</div>
             </div>
 
             <div
                 style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Recommended Models</h3>
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Recommended
+                    Models</h3>
                 <div id="rec-models" style="font-size:13px; color:#1D1D1F; margin-bottom:10px;">Loading...</div>
             </div>
 
             <div
                 style="padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px; flex-grow:1; display:flex; flex-direction:column; overflow:hidden;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Download Available Models
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Download
+                    Available Models
                 </h3>
                 <div id="download-list" style="flex-grow:1; overflow-y:auto; padding-right:5px; margin-bottom:10px;">
                     <!-- List items generated by JS -->
@@ -2244,7 +2962,8 @@
 
                 <!-- Custom Pull Section -->
                 <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:10px;">
-                    <div style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:5px;">Or pull a custom model by tag:</div>
+                    <div style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:5px;">Or pull a custom model by
+                        tag:</div>
                     <div style="display:flex; gap:5px;">
                         <input id="custom-pull-input" type="text" placeholder="e.g. qwen2.5, deepseek-coder"
                             style="flex-grow:1; padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1); border-radius:6px;">
@@ -2386,14 +3105,14 @@
 
     <style>
         .tool-btn {
-            background: rgba(0,0,0,0.06);
+            background: rgba(0, 0, 0, 0.06);
             color: #1D1D1F;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
         }
 
         .tool-btn:hover {
-            background: rgba(0,0,0,0.1);
+            background: rgba(0, 0, 0, 0.1);
         }
 
         .tool-btn.active {
@@ -2405,10 +3124,14 @@
 
     <!-- AI Flow template -->
     <template id="tpl-flow">
-        <div class="os-flow-root" style="display:flex; height:100%; flex-direction:column; background:rgba(248,250,252,0.6); color:var(--text-primary);">
-            <div class="oscard" style="display:flex; padding:12px 16px; margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.35);">
+        <div class="os-flow-root"
+            style="display:flex; height:100%; flex-direction:column; background:rgba(248,250,252,0.6); color:var(--text-primary);">
+            <div class="oscard"
+                style="display:flex; padding:12px 16px; margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.35);">
                 <div>
-                    <h3 class="ossection-header" style="margin:0 0 2px 0; font-size:14px; font-weight:600; color:var(--text-primary); text-transform:none; letter-spacing:0; border:none; padding:0;">AI Flow Builder</h3>
+                    <h3 class="ossection-header"
+                        style="margin:0 0 2px 0; font-size:14px; font-weight:600; color:var(--text-primary); text-transform:none; letter-spacing:0; border:none; padding:0;">
+                        AI Flow Builder</h3>
                     <span style="font-size:12px; color:var(--text-muted);">Standard AI Agent Protocol Linker</span>
                 </div>
                 <button id="flow-run-btn" class="osbtn primary" style="display:flex; align-items:center; gap:5px;">
@@ -2418,7 +3141,8 @@
 
             <div style="display:flex; flex:1; overflow:hidden;">
                 <!-- Left Palette -->
-                <div class="oscard" style="width:200px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-left:none; border-right:1px solid rgba(255,255,255,0.35); display:flex; flex-direction:column;">
+                <div class="oscard"
+                    style="width:200px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-left:none; border-right:1px solid rgba(255,255,255,0.35); display:flex; flex-direction:column;">
                     <div class="ossection-header" style="margin:0; padding:12px 14px;">Tool Palette</div>
                     <div id="flow-palette"
                         style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;">
@@ -2442,9 +3166,11 @@
                     <!-- Bottom Properties Pane -->
                     <div id="flow-properties"
                         style="height:250px; border-top:1px solid rgba(255,255,255,0.35); background:rgba(255,255,255,0.5); display:flex; flex-direction:column; display:none;">
-                        <div class="ossection-header" style="margin:0; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.35);">
+                        <div class="ossection-header"
+                            style="margin:0; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.35);">
                             <span>Protocol Inspector</span>
-                            <button id="flow-prop-close" class="osbtn" style="padding:4px 8px; min-height:auto; background:transparent; border:none; box-shadow:none;">✕</button>
+                            <button id="flow-prop-close" class="osbtn"
+                                style="padding:4px 8px; min-height:auto; background:transparent; border:none; box-shadow:none;">✕</button>
                         </div>
                         <div
                             style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:row; flex-wrap:wrap; gap:20px;">
@@ -2473,7 +3199,8 @@
                                         placeholder="e.g., General, Art, Coding">
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">FUNCTIONALITY</label>
+                                    <label
+                                        style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">FUNCTIONALITY</label>
                                     <textarea id="prop-func"
                                         style="width:100%; height:40px; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px; resize:vertical;"
                                         placeholder="Describe what this agent does..."></textarea>
@@ -2483,13 +3210,15 @@
                             <!-- Col 2: IO Format & Save -->
                             <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px;">
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">INPUT FORMAT</label>
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">INPUT
+                                        FORMAT</label>
                                     <input id="prop-in-format" type="text"
                                         style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;"
                                         placeholder="e.g., Text Prompt, Image URL">
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:4px;">
-                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">OUTPUT FORMAT</label>
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.5); font-weight:600;">OUTPUT
+                                        FORMAT</label>
                                     <input id="prop-out-format" type="text"
                                         style="width:100%; padding:6px; background:#F5F5F7; color:#1D1D1F; border:1px solid rgba(0,0,0,0.08); border-radius:6px; font-size:12px;"
                                         placeholder="e.g., Markdown Text, PNG Buffer">
@@ -2502,7 +3231,8 @@
                             <!-- Col 3: Values -->
                             <div style="flex:2; min-width:300px; display:flex; flex-direction:column; gap:8px;">
                                 <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-                                    <label style="font-size:11px; color:rgba(0,0,0,0.6); font-weight:600;">MANUAL INPUT VALUE
+                                    <label style="font-size:11px; color:rgba(0,0,0,0.6); font-weight:600;">MANUAL INPUT
+                                        VALUE
                                         <span style="font-size:10px; color:rgba(0,0,0,0.5);">(Overrides incoming
                                             connections)</span></label>
                                     <textarea id="prop-input-value"
@@ -2522,7 +3252,8 @@
                 </div>
 
                 <!-- Right Side: Task Flow Visualization -->
-                <div class="oscard" style="width:280px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-right:none; border-left:1px solid rgba(255,255,255,0.35); display:flex; flex-direction:column;">
+                <div class="oscard"
+                    style="width:280px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-right:none; border-left:1px solid rgba(255,255,255,0.35); display:flex; flex-direction:column;">
                     <div class="ossection-header" style="margin:0; padding:14px;">AI Task Flow</div>
                     <div id="flow-task-container" style="flex:1; padding:15px; overflow-y:auto; position:relative;">
                         <div style="color:rgba(0,0,0,0.38); font-size:12px; text-align:center; margin-top:20px;">
@@ -2536,15 +3267,20 @@
 
     <!-- App Store Template -->
     <template id="tpl-store">
-        <div class="os-store-root" style="display:flex; flex-direction:column; height:100%; background:rgba(248,250,252,0.6); color:var(--text-primary);">
+        <div class="os-store-root"
+            style="display:flex; flex-direction:column; height:100%; background:rgba(248,250,252,0.6); color:var(--text-primary);">
             <!-- Header -->
-            <div class="oscard" style="padding:16px 20px; margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; border-bottom:1px solid rgba(255,255,255,0.35); display:flex; justify-content:space-between; align-items:center;">
+            <div class="oscard"
+                style="padding:16px 20px; margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; border-bottom:1px solid rgba(255,255,255,0.35); display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <h3 class="ossection-header" style="margin:0 0 2px 0; font-size:16px; font-weight:600; color:var(--text-primary); text-transform:none; letter-spacing:0; border:none; padding:0;">Agent App Store</h3>
+                    <h3 class="ossection-header"
+                        style="margin:0 0 2px 0; font-size:16px; font-weight:600; color:var(--text-primary); text-transform:none; letter-spacing:0; border:none; padding:0;">
+                        Agent App Store</h3>
                     <span style="font-size:12px; color:var(--text-muted);">Discover and install new AI Agents</span>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <input type="text" id="store-search" class="osinput" placeholder="Search apps..." style="width:200px;">
+                    <input type="text" id="store-search" class="osinput" placeholder="Search apps..."
+                        style="width:200px;">
                     <select id="store-category" class="osinput" style="min-height:34px;">
                         <option value="all">All Categories</option>
                         <option value="generative">Generative</option>
@@ -2613,16 +3349,29 @@
 
             <div style="display:flex; flex:1; overflow:hidden;">
                 <!-- Left Nav -->
-                <div style="width:150px; border-right:1px solid rgba(0,0,0,0.08); background:#FFFFFF; padding:10px;">
-                    <div
-                        style="padding:8px 10px; background:#1D1D1F; color:#FFFFFF; border-radius:6px; font-weight:600; font-size:13px; cursor:default;">
+                <div
+                    style="width:150px; border-right:1px solid rgba(0,0,0,0.08); background:#FFFFFF; padding:10px; display:flex; flex-direction:column; gap:5px;">
+                    <div id="settings-tab-hardware"
+                        style="padding:8px 10px; background:transparent; color:#1D1D1F; border-radius:6px; font-weight:500; font-size:13px; cursor:pointer;"
+                        onclick="switchSettingsTab('hardware')">
+                        Hardware
+                    </div>
+                    <div id="settings-tab-permissions"
+                        style="padding:8px 10px; background:#1D1D1F; color:#FFFFFF; border-radius:6px; font-weight:600; font-size:13px; cursor:default;"
+                        onclick="switchSettingsTab('permissions')">
                         App Permissions
+                    </div>
+                    <div id="settings-tab-models"
+                        style="padding:8px 10px; background:transparent; color:#1D1D1F; border-radius:6px; font-weight:500; font-size:13px; cursor:pointer;"
+                        onclick="switchSettingsTab('models')">
+                        Models
                     </div>
                 </div>
 
-                <!-- Main Content -->
-                <div style="flex:1; padding:20px; overflow-y:auto;">
-                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">App Authorization
+                <!-- Main Content (Permissions) -->
+                <div id="settings-pane-permissions" style="flex:1; padding:20px; overflow-y:auto; display:block;">
+                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">App
+                        Authorization
                         Tiers</h4>
                     <p style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:20px;">
                         Control what access each app has on your system.<br>
@@ -2633,6 +3382,48 @@
 
                     <div id="settings-app-list" style="display:flex; flex-direction:column; gap:10px;">
                         <!-- App permission rows injected here -->
+                    </div>
+                </div>
+
+                <!-- Main Content (Models) -->
+                <div id="settings-pane-models" style="flex:1; padding:20px; overflow-y:auto; display:none;">
+                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">Offline AI
+                        Models</h4>
+                    <p style="font-size:12px; color:rgba(0,0,0,0.5); margin-bottom:15px;" id="settings-model-rec-text">
+                        Loading hardware recommendations...
+                    </p>
+
+                    <div id="settings-offline-models-list"
+                        style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+                        <!-- AI model rows injected here -->
+                        <div style="text-align:center; padding:20px; color:rgba(0,0,0,0.5); font-size:12px;">Loading
+                            available models...</div>
+                    </div>
+                </div>
+
+                <!-- Main Content (Hardware) -->
+                <div id="settings-pane-hardware" style="flex:1; padding:20px; overflow-y:auto; display:none;">
+                    <h4 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:8px;">System
+                        Information</h4>
+
+                    <div
+                        style="background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:8px; padding:15px; margin-bottom:20px;">
+                        <div style="display:grid; grid-template-columns: 120px 1fr; gap:10px; font-size:13px;">
+                            <div style="color:rgba(0,0,0,0.5);">OS Platform</div>
+                            <div id="settings-hw-platform">Loading...</div>
+
+                            <div style="color:rgba(0,0,0,0.5);">CPU Model</div>
+                            <div id="settings-hw-cpu">Loading...</div>
+
+                            <div style="color:rgba(0,0,0,0.5);">Logical Cores</div>
+                            <div id="settings-hw-cores">Loading...</div>
+
+                            <div style="color:rgba(0,0,0,0.5);">Total Memory</div>
+                            <div id="settings-hw-mem-total">Loading...</div>
+
+                            <div style="color:rgba(0,0,0,0.5);">Free Memory</div>
+                            <div id="settings-hw-mem-free">Loading...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2684,7 +3475,8 @@
         <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
             <div
                 style="margin-bottom:20px; padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Manage API Keys</h3>
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Manage API Keys
+                </h3>
                 <div id="api-key-list" style="margin-bottom:10px;">Loading...</div>
 
                 <div style="border-top:1px solid rgba(0,0,0,0.08); padding-top:10px;">
@@ -2703,7 +3495,8 @@
             </div>
 
             <div style="padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Get API Keys</h3>
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:5px;">Get API Keys
+                </h3>
                 <div style="display:flex; flex-direction:column; gap:5px; font-size:13px;">
                     <a href="https://platform.openai.com/api-keys" target="_blank"
                         style="color:#007AFF; text-decoration:none;">Get OpenAI Key ↗</a>
@@ -2718,13 +3511,16 @@
 
     <!-- Execution History Template -->
     <template id="tpl-history">
-        <div class="os-history-root" style="display:flex; flex-direction:column; height:100%; font-family:inherit; background:transparent;">
+        <div class="os-history-root"
+            style="display:flex; flex-direction:column; height:100%; font-family:inherit; background:transparent;">
             <!-- Stats Bar -->
-            <div id="hist-stats" class="oscard" style="margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.35); font-size:12px; color:var(--text-muted); flex-shrink:0;">
+            <div id="hist-stats" class="oscard"
+                style="margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.35); font-size:12px; color:var(--text-muted); flex-shrink:0;">
                 <span>Loading stats...</span>
             </div>
             <!-- Toolbar -->
-            <div class="oscard" style="margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.35); flex-shrink:0;">
+            <div class="oscard"
+                style="margin:0; border-radius:0; border-left:none; border-right:none; border-top:none; display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.35); flex-shrink:0;">
                 <button id="hist-refresh" class="osbtn primary">Refresh</button>
                 <button id="hist-diff-btn" class="osbtn" disabled>Diff Selected (0)</button>
                 <span style="margin-left:auto; font-size:11px; color:var(--text-muted);">Select 2 runs to compare</span>
@@ -2732,10 +3528,14 @@
             <!-- Main content: list + detail -->
             <div style="display:flex; flex:1; overflow:hidden;">
                 <!-- Run List -->
-                <div id="hist-list" class="oscard" style="width:280px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-left:none; overflow-y:auto; border-right:1px solid rgba(255,255,255,0.35); flex-shrink:0;"></div>
+                <div id="hist-list" class="oscard"
+                    style="width:280px; margin:0; border-radius:0; border-top:none; border-bottom:none; border-left:none; overflow-y:auto; border-right:1px solid rgba(255,255,255,0.35); flex-shrink:0;">
+                </div>
                 <!-- Detail Panel -->
                 <div id="hist-detail" style="flex:1; overflow-y:auto; padding:16px; background:rgba(252,253,255,0.3);">
-                    <div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px;">Select a run to view details</div>
+                    <div
+                        style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px;">
+                        Select a run to view details</div>
                 </div>
             </div>
         </div>
@@ -2930,8 +3730,8 @@
                 const ampm = h >= 12 ? 'PM' : 'AM';
                 const h12 = (h % 12) || 12;
                 const timeStr = `${h12}:${m} ${ampm}`;
-                const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const dateStr = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
                 const el = document.getElementById('tb-datetime');
                 if (el) el.innerHTML = `<span class="tb-time">${timeStr}</span><span> &nbsp;|&nbsp; </span><span class="tb-date">${dateStr}</span>`;
@@ -3007,7 +3807,7 @@
                 const R = 28, cx = 50, cy = 38;
                 const arcLen = Math.PI * R;
                 const filled = pct * arcLen;
-                const empty  = arcLen - filled;
+                const empty = arcLen - filled;
                 // SVG arc path: M left-tip A R R 0 0 1 right-tip
                 const x1 = cx - R, x2 = cx + R;
                 return `
@@ -3030,16 +3830,16 @@
 
             // Budget cap (default $0.50 from server)
             let budgetMax = 0.50;
-            fetch('/api/budget').then(r => r.json()).then(b => { budgetMax = b.maxCostUsdPerRun || 0.50; }).catch(() => {});
+            fetch('/api/budget').then(r => r.json()).then(b => { budgetMax = b.maxCostUsdPerRun || 0.50; }).catch(() => { });
 
             async function refreshWidgetStats() {
-                const winsEl   = document.getElementById('hw-wins');
-                const runsEl   = document.getElementById('hw-runs');
-                const latEl    = document.getElementById('hw-latency');
-                const costEl   = document.getElementById('hw-cost');
-                const barEl    = document.getElementById('hw-budget-bar');
-                const gaugeEl  = document.getElementById('hw-gauge-wrap');
-                const pillSub  = document.getElementById('hw-pill-status');
+                const winsEl = document.getElementById('hw-wins');
+                const runsEl = document.getElementById('hw-runs');
+                const latEl = document.getElementById('hw-latency');
+                const costEl = document.getElementById('hw-cost');
+                const barEl = document.getElementById('hw-budget-bar');
+                const gaugeEl = document.getElementById('hw-gauge-wrap');
+                const pillSub = document.getElementById('hw-pill-status');
 
                 if (winsEl) winsEl.textContent = windows.length;
 
@@ -3048,9 +3848,9 @@
                     if (!r.ok) return;
                     const s = await r.json();
 
-                    if (runsEl)  runsEl.textContent  = s.total_runs ?? '—';
-                    if (latEl)   latEl.textContent   = s.avg_latency_ms ? `${Math.round(s.avg_latency_ms)}ms` : '—';
-                    if (costEl)  costEl.textContent  = s.total_cost_usd != null ? `$${s.total_cost_usd.toFixed(4)}` : '—';
+                    if (runsEl) runsEl.textContent = s.total_runs ?? '—';
+                    if (latEl) latEl.textContent = s.avg_latency_ms ? `${Math.round(s.avg_latency_ms)}ms` : '—';
+                    if (costEl) costEl.textContent = s.total_cost_usd != null ? `$${s.total_cost_usd.toFixed(4)}` : '—';
 
                     // Budget bar
                     let budgetPct = 0;
@@ -3069,7 +3869,7 @@
 
                     // Update pill status line: "· Stable · Budget 48% · Pass 92%"
                     if (pillSub) {
-                        const budStr  = s.total_cost_usd != null
+                        const budStr = s.total_cost_usd != null
                             ? `Budget ${Math.round(budgetPct * 100)}%`
                             : 'Budget —';
                         const passStr = s.avg_rating != null
@@ -3077,7 +3877,7 @@
                             : 'Pass —';
                         pillSub.textContent = `· Stable · ${budStr} · ${passStr}`;
                     }
-                } catch {}
+                } catch { }
             }
 
             refreshWidgetStats();
@@ -3089,7 +3889,7 @@
 
         function openCmdPalette() {
             const overlay = document.getElementById('cmd-overlay');
-            const input   = document.getElementById('cmd-input');
+            const input = document.getElementById('cmd-input');
             overlay.classList.add('open');
             input.value = '';
             _cmdIdx = -1;
@@ -3160,7 +3960,7 @@
                 const res = await fetch('/api/ollama/models');
                 const data = await res.json();
                 var list = data.models || [];
-                list.forEach(function(model) {
+                list.forEach(function (model) {
                     var name = typeof model === 'string' ? model : (model && model.name ? model.name : '');
                     if (!name) return;
                     var option = document.createElement('option');
@@ -3182,8 +3982,8 @@
 
         function openAIChatOverlay() {
             const overlay = document.getElementById('ai-chat-overlay');
-            const panel   = document.getElementById('ai-chat-panel');
-            const input   = document.getElementById('ai-chat-input');
+            const panel = document.getElementById('ai-chat-panel');
+            const input = document.getElementById('ai-chat-input');
             overlay.classList.add('open');
             panel.classList.remove('ai-overlay-idle', 'ai-overlay-conversing');
             panel.classList.add(_aiHistory.length ? 'ai-overlay-conversing' : 'ai-overlay-idle');
@@ -3207,7 +4007,7 @@
             const label = role === 'user' ? 'U' : '✦';
             row.innerHTML = `
                 <div class="ai-msg-avatar">${label}</div>
-                <div class="ai-msg-bubble">${content.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+                <div class="ai-msg-bubble">${content.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
             `;
             return row;
         }
@@ -3226,12 +4026,12 @@
         }
 
         async function sendAIMessage() {
-            const input     = document.getElementById('ai-chat-input');
-            const msgArea   = document.getElementById('ai-chat-messages');
-            const sendBtn   = document.getElementById('ai-chat-send');
-            const empty     = document.getElementById('ai-chat-empty');
-            const modelSel  = document.getElementById('ai-chat-model-select');
-            const text      = input.value.trim();
+            const input = document.getElementById('ai-chat-input');
+            const msgArea = document.getElementById('ai-chat-messages');
+            const sendBtn = document.getElementById('ai-chat-send');
+            const empty = document.getElementById('ai-chat-empty');
+            const modelSel = document.getElementById('ai-chat-model-select');
+            const text = input.value.trim();
             if (!text) return;
 
             const model = modelSel ? modelSel.value : '';
@@ -3319,18 +4119,18 @@
 
         // Outline SVG icon set for the dock
         const DOCK_SVG = {
-            'chat':          `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-            'flow':          `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
-            'draw':          `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
-            'video':         `<svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+            'chat': `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+            'flow': `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+            'draw': `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+            'video': `<svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
             'model-manager': `<svg viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z"/></svg>`,
-            'search':        `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
-            'rag':           `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-            'history':       `<svg viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>`,
-            'eval':          `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>`,
-            'computer':      `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
-            'network':       `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="16" x2="19" y2="16"/><line x1="12" y1="16" x2="5" y2="16"/></svg>`,
-            'settings':      `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+            'search': `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+            'rag': `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+            'history': `<svg viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>`,
+            'eval': `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>`,
+            'computer': `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+            'network': `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="16" x2="19" y2="16"/><line x1="12" y1="16" x2="5" y2="16"/></svg>`,
+            'settings': `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
         };
 
         // Toolbar icons (stroke style, same as dock — no emoji)
@@ -3353,19 +4153,19 @@
 
         // Main sidebar nav (design: Home, Chat, Projects, Memory, Agents, Files, System)
         const NAV_ITEMS = [
-            { id: 'home',    label: 'Home',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>', appId: null },
-            { id: 'chat',    label: 'Chat',    icon: DOCK_SVG.chat,    appId: 'chat' },
-            { id: 'projects',label: 'Projects',icon: DOCK_SVG.flow,    appId: 'flow' },
-            { id: 'memory',  label: 'Memory',  icon: DOCK_SVG.history, appId: 'history' },
-            { id: 'agents',  label: 'Agents',  icon: DOCK_SVG.eval,    appId: 'eval' },
-            { id: 'files',   label: 'Files',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', appId: 'rag' },
-            { id: 'system',  label: 'System',  icon: DOCK_SVG.settings, appId: 'settings' },
+            { id: 'home', label: 'Home', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>', appId: null },
+            { id: 'chat', label: 'Chat', icon: DOCK_SVG.chat, appId: 'chat' },
+            { id: 'projects', label: 'Projects', icon: DOCK_SVG.flow, appId: 'flow' },
+            { id: 'memory', label: 'Memory', icon: DOCK_SVG.history, appId: 'history' },
+            { id: 'agents', label: 'Agents', icon: DOCK_SVG.eval, appId: 'eval' },
+            { id: 'files', label: 'Files', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', appId: 'rag' },
+            { id: 'system', label: 'System', icon: DOCK_SVG.settings, appId: 'settings' },
         ];
         // Bottom apps (restored from original dock)
         const NAV_BOTTOM_ITEMS = [
             { id: 'computer', label: 'My Computer', icon: DOCK_SVG.computer, appId: 'computer' },
-            { id: 'network',  label: 'System Graph', icon: DOCK_SVG.network,  appId: 'network' },
-            { id: 'settings', label: 'Settings',     icon: DOCK_SVG.settings,  appId: 'settings' },
+            { id: 'network', label: 'System Graph', icon: DOCK_SVG.network, appId: 'network' },
+            { id: 'settings', label: 'Settings', icon: DOCK_SVG.settings, appId: 'settings' },
         ];
 
         let currentNavId = 'home';
@@ -3476,23 +4276,23 @@
             if (!rootEl || !rootEl.querySelector) return;
             var el = rootEl.querySelector('.os-window__body') || rootEl;
             if (!el.querySelectorAll) return;
-            el.querySelectorAll('button:not(.os-button):not(.control-btn):not([class*="close-btn"])').forEach(function(btn) {
+            el.querySelectorAll('button:not(.os-button):not(.control-btn):not([class*="close-btn"])').forEach(function (btn) {
                 if (btn.getAttribute('data-no-os')) return;
                 btn.classList.add('os-button');
             });
-            el.querySelectorAll('input:not([type="hidden"]):not(.os-input)').forEach(function(inp) {
+            el.querySelectorAll('input:not([type="hidden"]):not(.os-input)').forEach(function (inp) {
                 inp.classList.add('os-input');
             });
-            el.querySelectorAll('textarea:not(.os-textarea)').forEach(function(ta) {
+            el.querySelectorAll('textarea:not(.os-textarea)').forEach(function (ta) {
                 ta.classList.add('os-textarea');
             });
-            el.querySelectorAll('select:not(.os-select)').forEach(function(sel) {
+            el.querySelectorAll('select:not(.os-select)').forEach(function (sel) {
                 sel.classList.add('os-select');
             });
-            el.querySelectorAll('table:not(.os-table)').forEach(function(tbl) {
+            el.querySelectorAll('table:not(.os-table)').forEach(function (tbl) {
                 tbl.classList.add('os-table');
             });
-            el.querySelectorAll('h3:not(.os-sectionTitle), h4:not(.os-sectionTitle)').forEach(function(h) {
+            el.querySelectorAll('h3:not(.os-sectionTitle), h4:not(.os-sectionTitle)').forEach(function (h) {
                 if (!h.className || !/section|title|header/i.test(h.className)) h.classList.add('os-sectionTitle');
             });
         }
@@ -3586,7 +4386,7 @@
         }
         function createWindow(title, appId, width = 600, height = 400) {
             if (appId && appId !== 'dialog') {
-                var existing = windows.find(function(w) { return w.appId === appId; });
+                var existing = windows.find(function (w) { return w.appId === appId; });
                 if (existing) {
                     focusWindow(existing.id);
                     var w = document.getElementById(existing.id);
@@ -3616,7 +4416,7 @@
             shell.style.width = width + 'px';
             shell.style.height = height + 'px';
             shell.style.left = (20 + windows.length * 24) + 'px';
-            shell.style.top  = (20 + windows.length * 24) + 'px';
+            shell.style.top = (20 + windows.length * 24) + 'px';
             shell.style.zIndex = ++highestZ;
 
             var traffic = shell.querySelector('.os-window__traffic');
@@ -3624,13 +4424,13 @@
                 var red = traffic.querySelector('.dot.red');
                 var yellow = traffic.querySelector('.dot.yellow');
                 var green = traffic.querySelector('.dot.green');
-                if (red) red.onclick = function(e) { e.stopPropagation(); closeWindow(id); };
-                if (yellow) yellow.onclick = function(e) { e.stopPropagation(); minimizeWindow(id); };
-                if (green) green.onclick = function(e) { e.stopPropagation(); toggleMaximize(id); };
+                if (red) red.onclick = function (e) { e.stopPropagation(); closeWindow(id); };
+                if (yellow) yellow.onclick = function (e) { e.stopPropagation(); minimizeWindow(id); };
+                if (green) green.onclick = function (e) { e.stopPropagation(); toggleMaximize(id); };
             }
 
             const chromeEl = shell.querySelector('.os-window__chrome');
-            if (chromeEl) chromeEl.onmousedown = function(e) {
+            if (chromeEl) chromeEl.onmousedown = function (e) {
                 if (e.target.closest('.os-window__traffic') || e.target.closest('.os-window__actions')) return;
                 startDrag(e, id);
             };
@@ -3643,7 +4443,7 @@
             focusWindow(id);
             renderDock();
 
-            setTimeout(function() { applyOSPrimitives(shell); }, 0);
+            setTimeout(function () { applyOSPrimitives(shell); }, 0);
             return bodyEl;
         }
 
@@ -3686,7 +4486,7 @@
             if (isDragging && draggedWin) {
                 const dr = document.getElementById('desktop').getBoundingClientRect();
                 draggedWin.style.left = (e.clientX - dragOffset.x - dr.left) + 'px';
-                draggedWin.style.top  = (e.clientY - dragOffset.y - dr.top)  + 'px';
+                draggedWin.style.top = (e.clientY - dragOffset.y - dr.top) + 'px';
             }
         }
 
@@ -4103,7 +4903,7 @@
                         d.fx = null; d.fy = null;
                     }));
 
-            const colorScale = d3.scaleOrdinal(['#5E81F4','#56CFE1','#FF9F7F','#FFD166','#06D6A0','#EF476F','#118AB2','#8338EC','#FB5607','#3A86FF']);
+            const colorScale = d3.scaleOrdinal(['#5E81F4', '#56CFE1', '#FF9F7F', '#FFD166', '#06D6A0', '#EF476F', '#118AB2', '#8338EC', '#FB5607', '#3A86FF']);
 
             node.append("circle")
                 .attr("r", 15)
@@ -4674,7 +5474,7 @@
                         goals.map(g => `<option value="${g.goal_id}">${g.description}</option>`).join('');
                     // Re-select current active goal
                     if (activeGoal) goalSelect.value = activeGoal.goal_id;
-                } catch(e) {}
+                } catch (e) { }
             }
             refreshGoalSelect();
 
@@ -4722,17 +5522,17 @@
                 document.body.appendChild(overlay);
                 overlay.querySelector('#new-goal-cancel').onclick = () => document.body.removeChild(overlay);
                 overlay.querySelector('#new-goal-save').onclick = async () => {
-                    const name    = overlay.querySelector('#new-goal-name').value.trim() || 'Unnamed Goal';
-                    const costT   = parseFloat(overlay.querySelector('#new-goal-cost').value)    || 0.10;
-                    const latT    = parseFloat(overlay.querySelector('#new-goal-latency').value) || 10000;
+                    const name = overlay.querySelector('#new-goal-name').value.trim() || 'Unnamed Goal';
+                    const costT = parseFloat(overlay.querySelector('#new-goal-cost').value) || 0.10;
+                    const latT = parseFloat(overlay.querySelector('#new-goal-latency').value) || 10000;
                     const goal = {
                         goal_id: 'goal-' + Date.now(),
                         description: name,
                         success_criteria: [
                             { dimension: 'task_completion', target: 1, floor: 0.5, weight: 0.4, evaluator: 'rule_based' },
                             { dimension: 'cost_efficiency', target: costT, floor: 0.3, weight: 0.3, evaluator: 'rule_based' },
-                            { dimension: 'latency',         target: latT,  floor: 0.2, weight: 0.2, evaluator: 'rule_based' },
-                            { dimension: 'output_quality',  target: 1,     floor: 0.5, weight: 0.1, evaluator: 'mock_llm_judge' },
+                            { dimension: 'latency', target: latT, floor: 0.2, weight: 0.2, evaluator: 'rule_based' },
+                            { dimension: 'output_quality', target: 1, floor: 0.5, weight: 0.1, evaluator: 'mock_llm_judge' },
                         ],
                         created_at: Date.now(),
                     };
@@ -4749,7 +5549,7 @@
 
             // Budget panel — cost slider
             const costSlider = goalBudgetStrip.querySelector('#flow-budget-cost');
-            const costLabel  = goalBudgetStrip.querySelector('#flow-budget-cost-label');
+            const costLabel = goalBudgetStrip.querySelector('#flow-budget-cost-label');
             const provSelect = goalBudgetStrip.querySelector('#flow-budget-provider');
 
             // Restore from localStorage
@@ -4757,7 +5557,7 @@
                 const saved = JSON.parse(localStorage.getItem('aos-budget') || '{}');
                 if (saved.maxCostUsdPerRun) { costSlider.value = saved.maxCostUsdPerRun; costLabel.textContent = '$' + parseFloat(saved.maxCostUsdPerRun).toFixed(2); }
                 if (saved.preferredModels?.[0]) provSelect.value = saved.preferredModels[0];
-            } catch(e) {}
+            } catch (e) { }
 
             async function pushBudget() {
                 const body = {
@@ -4765,7 +5565,7 @@
                     preferredModels: provSelect.value ? [provSelect.value] : [],
                 };
                 localStorage.setItem('aos-budget', JSON.stringify(body));
-                try { await fetch('/api/budget', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); } catch(e) {}
+                try { await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
             }
 
             costSlider.addEventListener('input', () => {
@@ -5112,7 +5912,7 @@
                         <div style="padding:6px 8px; border-bottom:1px solid rgba(0,0,0,0.08); background:#FAFAFA; display:flex; align-items:center; gap:6px;">
                             <input id="tele-node-filter" placeholder="Filter by node ID…"
                                 style="flex:1; padding:3px 7px; border:1px solid rgba(0,0,0,0.1); border-radius:4px; font-size:11px; background:#FFFFFF; color:#1D1D1F; outline:none;">
-                            <span id="tele-run-id" style="font-size:10px; color:rgba(0,0,0,0.3); font-family:monospace;">${runId ? runId.slice(0,8)+'…' : ''}</span>
+                            <span id="tele-run-id" style="font-size:10px; color:rgba(0,0,0,0.3); font-family:monospace;">${runId ? runId.slice(0, 8) + '…' : ''}</span>
                         </div>
                         <div id="tele-feed" style="padding:8px; overflow-y:auto; max-height:calc(100% - 36px);"></div>
                     `;
@@ -5133,8 +5933,8 @@
                     function renderTeleEv(ev) {
                         const sc = { running: '#F59E0B', success: '#34C759', error: '#FF3B30' };
                         const c = sc[ev.status] || '#888';
-                        const fmtMs = v => v > 0 ? (v >= 1000 ? (v/1000).toFixed(1)+'s' : Math.round(v)+'ms') : '';
-                        const fmtCost = v => v > 0 ? '$'+v.toFixed(5) : '';
+                        const fmtMs = v => v > 0 ? (v >= 1000 ? (v / 1000).toFixed(1) + 's' : Math.round(v) + 'ms') : '';
+                        const fmtCost = v => v > 0 ? '$' + v.toFixed(5) : '';
                         const icon = ev.status === 'success' ? '✓' : ev.status === 'error' ? '✗' : '…';
                         const label = (ev.context && ev.context.label) ? ev.context.label.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').trim() : ev.node_id;
                         const jsonStr = JSON.stringify(ev, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -5252,21 +6052,21 @@
                     }
 
                     // Persist ExecutionRecord to append-only IndexedDB journal
-                    const _totalCost    = collectedSteps.reduce((s, ev) => s + (ev.cost_usd  || 0), 0);
+                    const _totalCost = collectedSteps.reduce((s, ev) => s + (ev.cost_usd || 0), 0);
                     const _totalLatency = collectedSteps.reduce((s, ev) => s + (ev.latency_ms || 0), 0);
                     const _record = {
-                        run_id:           runId || ('local-' + jobId),
-                        flow_id:          jobId,
-                        flow_version:     _flowFingerprint(nodes),
-                        triggered_by:     'user',
-                        goal_id:          activeGoal ? activeGoal.goal_id : null,
-                        steps:            collectedSteps,
-                        total_cost_usd:   _totalCost,
+                        run_id: runId || ('local-' + jobId),
+                        flow_id: jobId,
+                        flow_version: _flowFingerprint(nodes),
+                        triggered_by: 'user',
+                        goal_id: activeGoal ? activeGoal.goal_id : null,
+                        steps: collectedSteps,
+                        total_cost_usd: _totalCost,
                         total_latency_ms: _totalLatency,
-                        outcome:          finalOutcome,
-                        snapshot:         { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
-                        timestamp:        Date.now(),
-                        status:           finalOutcome === 'completed' ? 'completed' : 'failed',
+                        outcome: finalOutcome,
+                        snapshot: { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
+                        timestamp: Date.now(),
+                        status: finalOutcome === 'completed' ? 'completed' : 'failed',
                     };
                     const _outcomeScore = activeGoal ? computeOutcomeScoreClient(_record, activeGoal) : null;
                     journalAppend({ ..._record, outcome_score: _outcomeScore });
@@ -5635,6 +6435,76 @@
             if (!win) return;
             win.innerHTML = document.getElementById('tpl-settings').innerHTML;
 
+            // Globals inside this window
+            const tabPerms = win.querySelector('#settings-tab-permissions');
+            const tabHw = win.querySelector('#settings-tab-hardware');
+            const tabModels = win.querySelector('#settings-tab-models');
+
+            const panePerms = win.querySelector('#settings-pane-permissions');
+            const paneHw = win.querySelector('#settings-pane-hardware');
+            const paneModels = win.querySelector('#settings-pane-models');
+
+            function resetTabs() {
+                [tabPerms, tabHw, tabModels].forEach(t => {
+                    if (!t) return;
+                    t.style.background = 'transparent';
+                    t.style.color = '#1D1D1F';
+                    t.style.fontWeight = '500';
+                });
+                [panePerms, paneHw, paneModels].forEach(p => {
+                    if (p) p.style.display = 'none';
+                });
+            }
+
+            // Expose a local tab switcher
+            win.switchSettingsTab = function (tabName) {
+                resetTabs();
+
+                if (tabName === 'hardware') {
+                    tabHw.style.background = '#1D1D1F';
+                    tabHw.style.color = '#FFFFFF';
+                    tabHw.style.fontWeight = '600';
+                    paneHw.style.display = 'block';
+                    loadHardwareSpecs();
+                } else if (tabName === 'models') {
+                    tabModels.style.background = '#1D1D1F';
+                    tabModels.style.color = '#FFFFFF';
+                    tabModels.style.fontWeight = '600';
+                    paneModels.style.display = 'block';
+                } else {
+                    // Default to permissions
+                    tabPerms.style.background = '#1D1D1F';
+                    tabPerms.style.color = '#FFFFFF';
+                    tabPerms.style.fontWeight = '600';
+                    panePerms.style.display = 'block';
+                }
+            };
+
+            // Override the inline onclick handlers we generated in HTML so they scope correctly to this window instance
+            tabPerms.onclick = () => win.switchSettingsTab('permissions');
+            tabHw.onclick = () => win.switchSettingsTab('hardware');
+            tabModels.onclick = () => win.switchSettingsTab('models');
+
+            let hwLoaded = false;
+            async function loadHardwareSpecs() {
+                if (hwLoaded) return;
+                try {
+                    const res = await fetch('/api/system/specs');
+                    if (!res.ok) throw new Error('Network error');
+                    const specs = await res.json();
+
+                    win.querySelector('#settings-hw-platform').textContent = specs.platform;
+                    win.querySelector('#settings-hw-cpu').textContent = specs.cpuModel;
+                    win.querySelector('#settings-hw-cores').textContent = specs.cpuCores;
+                    win.querySelector('#settings-hw-mem-total').textContent = specs.totalMem;
+                    win.querySelector('#settings-hw-mem-free').textContent = specs.freeMem;
+                    hwLoaded = true;
+                } catch (e) {
+                    console.error("Failed to fetch hardware specs:", e);
+                    win.querySelector('#settings-hw-platform').textContent = "Error loading specs";
+                }
+            }
+
             const listContainer = win.querySelector('#settings-app-list');
 
             function renderAppPerms() {
@@ -5679,7 +6549,94 @@
 
             renderAppPerms();
 
-            // ── Semantic Cache section ────────────────────────────────────────
+            // ── Offline Models Downloader ────────────────────────────────────────
+            const offlineModelsList = win.querySelector('#settings-offline-models-list');
+            const modelRecText = win.querySelector('#settings-model-rec-text');
+
+            async function loadOfflineModelRecommendations() {
+                try {
+                    const res = await fetch('/api/system/specs');
+                    if (!res.ok) throw new Error('Failed to fetch specs');
+                    const specs = await res.json();
+
+                    modelRecText.innerHTML = 'Based on your hardware, we recommend models marked with <span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px;">Recommended</span>';
+
+                    renderOfflineModelList(specs.recommendedModels || []);
+                } catch (e) {
+                    modelRecText.textContent = 'Error loading hardware recommendations.';
+                    renderOfflineModelList([]);
+                }
+            }
+
+            function renderOfflineModelList(recommended) {
+                offlineModelsList.innerHTML = '';
+
+                // Sort: Recommended first, then others
+                const sorted = [...availableModels].sort((a, b) => {
+                    const aRec = recommended.some(r => a.id.includes(r) || r.includes(a.id));
+                    const bRec = recommended.some(r => b.id.includes(r) || r.includes(b.id));
+                    return bRec - aRec;
+                });
+
+                sorted.forEach(m => {
+                    const isRec = recommended.some(r => m.id.includes(r) || r.includes(m.id));
+                    const isCloud = (m.size === 'Cloud');
+
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px; display:flex; justify-content:space-between; align-items:center;';
+
+                    const pullButtonHTML = isCloud
+                        ? `<button class="offline-pull-btn" disabled style="padding:4px 10px; background:rgba(0,0,0,0.05); color:rgba(0,0,0,0.4); border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; cursor:not-allowed;">Cloud Model</button>`
+                        : `<button class="offline-pull-btn" style="padding:4px 10px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-size:12px;">Pull</button>`;
+
+                    item.innerHTML = `
+                        <div style="flex-grow:1;">
+                            <div style="font-weight:600; font-size:13px; color:#1D1D1F;">
+                                ${m.name} <span style="font-weight:normal; color:rgba(0,0,0,0.5); font-size:11px;">(${m.size})</span>
+                                ${isRec ? '<span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
+                            </div>
+                            <div style="font-size:11px; color:rgba(0,0,0,0.5);">${m.desc}</div>
+                        </div>
+                        ${pullButtonHTML}
+                    `;
+
+                    if (!isCloud) {
+                        const btn = item.querySelector('.offline-pull-btn');
+                        btn.onclick = async () => {
+                            btn.textContent = 'Pulling...';
+                            btn.disabled = true;
+                            btn.style.background = 'rgba(0,0,0,0.10)';
+
+                            try {
+                                const res = await fetch('/api/ollama/pull', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ model: m.id })
+                                });
+                                const data = await res.json();
+
+                                if (data.status === 'success' || !data.error) {
+                                    btn.textContent = 'Installed';
+                                    btn.style.background = 'rgba(0,0,0,0.10)';
+                                } else {
+                                    btn.textContent = 'Failed';
+                                    btn.style.background = '#FF3B30';
+                                    btn.style.color = '#FFFFFF';
+                                }
+                            } catch (error) {
+                                btn.textContent = 'Error';
+                                btn.style.background = '#FF3B30';
+                                btn.style.color = '#FFFFFF';
+                            }
+                        };
+                    }
+
+                    offlineModelsList.appendChild(item);
+                });
+            }
+
+            // Kick off hardware-aware render immediately on Settings load
+            loadOfflineModelRecommendations();
             const cacheSection = document.createElement('div');
             cacheSection.style.cssText = 'margin-top:16px;padding:14px;background:#FFF;border:1px solid rgba(0,0,0,0.08);border-radius:8px;';
             cacheSection.innerHTML = `
@@ -5706,7 +6663,7 @@
                     const stats = await fetch('/api/cache/stats').then(r => r.json());
                     cacheSection.querySelector('#cache-stats-display').innerHTML =
                         `Entries: <b>${stats.total_entries}</b> &nbsp;·&nbsp; Hits: <b>${stats.total_hits}</b> &nbsp;·&nbsp; Hit Rate: <b>${stats.hit_rate_pct}%</b>`;
-                } catch(e) {
+                } catch (e) {
                     cacheSection.querySelector('#cache-stats-display').textContent = 'Stats unavailable';
                 }
             }
@@ -5877,7 +6834,7 @@
         //   outcome, snapshot: { nodes, edges }, timestamp }
 
         const _IDB_NAME = 'aos-journal';
-        const _IDB_VER  = 2;
+        const _IDB_VER = 2;
 
         function _openJournalDB() {
             return new Promise((resolve, reject) => {
@@ -5887,7 +6844,7 @@
                     if (!db.objectStoreNames.contains('runs')) {
                         const store = db.createObjectStore('runs', { keyPath: 'run_id' });
                         store.createIndex('by_timestamp', 'timestamp', { unique: false });
-                        store.createIndex('by_flow_id',   'flow_id',   { unique: false });
+                        store.createIndex('by_flow_id', 'flow_id', { unique: false });
                     }
                     // Phase 2: goals store (only create if upgrading from < v2)
                     if (e.oldVersion < 2 && !db.objectStoreNames.contains('goals')) {
@@ -5896,7 +6853,7 @@
                     }
                 };
                 req.onsuccess = e => resolve(e.target.result);
-                req.onerror   = e => reject(e.target.error);
+                req.onerror = e => reject(e.target.error);
             });
         }
 
@@ -5905,7 +6862,7 @@
             return new Promise((resolve, reject) => {
                 const req = db.transaction('goals', 'readwrite').objectStore('goals').put(goal);
                 req.onsuccess = () => resolve(req.result);
-                req.onerror   = () => reject(req.error);
+                req.onerror = () => reject(req.error);
             });
         }
 
@@ -5913,10 +6870,10 @@
             const db = await _openJournalDB();
             return new Promise((resolve, reject) => {
                 const goals = [];
-                const req   = db.transaction('goals', 'readonly')
-                                .objectStore('goals')
-                                .index('by_created_at')
-                                .openCursor(null, 'prev');
+                const req = db.transaction('goals', 'readonly')
+                    .objectStore('goals')
+                    .index('by_created_at')
+                    .openCursor(null, 'prev');
                 req.onsuccess = e => {
                     const cursor = e.target.result;
                     if (cursor) { goals.push(cursor.value); cursor.continue(); }
@@ -5931,7 +6888,7 @@
             return new Promise((resolve, reject) => {
                 const req = db.transaction('goals', 'readonly').objectStore('goals').get(goalId);
                 req.onsuccess = () => resolve(req.result || null);
-                req.onerror   = () => reject(req.error);
+                req.onerror = () => reject(req.error);
             });
         }
 
@@ -5942,7 +6899,7 @@
                 await new Promise((resolve, reject) => {
                     const req = db.transaction('runs', 'readwrite').objectStore('runs').add(record);
                     req.onsuccess = () => resolve(req.result);
-                    req.onerror   = () => reject(req.error);
+                    req.onerror = () => reject(req.error);
                 });
                 console.log(`[Journal] Appended run ${record.run_id}`);
             } catch (e) {
@@ -5955,13 +6912,13 @@
         }
 
         async function journalListRuns(limit = 200) {
-            const db   = await _openJournalDB();
+            const db = await _openJournalDB();
             return new Promise((resolve, reject) => {
                 const runs = [];
-                const req  = db.transaction('runs', 'readonly')
-                               .objectStore('runs')
-                               .index('by_timestamp')
-                               .openCursor(null, 'prev');  // newest first
+                const req = db.transaction('runs', 'readonly')
+                    .objectStore('runs')
+                    .index('by_timestamp')
+                    .openCursor(null, 'prev');  // newest first
                 req.onsuccess = e => {
                     const cursor = e.target.result;
                     if (cursor && runs.length < limit) { runs.push(cursor.value); cursor.continue(); }
@@ -5976,7 +6933,7 @@
             return new Promise((resolve, reject) => {
                 const req = db.transaction('runs', 'readonly').objectStore('runs').get(runId);
                 req.onsuccess = () => resolve(req.result || null);
-                req.onerror   = () => reject(req.error);
+                req.onerror = () => reject(req.error);
             });
         }
 
@@ -5985,7 +6942,7 @@
 
         // ── Client-side outcome scorer (mirrors evaluator.ts) ─────────────────
         function mulberry32(seed) {
-            return function() {
+            return function () {
                 seed |= 0; seed = seed + 0x6D2B79F5 | 0;
                 let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
                 t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
@@ -6092,18 +7049,18 @@
             async function loadStats() {
                 try {
                     const runs = await journalListRuns();
-                    const totalCost    = runs.reduce((s, r) => s + (r.total_cost_usd  || 0), 0);
+                    const totalCost = runs.reduce((s, r) => s + (r.total_cost_usd || 0), 0);
                     const totalLatency = runs.reduce((s, r) => s + (r.total_latency_ms || 0), 0);
-                    const avgLatency   = runs.length ? totalLatency / runs.length : 0;
-                    const scoredRuns   = runs.filter(r => r.outcome_score);
-                    const passedRuns   = scoredRuns.filter(r => r.outcome_score?.passed);
-                    const passRate     = scoredRuns.length ? Math.round(passedRuns.length / scoredRuns.length * 100) : null;
+                    const avgLatency = runs.length ? totalLatency / runs.length : 0;
+                    const scoredRuns = runs.filter(r => r.outcome_score);
+                    const passedRuns = scoredRuns.filter(r => r.outcome_score?.passed);
+                    const passRate = scoredRuns.length ? Math.round(passedRuns.length / scoredRuns.length * 100) : null;
 
                     let cacheHitRate = null;
                     try {
                         const cs = await fetch('/api/cache/stats').then(r => r.json());
                         cacheHitRate = cs.hit_rate_pct ?? null;
-                    } catch(e) {}
+                    } catch (e) { }
 
                     body.querySelector('#hist-stats').innerHTML = `
                         <span>Runs: <b>${runs.length}</b></span>
@@ -6113,7 +7070,7 @@
                         ${cacheHitRate !== null ? `<span style="margin-left:12px;">Cache Hits: <b>${cacheHitRate}%</b></span>` : ''}
                         <span style="margin-left:auto; color:rgba(0,0,0,0.3); font-size:10px;">IndexedDB</span>
                     `;
-                } catch(e) {
+                } catch (e) {
                     body.querySelector('#hist-stats').innerHTML = `<span style="color:#FF3B30;">Stats unavailable</span>`;
                 }
             }
@@ -6139,7 +7096,7 @@
                             <div style="flex:1; min-width:0;">
                                 <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
                                     ${statusBadge(r.outcome || 'unknown')}
-                                    <span style="color:rgba(0,0,0,0.35); font-size:10px;">${r.run_id.slice(0,8)}…</span>
+                                    <span style="color:rgba(0,0,0,0.35); font-size:10px;">${r.run_id.slice(0, 8)}…</span>
                                     <span style="margin-left:auto; color:rgba(0,0,0,0.28); font-size:10px; font-family:monospace;">${r.flow_version || ''}</span>
                                 </div>
                                 <div style="color:#1D1D1F; font-weight:500; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.flow_id}</div>
@@ -6181,7 +7138,7 @@
                         el.addEventListener('mouseenter', () => { if (!el.style.background) el.style.background = 'rgba(0,0,0,0.03)'; });
                         el.addEventListener('mouseleave', () => { if (el.style.background === 'rgba(0,0,0,0.03)') el.style.background = ''; });
                     });
-                } catch(e) {
+                } catch (e) {
                     listEl.innerHTML = `<div style="padding:16px;color:#FF3B30;font-size:12px;">Error: ${e.message}</div>`;
                 }
             }
@@ -6206,23 +7163,23 @@
 
                     // Compute global time range for bar widths
                     const allStartTs = steps.map(ev => ev.timestamp - (ev.latency_ms || 0));
-                    const allEndTs   = steps.map(ev => ev.timestamp);
-                    const minTs    = allStartTs.length ? Math.min(...allStartTs) : 0;
-                    const maxTs    = allEndTs.length   ? Math.max(...allEndTs)   : 1;
+                    const allEndTs = steps.map(ev => ev.timestamp);
+                    const minTs = allStartTs.length ? Math.min(...allStartTs) : 0;
+                    const maxTs = allEndTs.length ? Math.max(...allEndTs) : 1;
                     const totalSpan = Math.max(maxTs - minTs, 1);
 
-                    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
                     const timelineHTML = steps.length === 0
                         ? '<div style="font-size:12px;color:rgba(0,0,0,0.4);">No steps recorded.</div>'
                         : [...nodeMap.entries()].map(([nodeId, evs]) => {
                             const ev = evs[evs.length - 1]; // end event (success/error)
-                            const startT   = ev.timestamp - (ev.latency_ms || 0);
-                            const leftPct  = ((startT - minTs) / totalSpan * 100).toFixed(1);
+                            const startT = ev.timestamp - (ev.latency_ms || 0);
+                            const leftPct = ((startT - minTs) / totalSpan * 100).toFixed(1);
                             const widthPct = Math.max(((ev.latency_ms || 0) / totalSpan * 100), 1.5).toFixed(1);
                             const barColor = ev.status === 'success' ? '#34C759' : ev.status === 'error' ? '#FF3B30' : '#F59E0B';
                             const nodeLabel = r.snapshot?.nodes?.find(n => n.id === nodeId)?.label || nodeId;
-                            const evJSON   = esc(JSON.stringify(ev, null, 2));
+                            const evJSON = esc(JSON.stringify(ev, null, 2));
                             return `
                                 <div class="tl-row" style="border-bottom:1px solid rgba(0,0,0,0.04);">
                                     <!-- Clickable header row -->
@@ -6267,7 +7224,7 @@
                                     </div>
                                 </div>
                             `;
-                          }).join('');
+                        }).join('');
 
                     // --- FlowSnapshot JSON (collapsed by default) ---
                     const snapshotJSON = r.snapshot ? JSON.stringify(r.snapshot, null, 2) : null;
@@ -6278,7 +7235,7 @@
                                 <span style="font-size:11px;color:rgba(0,0,0,0.4);">${r.snapshot?.nodes?.length || 0} nodes, ${r.snapshot?.edges?.length || 0} edges</span>
                                 <button id="jnl-snapshot-toggle" style="margin-left:auto;padding:2px 8px;background:transparent;color:rgba(0,0,0,0.5);border:1px solid rgba(0,0,0,0.15);border-radius:4px;cursor:pointer;font-size:11px;">Show JSON</button>
                             </div>
-                            <pre id="jnl-snapshot-json" style="display:none;background:#F5F5F7;border-radius:6px;padding:10px;font-size:10px;font-family:'JetBrains Mono',monospace;overflow:auto;max-height:200px;color:#1D1D1F;white-space:pre-wrap;word-break:break-all;">${snapshotJSON.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                            <pre id="jnl-snapshot-json" style="display:none;background:#F5F5F7;border-radius:6px;padding:10px;font-size:10px;font-family:'JetBrains Mono',monospace;overflow:auto;max-height:200px;color:#1D1D1F;white-space:pre-wrap;word-break:break-all;">${snapshotJSON.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
                         </div>
                     ` : '';
 
@@ -6387,7 +7344,7 @@
                                     navigator.clipboard.writeText(pre.textContent).then(() => {
                                         copyBtn.textContent = 'Copied!';
                                         setTimeout(() => copyBtn.textContent = 'Copy', 1500);
-                                    }).catch(() => {});
+                                    }).catch(() => { });
                                 }
                                 return;
                             }
@@ -6442,11 +7399,11 @@
                             }).then(x => x.json());
                             showOSDialog('Replay Started', `Job: ${resp.jobId}`, 'info');
                             setTimeout(() => { loadRuns(); loadStats(); }, 1500);
-                        } catch(e) {
+                        } catch (e) {
                             showOSDialog('Replay Failed', e.message, 'danger');
                         }
                     });
-                } catch(e) {
+                } catch (e) {
                     detail.innerHTML = `<div style="color:#FF3B30;font-size:12px;">Error: ${e.message}</div>`;
                 }
             }
@@ -6457,9 +7414,9 @@
                 // flow_diff: nodes added / removed
                 const aNodeIds = new Set((a.snapshot?.nodes || []).map(n => n.id));
                 const bNodeIds = new Set((b.snapshot?.nodes || []).map(n => n.id));
-                const addedNodes   = [...bNodeIds].filter(id => !aNodeIds.has(id));
+                const addedNodes = [...bNodeIds].filter(id => !aNodeIds.has(id));
                 const removedNodes = [...aNodeIds].filter(id => !bNodeIds.has(id));
-                const commonNodes  = [...aNodeIds].filter(id => bNodeIds.has(id));
+                const commonNodes = [...aNodeIds].filter(id => bNodeIds.has(id));
 
                 // param_diff: compare node properties for shared nodes
                 const aNodes = new Map((a.snapshot?.nodes || []).map(n => [n.id, n]));
@@ -6493,11 +7450,11 @@
                 }
 
                 return {
-                    cost_delta:       b.total_cost_usd   - a.total_cost_usd,
-                    latency_delta:    b.total_latency_ms  - a.total_latency_ms,
-                    added_nodes:      addedNodes,
-                    removed_nodes:    removedNodes,
-                    param_diff:       paramDiff,
+                    cost_delta: b.total_cost_usd - a.total_cost_usd,
+                    latency_delta: b.total_latency_ms - a.total_latency_ms,
+                    added_nodes: addedNodes,
+                    removed_nodes: removedNodes,
+                    param_diff: paramDiff,
                     divergence_point: divergencePoint,
                 };
             }
@@ -6511,8 +7468,8 @@
                     const diff = computeDiffLocal(a, b);
 
                     const deltaSign = v => v > 0 ? '+' : '';
-                    const costColor = diff.cost_delta    <= 0 ? '#34C759' : '#FF3B30';
-                    const latColor  = diff.latency_delta <= 0 ? '#34C759' : '#FF3B30';
+                    const costColor = diff.cost_delta <= 0 ? '#34C759' : '#FF3B30';
+                    const latColor = diff.latency_delta <= 0 ? '#34C759' : '#FF3B30';
 
                     const paramDiffHTML = diff.param_diff.length === 0
                         ? '<div style="font-size:12px;color:rgba(0,0,0,0.4);padding:8px 0;">No parameter changes between these runs.</div>'
@@ -6524,7 +7481,7 @@
                                 <th style="padding:5px 8px;text-align:left;font-weight:500;">Run B</th>
                             </tr></thead>
                             <tbody>${diff.param_diff.map((d, i) => `
-                                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);background:${i%2===0?'#FFFFFF':'#FAFAFA'}">
+                                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);background:${i % 2 === 0 ? '#FFFFFF' : '#FAFAFA'}">
                                     <td style="padding:4px 8px;font-family:monospace;font-size:10px;color:#1D1D1F;">${d.node_id}</td>
                                     <td style="padding:4px 8px;color:rgba(0,0,0,0.6);">${d.field}</td>
                                     <td style="padding:4px 8px;color:#FF3B30;font-style:italic;">${d.value_a ?? '—'}</td>
@@ -6560,7 +7517,7 @@
                         <!-- Title bar -->
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                             <h3 style="margin:0;font-size:14px;color:#1D1D1F;">Run Diff</h3>
-                            <span style="font-size:11px;color:rgba(0,0,0,0.4);font-family:monospace;">${a.run_id.slice(0,8)}… vs ${b.run_id.slice(0,8)}…</span>
+                            <span style="font-size:11px;color:rgba(0,0,0,0.4);font-family:monospace;">${a.run_id.slice(0, 8)}… vs ${b.run_id.slice(0, 8)}…</span>
                             <button id="jnl-diff-close" style="margin-left:auto;padding:3px 10px;background:transparent;color:rgba(0,0,0,0.5);border:1px solid rgba(0,0,0,0.15);border-radius:4px;cursor:pointer;font-size:11px;">✕ Close</button>
                         </div>
 
@@ -6568,12 +7525,12 @@
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
                             <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
                                 <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Run A</div>
-                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${a.run_id.slice(0,8)}…</div>
+                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${a.run_id.slice(0, 8)}…</div>
                                 <div style="font-size:11px;color:rgba(0,0,0,0.5);">${fmtCost(a.total_cost_usd)} · ${fmtMs(a.total_latency_ms)}</div>
                             </div>
                             <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
                                 <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:4px;">Run B</div>
-                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${b.run_id.slice(0,8)}…</div>
+                                <div style="font-size:11px;font-family:monospace;color:#1D1D1F;">${b.run_id.slice(0, 8)}…</div>
                                 <div style="font-size:11px;color:rgba(0,0,0,0.5);">${fmtCost(b.total_cost_usd)} · ${fmtMs(b.total_latency_ms)}</div>
                             </div>
                             <div style="padding:10px;background:#F5F5F7;border-radius:8px;">
@@ -6608,7 +7565,7 @@
                     detail.querySelector('#jnl-diff-close')?.addEventListener('click', () => {
                         detail.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(0,0,0,0.3);font-size:13px;">Select a run to view details</div>';
                     });
-                } catch(e) {
+                } catch (e) {
                     detail.innerHTML = `<div style="color:#FF3B30;font-size:12px;">Diff Error: ${e.message}</div>`;
                 }
             }
@@ -6669,7 +7626,7 @@
             let allRuns = [];
             let currentFilter = 'all';
 
-            function fmtCostE(v) { return (!v || v === 0) ? '$0.00' : (v < 0.001 ? `$${(v*1000).toFixed(4)}m` : `$${v.toFixed(4)}`); }
+            function fmtCostE(v) { return (!v || v === 0) ? '$0.00' : (v < 0.001 ? `$${(v * 1000).toFixed(4)}m` : `$${v.toFixed(4)}`); }
             function fmtDateE(ts) { return ts ? new Date(ts).toLocaleDateString() : '—'; }
 
             function renderList(runs) {
@@ -6679,12 +7636,12 @@
                 }
                 listEl.innerHTML = runs.map(r => {
                     const score = r.outcome_score;
-                    const pct   = score ? score.finalScore.toFixed(1) : '—';
+                    const pct = score ? score.finalScore.toFixed(1) : '—';
                     const passColor = score ? (score.passed ? '#34C759' : '#FF3B30') : '#888';
                     const passLabel = score ? (score.passed ? 'PASS' : 'FAIL') : '—';
-                    const barW  = score ? Math.round(score.finalScore) : 0;
+                    const barW = score ? Math.round(score.finalScore) : 0;
                     return `<tr class="eval-row" data-id="${r.run_id}" style="cursor:pointer;font-size:11px;">
-                        <td style="font-family:monospace;color:var(--text-muted);">${r.run_id.slice(0,8)}…</td>
+                        <td style="font-family:monospace;color:var(--text-muted);">${r.run_id.slice(0, 8)}…</td>
                         <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${score?.goal_id || '—'}</td>
                         <td>
                             <div style="display:flex;align-items:center;gap:6px;">
@@ -6703,16 +7660,16 @@
                 listEl.querySelectorAll('.eval-row').forEach(row => {
                     row.addEventListener('click', () => {
                         var runId = row.dataset.id;
-                        var run = allRuns.find(function(x) { return x.run_id === runId; });
+                        var run = allRuns.find(function (x) { return x.run_id === runId; });
                         var insp = win.querySelector('.app-skeleton__inspector .inspector-body');
                         if (insp && run && run.outcome_score) {
                             var s = run.outcome_score;
-                            var failHtml = (s.failReasons && s.failReasons.length) ? '<div style="margin-top:8px;font-size:11px;color:#FF3B30;">' + s.failReasons.map(function(f) { return '• ' + f; }).join('<br>') + '</div>' : '';
+                            var failHtml = (s.failReasons && s.failReasons.length) ? '<div style="margin-top:8px;font-size:11px;color:#FF3B30;">' + s.failReasons.map(function (f) { return '• ' + f; }).join('<br>') + '</div>' : '';
                             insp.innerHTML = '<div style="padding:12px;">' +
                                 '<div class="os-empty__title" style="margin-bottom:6px;">Rubric preview</div>' +
                                 '<div style="font-size:11px;color:var(--muted);">Goal: ' + (s.goal_id || '—') + '</div>' +
                                 '<div style="margin-top:8px;font-size:12px;"><span style="font-weight:600;">Score:</span> ' + s.finalScore.toFixed(1) + ' <span style="color:' + (s.passed ? '#34C759' : '#FF3B30') + ';">' + (s.passed ? 'PASS' : 'FAIL') + '</span></div>' +
-                                '<div style="margin-top:6px;font-size:10px;color:var(--muted);">Dimensions</div>' + (Object.keys(s.scoresByDimension || {}).map(function(d) { return '<div style="font-size:11px;">' + d + ': ' + Math.round((s.scoresByDimension[d] || 0) * 100) + '%</div>'; }).join('')) +
+                                '<div style="margin-top:6px;font-size:10px;color:var(--muted);">Dimensions</div>' + (Object.keys(s.scoresByDimension || {}).map(function (d) { return '<div style="font-size:11px;">' + d + ': ' + Math.round((s.scoresByDimension[d] || 0) * 100) + '%</div>'; }).join('')) +
                                 failHtml + '</div>';
                         } else if (insp) {
                             insp.innerHTML = '<div class="os-empty"><div class="os-empty__title">Rubric preview</div><div class="os-empty__hint">Click a run to see score and failure reasons.</div></div>';
@@ -6727,7 +7684,7 @@
                 try {
                     allRuns = await journalListRuns();
                     applyFilter();
-                } catch(e) {
+                } catch (e) {
                     listEl.innerHTML = `<tr><td colspan="6" style="padding:20px;color:var(--error);font-size:12px;">Error: ${e.message}</td></tr>`;
                 }
             }
@@ -6821,7 +7778,7 @@
             // Context suggestions: fill input on click (event delegation so it always works)
             var aiContextZone = document.getElementById('ai-overlay-context');
             if (aiContextZone) {
-                aiContextZone.addEventListener('click', function(e) {
+                aiContextZone.addEventListener('click', function (e) {
                     var li = e.target.closest('.ai-context-list li');
                     if (!li) return;
                     var input = document.getElementById('ai-chat-input');
@@ -6839,7 +7796,7 @@
                     sendAIMessage();
                 }
             });
-            document.getElementById('ai-chat-input').addEventListener('input', function() {
+            document.getElementById('ai-chat-input').addEventListener('input', function () {
                 this.style.height = 'auto';
                 this.style.height = Math.min(this.scrollHeight, 120) + 'px';
             });
@@ -6847,7 +7804,7 @@
             // Click outside notif panel to close
             document.addEventListener('click', e => {
                 const panel = document.getElementById('notif-panel');
-                const bell  = document.querySelector('.tb-notif-btn');
+                const bell = document.querySelector('.tb-notif-btn');
                 if (!panel.contains(e.target) && !(bell && bell.contains(e.target))) {
                     panel.classList.remove('open');
                 }
