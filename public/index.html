@@ -3903,8 +3903,8 @@
                     <div class="hw-section">
                         <div class="hw-section-label">Quick Launch</div>
                         <div class="hw-qa-row">
-                            <div class="hw-qa-btn" onclick="if(apps.chat&&apps.chat.action)apps.chat.action()">Chat</div>
-                            <div class="hw-qa-btn" onclick="if(apps.flow&&apps.flow.action)apps.flow.action()">Flow</div>
+                            <div class="hw-qa-btn" onclick="requestAppLaunch('chat')">Chat</div>
+                            <div class="hw-qa-btn" onclick="requestAppLaunch('flow')">Flow</div>
                             <div class="hw-qa-btn" onclick="openCmdPalette()">⌘K</div>
                         </div>
                     </div>
@@ -4050,7 +4050,7 @@
 
             results.innerHTML = `<div class="cmd-section-label">Apps</div>` +
                 matched.map(a => `
-                    <div class="cmd-item" onclick="if(a_${a.id}_action)a_${a.id}_action(); closeCmdPalette();" data-app="${a.id}">
+                    <div class="cmd-item" onclick="requestAppLaunch('${a.id}'); closeCmdPalette();" data-app="${a.id}">
                         <span class="cmd-icon">${a.icon}</span>
                         <span>${a.name}</span>
                         <span class="cmd-meta">app</span>
@@ -4062,8 +4062,7 @@
                 const appId = el.getAttribute('data-app');
                 el.onclick = () => {
                     closeCmdPalette();
-                    const app = apps[appId];
-                    if (app && app.action) app.action();
+                    requestAppLaunch(appId);
                 };
             });
         }
@@ -4337,8 +4336,7 @@
                         el.classList.add('active');
                     }
                     if (item.appId) {
-                        const app = apps[item.appId];
-                        if (app && app.action) app.action();
+                        requestAppLaunch(item.appId);
                     }
                 };
                 dock.appendChild(el);
@@ -6544,6 +6542,129 @@
             win.querySelector('#dialog-allow').onclick = () => { closeWindow(winId); if (onConfirm) onConfirm(); };
         }
 
+        // --- Agent Inspector (Phase 5.7) ---
+        // Runs a simulated risk evaluation before an external app launches
+        function runAgentInspector(appId, appName, originAction, onDenied) {
+            const win = createWindow('Agent Inspector', 'inspector-dialog', 450, 250);
+            if (!win) return;
+            const winId = win.id.replace('-body', '');
+
+            win.innerHTML = `
+                <div style="padding: 20px; display:flex; flex-direction:column; height:100%; box-sizing:border-box;">
+                    <div style="display:flex; gap:15px; align-items:start; margin-bottom:15px;">
+                        <span style="font-size:30px;">🛡️</span>
+                        <div>
+                            <div style="font-weight:600; font-size:14px; margin-bottom:4px; color:#1D1D1F;">Risk Evaluation: ${appName}</div>
+                            <div id="inspector-statusText" style="font-size:13px; color:rgba(0,0,0,0.5);">Initializing scan...</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:rgba(0,0,0,0.04); border-radius:6px; height:6px; overflow:hidden; margin-bottom:20px;">
+                        <div id="inspector-progressBar" style="height:100%; width:0%; background:#007AFF; transition:width 0.2s;"></div>
+                    </div>
+                    
+                    <div id="inspector-result" style="display:none; padding:10px; border-radius:6px; font-size:12px; margin-bottom:15px; background:rgba(35, 134, 54, 0.1); color:#238636; border:1px solid rgba(35, 134, 54, 0.2);">
+                        <strong>Agent verified safe.</strong> No critical system hooks detected.
+                    </div>
+
+                    <div style="margin-top:auto; display:flex; justify-content:flex-end; gap:10px;">
+                        <button id="inspector-cancel" style="padding:8px 15px; background:#F5F5F7; border:1px solid rgba(0,0,0,0.08); color:#1D1D1F; border-radius:6px; cursor:pointer;">Cancel</button>
+                        <button id="inspector-execute" disabled style="padding:8px 15px; background:#007AFF; color:white; border:none; border-radius:6px; font-weight:600; cursor:not-allowed; opacity:0.5;">Execute</button>
+                    </div>
+                </div>
+            `;
+
+            const statusText = win.querySelector('#inspector-statusText');
+            const progressBar = win.querySelector('#inspector-progressBar');
+            const resultBox = win.querySelector('#inspector-result');
+            const btnCancel = win.querySelector('#inspector-cancel');
+            const btnExecute = win.querySelector('#inspector-execute');
+
+            btnCancel.onclick = () => {
+                closeWindow(winId);
+                if (onDenied) onDenied();
+            };
+
+            // Simulated Scan Sequence
+            const sequence = [
+                { msg: 'Analyzing memory bounds...', progress: 20, delay: 600 },
+                { msg: 'Checking system hooks...', progress: 45, delay: 500 },
+                { msg: 'Verifying network ports...', progress: 75, delay: 700 },
+                { msg: 'Finalizing risk assessment...', progress: 100, delay: 600 }
+            ];
+
+            let step = 0;
+            function runSequence() {
+                if (step >= sequence.length) {
+                    // Check actual Tier rules
+                    const tier = appAuthTiers[appId] || '1';
+                    statusText.textContent = 'Scan Complete.';
+                    resultBox.style.display = 'block';
+
+                    if (tier === '3') {
+                        resultBox.style.background = 'rgba(239, 68, 68, 0.1)';
+                        resultBox.style.color = '#EF4444';
+                        resultBox.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                        resultBox.innerHTML = `<strong>Warning: Tier 3 Agent.</strong> Proceed with caution.`;
+                        btnExecute.style.background = '#EF4444';
+                    } else if (tier === '2') {
+                        resultBox.style.background = 'rgba(245, 158, 11, 0.1)';
+                        resultBox.style.color = '#B45309';
+                        resultBox.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+                        resultBox.innerHTML = `<strong>Notice: Tier 2 Agent.</strong> Requires standard authorization.`;
+                        btnExecute.style.background = '#F59E0B';
+                        btnExecute.style.color = '#1D1D1F';
+                    }
+
+                    btnExecute.disabled = false;
+                    btnExecute.style.cursor = 'pointer';
+                    btnExecute.style.opacity = '1';
+
+                    btnExecute.onclick = () => {
+                        closeWindow(winId);
+                        originAction();
+                    };
+                    return;
+                }
+                statusText.textContent = sequence[step].msg;
+                progressBar.style.width = sequence[step].progress + '%';
+                setTimeout(() => {
+                    step++;
+                    runSequence();
+                }, sequence[step].delay);
+            }
+
+            setTimeout(runSequence, 300);
+        }
+
+        // Central Interceptor: Decides if we skip inspector, show inspector, or deny
+        function requestAppLaunch(appId) {
+            const appInfo = apps[appId];
+            if (!appInfo) return;
+
+            // For explicitly defined inline actions or globally stored base actions
+            const actionToRun = appInfo._baseAction || appInfo.action;
+            if (!actionToRun) return;
+
+            // Internal safe apps skip the inspector visually
+            const safeApps = ['settings', 'store', 'computer'];
+            const isSafe = safeApps.includes(appId);
+
+            const sessionKey = 'inspected_' + appId;
+            const hasBeenInspected = sessionStorage.getItem(sessionKey);
+
+            if (!isSafe && !hasBeenInspected) {
+                runAgentInspector(appId, appInfo.name, () => {
+                    // Once executed from inspector, mark accepted for session
+                    sessionStorage.setItem(sessionKey, 'true');
+                    launchAppWithAuthRow(appId, actionToRun);
+                });
+            } else {
+                // If safe or already inspected this session, just use standard tier permission checks
+                launchAppWithAuthRow(appId, actionToRun);
+            }
+        }
+
         // The Interceptor: Wraps app launches to check authorization tiers
         function launchAppWithAuthRow(appId, originAction) {
             // Settings and App Store are systemic exceptions to prevent locking oneself out
@@ -7093,14 +7214,17 @@
         }
 
         // --- Init ---
-        // Patch the apps dictionary to route through auth before loading the desktop
+        // Patch the apps dictionary to route through the Inspector before loading the desktop
         Object.keys(apps).forEach(appId => {
             if (appId === 'settings') {
                 apps[appId].action = () => openSettingsApp();
             } else {
                 const originalAction = apps[appId].action;
                 if (originalAction && appId !== 'store') {
-                    apps[appId].action = () => launchAppWithAuthRow(appId, originalAction);
+                    // Update the global action to hit our new interceptor instead of directly checking tiers
+                    apps[appId].action = () => requestAppLaunch(appId);
+                    // NOTE: we temporarily store the original action inside apps[appId]._baseAction so requestAppLaunch can find it
+                    apps[appId]._baseAction = originalAction;
                 }
             }
         });
