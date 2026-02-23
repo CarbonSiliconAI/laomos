@@ -63,8 +63,9 @@ export class Server {
     }
 
     private configureRoutes() {
-        // middleware
-        this.app.use(express.static(path.join(process.cwd(), 'public')));
+        // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
+        const appRoot = process.env.APP_ROOT || process.cwd();
+        this.app.use(express.static(path.join(appRoot, 'public')));
         this.app.use(express.json());
 
         // API Endpoint to proxy Ollama models

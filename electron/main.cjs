@@ -168,10 +168,26 @@ function waitForServer(maxMs = 5000) {
 function startServer() {
   return new Promise((resolve, reject) => {
     const appPath = app.getAppPath();
-    const serverPath = path.join(appPath, 'dist', 'index.js');
-    const env = { ...process.env, PORT: String(PORT) };
+    const isPackaged = appPath.endsWith('.asar');
+    let serverPath;
+    let cwd;
+    if (isPackaged) {
+      cwd = process.resourcesPath;
+      serverPath = path.join(appPath, 'dist', 'index.js');
+    } else {
+      cwd = appPath;
+      serverPath = path.join(appPath, 'dist', 'index.js');
+    }
+    const env = {
+      ...process.env,
+      PORT: String(PORT),
+      ELECTRON_RUN_AS_NODE: '1',
+    };
+    if (isPackaged) {
+      env.APP_ROOT = appPath;
+    }
     serverProcess = spawn(process.execPath || 'node', [serverPath], {
-      cwd: appPath,
+      cwd,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
