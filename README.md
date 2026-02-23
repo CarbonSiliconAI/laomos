@@ -10,6 +10,7 @@ Agent OS is a simulated AI-powered Operating System running as a Node.js applica
 - **Smart Search App:** A web search interface that features a real-time Execution Trace visualization panel, showing how the Kernel routes the request, decides between RAG and Web Search, and synthesizes the answer.
 - **AI Flow App:** A visual, node-based graph editor (similar to ComfyUI/n8n) allowing users to chain different AI tasks. For example, piping an Ollama Chat output directly into an AI Draw node, with real-time job execution traces and inline image rendering.
 - **Local Model First:** Built-in integration with Ollama to pull, manage, and chat with local models (llama3.1, etc.) without leaving the OS.
+- **Agent Inspector:** A built-in security layer that intercepts the launch of any unverified external Agent App. It performs a simulated diagnostic scan (verifying memory bounds, system hooks, and network ports) to evaluate running risk before granting execution privileges, ensuring user safety.
 
 ## System Architecture
 
@@ -20,6 +21,14 @@ The "Kernel" of Agent OS handles complex background tasks and state management:
 - **Agent Scheduler:** An asynchronous job queue that handles the execution of AI Flow graphs. It manages task dependencies, yields execution to prevent blocking, and saves JSON checkpoints to `.aos_state` to allow recovery.
 - **Tool Registry:** Standardizes tools across the OS, providing an interface for apps to declare parameters and requirements for LLM function calling.
 - **File System Manager:** Simulates an OS file system (`storage/system`, `storage/personal`) for reading/writing configurations, images, and user data.
+
+### Security Model & Agent Inspector
+
+Because Agent OS allows third-party (or LLM-generated) agents to run on your simulated desktop, it employs a strict **Launch Interception** loop:
+1. **Universal Invocation Hook:** When an app is triggered from the Dock, Desktop, Search Palette, or Widgets, its execution is routed through `requestAppLaunch()`.
+2. **Session Verification:** The OS checks `sessionStorage` to see if the agent has already been verified in the current runtime session.
+3. **Risk Evaluation Dialog:** If unverified, the **Agent Inspector** interrupts the launch, displaying a deep diagnostic scan UI. It evaluates the app against its configured authorization tier (Tier 1 vs. Tier 3 restricted).
+4. **Execution Gateway:** Once the scan clears, the user is presented with the underlying risk profile (e.g. green valid notice vs red strict warning). The user must explicitly click `Execute` to allow the agent to launch, successfully protecting the system from rogue agent execution.
 
 ## Getting Started
 
@@ -46,7 +55,8 @@ npx ts-node src/index.ts
 
 Then, open your web browser and navigate to:
 ```
-http://localhost:3000
+```
+http://localhost:3123
 ```
 
 ## Built With
