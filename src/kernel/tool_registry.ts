@@ -250,16 +250,20 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                     console.log(`[Tool] smart_search intent: LOCAL. Running RAG.`);
 
                     const hits = await this.memory.retrieveContext(sessionId, query, 3);
-                    if (!hits.trim()) {
+                    const ragHits = await this.memory.retrieveFromRags(query, 3);
+
+                    const combinedHits = [hits, ragHits].filter(h => h.trim().length > 0).join('\n');
+
+                    if (!combinedHits.trim()) {
                         emit('Local Search (RAG)', 'completed', 'No relevant local context found.');
                         emit('Synthesis', 'completed', 'No results.');
                         return { success: true, source: 'local', content: "No relevant local context found." };
                     }
 
-                    emit('Local Search (RAG)', 'completed', `Found ${hits.split('\n').filter(l => l.includes('Document')).length || 'multiple'} context fragments.`);
+                    emit('Local Search (RAG)', 'completed', `Found multiple context fragments from OS and Docs.`);
 
                     emit('Synthesis', 'running', 'Summarizing local context...');
-                    const summaryPrompt = `Synthesize an answer to "${query}" based ONLY on this context:\n${hits}`;
+                    const summaryPrompt = `Synthesize an answer to "${query}" based ONLY on this context:\n${combinedHits}`;
                     const answer = await this.router.routeChat(summaryPrompt);
 
                     emit('Synthesis', 'completed', 'Local response generated.');

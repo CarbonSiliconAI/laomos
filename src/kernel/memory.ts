@@ -152,14 +152,28 @@ export class ContextManager {
 
             const table = await this.db.openTable(tableName);
 
-            // Dummy vector search for simulation
+            // Dummy vector search for simulation - get limit 100 and sort by keyword match
             const dummyQueryVector = new Array(128).fill(0).map(() => Math.random());
-
-            const results = await table.search(dummyQueryVector).limit(limit).execute();
+            const results = await table.search(dummyQueryVector).limit(100).execute();
             if (!results || results.length === 0) return "";
 
+            const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const scoredResults = results.map((r: any) => {
+                let score = Math.random() * 0.1; // Base random
+                if (r.text) {
+                    const txt = r.text.toLowerCase();
+                    for (const word of queryWords) {
+                        if (txt.includes(word)) score += 10;
+                    }
+                }
+                return { r, score };
+            });
+
+            scoredResults.sort((a: any, b: any) => b.score - a.score);
+            const finalResults = scoredResults.slice(0, limit).map((x: any) => x.r);
+
             let retrieved = `<Disk_Vector_Retrieval>\nRelevant past memories:\n`;
-            results.forEach((r: any) => {
+            finalResults.forEach((r: any) => {
                 retrieved += `---\n${r.text}\n`;
             });
             retrieved += `</Disk_Vector_Retrieval>\n\n`;
@@ -167,6 +181,55 @@ export class ContextManager {
 
         } catch (error) {
             console.error(`[ContextManager] LanceDB retrieval error:`, error);
+            return "";
+        }
+    }
+
+    // Retrieve from Documents RAG
+    public async retrieveFromRags(query: string, limit: number = 3): Promise<string> {
+        // Resolve Rags directory (dbDir is storage/system/.aos_vectors, Rags is storage/Rags)
+        const ragsDir = path.join(this.dbDir, '../../Rags');
+        try {
+            await fs.ensureDir(ragsDir);
+            const db = await lancedb.connect(ragsDir);
+            const tableNames = await db.tableNames();
+            if (tableNames.length === 0) return "";
+
+            // Dummy vector search for simulation + keyword scoring
+            const dummyQueryVector = new Array(128).fill(0).map(() => Math.random());
+            const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+
+            let allResults: any[] = [];
+            for (const tableName of tableNames) {
+                const table = await db.openTable(tableName);
+                const results = await table.search(dummyQueryVector).limit(100).execute();
+
+                for (const r of results) {
+                    let score = Math.random() * 0.1;
+                    if (r.text) {
+                        const txt = String(r.text).toLowerCase();
+                        for (const word of queryWords) {
+                            if (txt.includes(word)) score += 10;
+                        }
+                    }
+                    allResults.push({ r, score });
+                }
+            }
+
+            if (allResults.length === 0) return "";
+
+            allResults.sort((a, b) => b.score - a.score);
+            const finalResults = allResults.slice(0, limit).map(x => x.r);
+
+            let retrieved = `<Docs_RAG_Retrieval>\nRelevant documents from storage/Docs:\n`;
+            finalResults.forEach((r: any) => {
+                retrieved += `--- Source: ${r.source || 'unknown doc'} ---\n${r.text}\n\n`;
+            });
+            retrieved += `</Docs_RAG_Retrieval>\n\n`;
+            return retrieved;
+
+        } catch (error) {
+            console.error(`[ContextManager] RAG Docs retrieval error:`, error);
             return "";
         }
     }

@@ -764,6 +764,46 @@
         </div>
     </template>
 
+    <!-- RAG Converter Template -->
+    <template id="tpl-rag">
+        <div style="display:flex; height:100%; flex-direction:row; background:#0d1117; color:#c9d1d9;">
+
+            <!-- Left Panel: Documents -->
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid #30363d; overflow:hidden;">
+                <div
+                    style="padding:15px; border-bottom:1px solid #30363d; background:#161b22; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h3 style="margin:0; font-size:14px; font-weight:600;">Docs Watcher</h3>
+                        <span style="font-size:12px; color:#8b949e;">Files in storage/Docs</span>
+                    </div>
+                    <button id="rag-convert-btn"
+                        style="padding:6px 12px; background:#238636; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer; font-size:12px;">
+                        Convert to Rags
+                    </button>
+                </div>
+                <!-- Docs List -->
+                <div id="rag-docs-list"
+                    style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="color:#8b949e; font-size:13px;">Loading docs/rag status...</div>
+                </div>
+            </div>
+
+            <!-- Right Panel: AI Task Flow Tracker -->
+            <div style="width:280px; background:#161b22; display:flex; flex-direction:column; overflow:hidden;">
+                <div
+                    style="padding:15px; font-weight:600; border-bottom:1px solid #30363d; font-size:12px; display:flex; align-items:center; gap:8px;">
+                    <div class="status-indicator"></div> AI Task Flow
+                </div>
+                <div style="flex:1; overflow-y:auto; padding:15px;" id="rag-task-container">
+                    <div style="color:#8b949e; font-size:13px; text-align:center; margin-top:20px;">
+                        Waiting for conversion job...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
     <!-- API Key Manager Template -->
     <template id="tpl-api-manager">
         <div style="display:flex; flex-direction:column; height:100%; padding:10px; overflow-y:auto;">
@@ -880,6 +920,20 @@
                 type: 'app',
                 action: () => openAppStore()
             },
+            'store': {
+                id: 'store',
+                name: 'App Store',
+                icon: '🏪',
+                type: 'app',
+                action: () => openAppStore()
+            },
+            'rag': {
+                id: 'rag',
+                name: 'RAG Converter',
+                icon: '📚',
+                type: 'app',
+                action: () => openRagApp()
+            },
             'search': {
                 id: 'search',
                 name: 'Smart Search',
@@ -895,7 +949,7 @@
             },
         };
 
-        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'search', 'settings'];
+        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'rag', 'search', 'settings'];
 
         const availableModels = [
             { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: 'Meta\'s latest state-of-the-art model' },
@@ -2488,6 +2542,114 @@
                     const inputEl = propertiesPane.querySelector('#prop-input-value');
                     inputEl.oninput = (e) => { node.manualInput = e.target.value; };
                 }
+            };
+        }
+
+        // --- RAG Converter Logic ---
+        async function openRagApp() {
+            const body = createWindow('RAG Converter', 'rag', 800, 500);
+            body.innerHTML = document.getElementById('tpl-rag').innerHTML;
+
+            const docsListEl = body.querySelector('#rag-docs-list');
+            const convertBtn = body.querySelector('#rag-convert-btn');
+            const taskContainer = body.querySelector('#rag-task-container');
+
+            // Initial fetch of Docs folder
+            async function fetchDocs() {
+                try {
+                    docsListEl.innerHTML = '<div style="color:#8b949e; font-size:13px;">Loading docs from storage/Docs...</div>';
+                    const response = await fetch('/api/files/list?path=storage/Docs');
+                    const data = await response.json();
+
+                    if (!response.ok) throw new Error(data.error);
+
+                    docsListEl.innerHTML = '';
+                    const files = data.files.filter(f => !f.isDirectory && (f.name.endsWith('.txt') || f.name.endsWith('.md')));
+
+                    if (files.length === 0) {
+                        docsListEl.innerHTML = '<div style="color:#8b949e; font-size:13px; text-align:center; margin-top:20px;">No .txt or .md files found in storage/Docs.</div>';
+                    } else {
+                        files.forEach(f => {
+                            const item = document.createElement('div');
+                            item.style.cssText = 'padding:10px; background:#0d1117; border:1px solid #30363d; border-radius:6px; font-size:13px; display:flex; align-items:center; gap:8px;';
+                            item.innerHTML = `📄 <span>${f.name}</span>`;
+                            docsListEl.appendChild(item);
+                        });
+                    }
+                } catch (e) {
+                    docsListEl.innerHTML = `<div style="color:#f85149; font-size:13px;">Failed to load docs: ${e.message}</div>`;
+                }
+            }
+
+            await fetchDocs();
+
+            let traceIndex = 0;
+
+            convertBtn.onclick = () => {
+                convertBtn.disabled = true;
+                convertBtn.textContent = 'Converting...';
+                convertBtn.style.opacity = '0.7';
+
+                taskContainer.innerHTML = ''; // clear previous traces
+
+                const eventSource = new EventSource('/api/apps/rag-convert');
+
+                eventSource.addEventListener('trace', (e) => {
+                    const trace = JSON.parse(e.data);
+
+                    const traceId = `rag-trace-${traceIndex++}`;
+                    let traceEl = document.createElement('div');
+                    traceEl.id = traceId;
+                    traceEl.style.cssText = 'margin-bottom:10px; padding:10px; background:#0d1117; border-radius:6px; border:1px solid #30363d; font-size:12px;';
+
+                    let dotColor = '#8b949e';
+                    let statusLabel = 'Processing';
+                    if (trace.status === 'RUNNING') { dotColor = '#ffbd2e'; statusLabel = 'Running...'; }
+                    else if (trace.status === 'DONE') { dotColor = '#238636'; statusLabel = 'Done'; }
+                    else if (trace.status === 'ERROR') { dotColor = '#f85149'; statusLabel = 'Error'; }
+
+                    traceEl.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
+                                <strong style="color:#c9d1d9;">${trace.step}</strong>
+                            </div>
+                            <span style="color:${dotColor}; font-size:10px;">${statusLabel}</span>
+                        </div>
+                        <div style="color:#8b949e; line-height:1.4; white-space:pre-wrap; font-family:monospace; margin-top:5px; background:#161b22; padding:5px; border-radius:4px;">${trace.details || ''}</div>
+                    `;
+                    traceEl.style.borderColor = dotColor;
+
+                    taskContainer.appendChild(traceEl);
+                    taskContainer.scrollTop = taskContainer.scrollHeight; // Auto-scroll
+                });
+
+                eventSource.addEventListener('result', (e) => {
+                    const data = JSON.parse(e.data);
+                    const finalEl = document.createElement('div');
+                    finalEl.style.cssText = 'margin-top:20px; padding:15px; background:#161b22; border:1px solid #238636; border-left:4px solid #238636; border-radius:6px; font-size:13px; color:#c9d1d9;';
+                    finalEl.innerHTML = `<strong>✅ ${data.message}</strong>`;
+                    taskContainer.appendChild(finalEl);
+
+                    eventSource.close();
+                    convertBtn.disabled = false;
+                    convertBtn.textContent = 'Convert to Rags';
+                    convertBtn.style.opacity = '1';
+                });
+
+                eventSource.addEventListener('error', (e) => {
+                    if (e.data) {
+                        const data = JSON.parse(e.data);
+                        const errEl = document.createElement('div');
+                        errEl.style.cssText = 'margin-top:20px; padding:15px; background:#161b22; border:1px solid #f85149; border-left:4px solid #f85149; border-radius:6px; font-size:13px; color:#c9d1d9;';
+                        errEl.innerHTML = `<strong>❌ Error:</strong> ${data.message}`;
+                        taskContainer.appendChild(errEl);
+                    }
+                    eventSource.close();
+                    convertBtn.disabled = false;
+                    convertBtn.textContent = 'Convert to Rags';
+                    convertBtn.style.opacity = '1';
+                });
             };
         }
 

@@ -15,6 +15,7 @@ import { AgentScheduler } from './kernel/scheduler';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import axios from 'axios';
+import * as lancedb from 'vectordb';
 
 export class Server {
     private app: express.Application;
@@ -231,6 +232,80 @@ export class Server {
             }
         });
 
+        // RAG Converter App Endpoint (SSE)
+        this.app.get('/api/apps/rag-convert', async (req, res) => {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+
+            const sendEvent = (type: string, data: any) => {
+                res.write(`event: ${type}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+            };
+
+            try {
+                const docsDir = path.join(this.fsManager.getRootDir(), 'Docs');
+                const ragsDir = path.join(this.fsManager.getRootDir(), 'Rags');
+
+                sendEvent('trace', { step: 'Initialization', status: 'RUNNING', details: `Connecting to LanceDB at ${ragsDir}...` });
+                const db = await lancedb.connect(ragsDir);
+                sendEvent('trace', { step: 'Initialization', status: 'DONE', details: `Connected to LanceDB.` });
+
+                sendEvent('trace', { step: 'Scanning Docs', status: 'RUNNING', details: `Scanning ${docsDir} for files...` });
+                const files = await this.fsManager.listFiles(docsDir);
+                const textFiles = files.filter(f => !f.isDirectory && (f.name.endsWith('.txt') || f.name.endsWith('.md')));
+
+                if (textFiles.length === 0) {
+                    sendEvent('trace', { step: 'Scanning Docs', status: 'DONE', details: `No text or markdown files found in Docs.` });
+                    sendEvent('result', { message: 'No files to process.' });
+                    return res.end();
+                }
+
+                sendEvent('trace', { step: 'Scanning Docs', status: 'DONE', details: `Found ${textFiles.length} files.` });
+
+                const tableNames = await db.tableNames();
+
+                for (const file of textFiles) {
+                    sendEvent('trace', { step: `Processing ${file.name}`, status: 'RUNNING', details: `Reading and chunking file...` });
+
+                    // Create a safe table name from the file name
+                    const tableName = `doc_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+                    if (tableNames.includes(tableName)) {
+                        sendEvent('trace', { step: `Processing ${file.name}`, status: 'DONE', details: `Table ${tableName} already exists. Skipping.` });
+                        continue;
+                    }
+
+                    const content = await this.fsManager.readFile(file.path);
+
+                    // Simple chunking (e.g., split by paragraphs or 1000 chars)
+                    const chunks = content.match(/[\s\S]{1,1000}/g) || [];
+
+                    // Generate dummy vectors for simulation
+                    const records = chunks.map((chunk, i) => ({
+                        id: `${file.name}_chunk_${i}`,
+                        vector: new Array(128).fill(0).map(() => Math.random()),
+                        text: chunk,
+                        source: file.name
+                    }));
+
+                    if (records.length > 0) {
+                        sendEvent('trace', { step: `Embedding ${file.name}`, status: 'RUNNING', details: `Creating LanceDB table with ${records.length} chunks...` });
+                        await db.createTable(tableName, records);
+                        sendEvent('trace', { step: `Embedding ${file.name}`, status: 'DONE', details: `Saved to table: ${tableName}` });
+                    }
+                    sendEvent('trace', { step: `Processing ${file.name}`, status: 'DONE', details: `Finished processing.` });
+                }
+
+                sendEvent('result', { message: 'Conversion completed successfully.' });
+            } catch (error: any) {
+                console.error('[Server] RAG Convert error:', error);
+                sendEvent('error', { message: error.message });
+            } finally {
+                res.end();
+            }
+        });
+
         // AI Generation Endpoints
         this.app.post('/api/ai/chat', async (req, res) => {
             try {
@@ -243,9 +318,12 @@ export class Server {
                 // 2. Build super-prompt from Virtual Memory
                 const context = this.memory.getContext(sessionId);
                 const retrieved = await this.memory.retrieveContext(sessionId, prompt, 2);
+                const retrievedRags = await this.memory.retrieveFromRags(prompt, 2);
+
+                const superContext = [retrieved, retrievedRags].filter(c => c.trim().length > 0).join('\n');
 
                 const promptData = this.registry.format('agent_chat', 'default_response', {
-                    retrievedContext: retrieved,
+                    retrievedContext: superContext,
                     memoryContext: context
                 });
 

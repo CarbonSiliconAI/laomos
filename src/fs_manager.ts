@@ -13,7 +13,9 @@ export class FileSystemManager {
         const dirs = [
             'system',
             'personal',
-            'public'
+            'public',
+            'Docs',
+            'Rags'
         ];
 
         for (const dir of dirs) {
