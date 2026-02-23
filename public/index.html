@@ -3371,6 +3371,11 @@
                         onclick="switchSettingsTab('keys')">
                         API Keys
                     </div>
+                    <div id="settings-tab-firewall"
+                        style="padding:8px 10px; background:transparent; color:#1D1D1F; border-radius:6px; font-weight:500; font-size:13px; cursor:pointer; margin-top: auto;"
+                        onclick="switchSettingsTab('firewall')">
+                        Firewall
+                    </div>
                 </div>
 
                 <!-- Main Content (Permissions) -->
@@ -4212,7 +4217,18 @@
                 if (data.message && data.message.content) {
                     reply = data.message.content;
                 } else if (data.error) {
-                    reply = 'Error: ' + data.error;
+                    if (data.error.includes('Firewall Triggered')) {
+                        // Render a stylized firewall block
+                        reply = `<div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #EF4444; padding: 10px 14px; border-radius: 4px; margin: 8px 0;">
+                                    <div style="color: #B91C1C; font-weight: 600; font-size: 13px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        OS Firewall Block
+                                    </div>
+                                    <div style="color: #7F1D1D; font-size: 13px; line-height: 1.4;">${data.error.split('\\n')[1] || data.error}</div>
+                                 </div>`;
+                    } else {
+                        reply = 'Error: ' + data.error;
+                    }
                 } else {
                     reply = 'No response.';
                 }
@@ -6705,20 +6721,22 @@
             const tabHw = win.querySelector('#settings-tab-hardware');
             const tabModels = win.querySelector('#settings-tab-models');
             const tabKeys = win.querySelector('#settings-tab-keys');
+            const tabFirewall = win.querySelector('#settings-tab-firewall');
 
             const panePerms = win.querySelector('#settings-pane-permissions');
             const paneHw = win.querySelector('#settings-pane-hardware');
             const paneModels = win.querySelector('#settings-pane-models');
             const paneKeys = win.querySelector('#settings-pane-keys');
+            const paneFirewall = win.querySelector('#settings-pane-firewall');
 
             function resetTabs() {
-                [tabPerms, tabHw, tabModels, tabKeys].forEach(t => {
+                [tabPerms, tabHw, tabModels, tabKeys, tabFirewall].forEach(t => {
                     if (!t) return;
                     t.style.background = 'transparent';
                     t.style.color = '#1D1D1F';
                     t.style.fontWeight = '500';
                 });
-                [panePerms, paneHw, paneModels, paneKeys].forEach(p => {
+                [panePerms, paneHw, paneModels, paneKeys, paneFirewall].forEach(p => {
                     if (p) p.style.display = 'none';
                 });
             }
@@ -6744,6 +6762,12 @@
                     tabKeys.style.fontWeight = '600';
                     paneKeys.style.display = 'block';
                     loadStoredKeys();
+                } else if (tabName === 'firewall') {
+                    tabFirewall.style.background = '#1D1D1F';
+                    tabFirewall.style.color = '#FFFFFF';
+                    tabFirewall.style.fontWeight = '600';
+                    paneFirewall.style.display = 'block';
+                    loadFirewallState();
                 } else {
                     // Default to permissions
                     tabPerms.style.background = '#1D1D1F';
@@ -6758,6 +6782,7 @@
             tabHw.onclick = () => win.switchSettingsTab('hardware');
             tabModels.onclick = () => win.switchSettingsTab('models');
             tabKeys.onclick = () => win.switchSettingsTab('keys');
+            tabFirewall.onclick = () => win.switchSettingsTab('firewall');
 
             let hwLoaded = false;
             async function loadHardwareSpecs() {
@@ -6778,6 +6803,49 @@
                     win.querySelector('#settings-hw-platform').textContent = "Error loading specs";
                 }
             }
+
+            async function loadFirewallState() {
+                try {
+                    const res = await fetch('/api/system/firewall');
+                    const data = await res.json();
+                    updateFirewallToggle(data.enabled);
+                } catch (e) {
+                    console.error("Failed to fetch firewall status:", e);
+                }
+            }
+
+            function updateFirewallToggle(enabled) {
+                const box = document.getElementById('firewall-toggle');
+                const slider = document.getElementById('firewall-slider');
+                const knob = document.getElementById('firewall-slider-knob');
+                if (!box || !slider || !knob) return;
+
+                box.checked = enabled;
+                if (enabled) {
+                    slider.style.backgroundColor = '#34C759';
+                    knob.style.transform = 'translateX(20px)';
+                } else {
+                    slider.style.backgroundColor = '#E5E5EA';
+                    knob.style.transform = 'translateX(0)';
+                }
+            }
+
+            // Expose globally so the inline HTML handler works
+            window.toggleFirewall = async function (enabled) {
+                updateFirewallToggle(enabled);
+                try {
+                    const res = await fetch('/api/system/firewall', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled })
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error('Failed to set firewall');
+                } catch (e) {
+                    console.error("Firewall update failed:", e);
+                    updateFirewallToggle(!enabled); // Reset on error
+                }
+            };
 
             const listContainer = win.querySelector('#settings-app-list');
 

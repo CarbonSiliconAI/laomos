@@ -22,6 +22,7 @@ import { OpenAIProvider } from './kernel/providers/OpenAIProvider';
 import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
+import { AIFirewall } from './kernel/firewall';
 
 // In-memory budget state (resets on restart — mock per spec)
 let currentBudget: BudgetConstraint = {
@@ -45,9 +46,10 @@ export class Server {
     private scheduler: AgentScheduler;
     private registry: PromptRegistry;
     private tools: ToolRegistry;
+    private firewall: AIFirewall;
     private journal?: ExecutionJournal;
 
-    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, port: number = 3000, journal?: ExecutionJournal) {
+    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
         this.port = port;
         this.graphManager = graphManager;
@@ -60,6 +62,7 @@ export class Server {
         this.scheduler = scheduler;
         this.registry = registry;
         this.tools = tools;
+        this.firewall = firewall;
         this.journal = journal;
         this.configureRoutes();
     }
@@ -88,20 +91,47 @@ export class Server {
                     return res.status(400).json({ error: 'Model and messages are required' });
                 }
 
-                if (model.startsWith('gpt')) {
-                    const provider = new OpenAIProvider(this.identityManager);
-                    const response = await provider.chat(messages, model);
-                    return res.json({ message: { role: 'assistant', content: response } });
-                } else if (model.startsWith('claude')) {
-                    const provider = new AnthropicProvider(this.identityManager);
-                    const response = await provider.chat(messages, model);
-                    return res.json({ message: { role: 'assistant', content: response } });
-                } else if (model.startsWith('gemini') || model.startsWith('grok')) {
-                    return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
+                // AI Firewall Ingress Scan
+                const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+                if (lastUserMessage && lastUserMessage.content) {
+                    const ingressCheck = await this.firewall.validatePrompt(lastUserMessage.content, 'Ingress');
+                    if (!ingressCheck.safe) {
+                        return res.status(403).json({
+                            error: `Firewall Triggered: Unsafe Ingress Prompt blocked.\nReason: ${ingressCheck.reason}`
+                        });
+                    }
                 }
 
-                const response = await this.ollamaManager.chat(model, messages);
-                res.json(response);
+                let responseContent = '';
+                let finalResponseObj: any = {};
+
+                if (model.startsWith('gpt')) {
+                    const provider = new OpenAIProvider(this.identityManager);
+                    responseContent = await provider.chat(messages, model);
+                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                } else if (model.startsWith('claude')) {
+                    const provider = new AnthropicProvider(this.identityManager);
+                    responseContent = await provider.chat(messages, model);
+                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                } else if (model.startsWith('gemini') || model.startsWith('grok')) {
+                    return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
+                } else {
+                    const response = await this.ollamaManager.chat(model, messages);
+                    responseContent = response?.message?.content || '';
+                    finalResponseObj = response;
+                }
+
+                // AI Firewall Egress Scan
+                if (responseContent) {
+                    const egressCheck = await this.firewall.validatePrompt(responseContent, 'Egress');
+                    if (!egressCheck.safe) {
+                        return res.status(403).json({
+                            error: `Firewall Triggered: Unsafe Egress Response blocked.\nReason: ${egressCheck.reason}`
+                        });
+                    }
+                }
+
+                res.json(finalResponseObj);
             } catch (error) {
                 console.error('[Server] Chat error:', error);
                 res.status(500).json({ error: (error as Error).message });
@@ -125,8 +155,24 @@ export class Server {
             }
         });
 
+        // API Endpoint to check Firewall state
+        this.app.get('/api/system/firewall', (req, res) => {
+            res.json({ enabled: this.firewall.enabled });
+        });
+
+        // API Endpoint to update Firewall state
+        this.app.post('/api/system/firewall', (req, res) => {
+            const { enabled } = req.body;
+            if (typeof enabled !== 'boolean') {
+                return res.status(400).json({ error: 'Body must contain boolean "enabled" property.' });
+            }
+            this.firewall.enabled = enabled;
+            console.log(`[Server] Firewall state updated to: ${enabled}`);
+            res.json({ success: true, enabled: this.firewall.enabled });
+        });
+
         // API Endpoint to get system specs
-        this.app.get('/api/system/specs', (req, res) => {
+        this.app.get('/api/system/specs', async (req, res) => {
             try {
                 const specs = this.ollamaManager.getSystemSpecs();
                 res.json(specs);
