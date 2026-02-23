@@ -18,6 +18,8 @@ import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
 import { ExecutionEvent, BudgetConstraint } from './telemetry/types';
+import { OpenAIProvider } from './kernel/providers/OpenAIProvider';
+import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
 
@@ -85,6 +87,19 @@ export class Server {
                 if (!model || !messages) {
                     return res.status(400).json({ error: 'Model and messages are required' });
                 }
+
+                if (model.startsWith('gpt')) {
+                    const provider = new OpenAIProvider(this.identityManager);
+                    const response = await provider.chat(messages, model);
+                    return res.json({ message: { role: 'assistant', content: response } });
+                } else if (model.startsWith('claude')) {
+                    const provider = new AnthropicProvider(this.identityManager);
+                    const response = await provider.chat(messages, model);
+                    return res.json({ message: { role: 'assistant', content: response } });
+                } else if (model.startsWith('gemini') || model.startsWith('grok')) {
+                    return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
+                }
+
                 const response = await this.ollamaManager.chat(model, messages);
                 res.json(response);
             } catch (error) {

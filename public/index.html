@@ -3676,6 +3676,13 @@
             { id: 'phi3.5', name: 'Phi-3.5', size: '2.4GB', desc: 'Microsoft\'s latest small model' },
             { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model' },
             { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: 'Meta\'s previous open LLM' },
+            { id: 'gpt-4o', name: 'GPT-4o', size: 'Cloud', desc: 'OpenAI\'s flagship multi-modal model' },
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', size: 'Cloud', desc: 'OpenAI\'s fast, cost-effective model' },
+            { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', size: 'Cloud', desc: 'Anthropic\'s most intelligent model' },
+            { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', size: 'Cloud', desc: 'Anthropic\'s fastest model' },
+            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', size: 'Cloud', desc: 'Google\'s powerhouse model' },
+            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', size: 'Cloud', desc: 'Google\'s lightweight model' },
+            { id: 'grok-2', name: 'Grok 2', size: 'Cloud', desc: 'xAI\'s latest grok model' }
         ];
 
         // --- Shell Functions ---
@@ -3960,6 +3967,8 @@
                 const res = await fetch('/api/ollama/models');
                 const data = await res.json();
                 var list = data.models || [];
+
+                // Add Local Models
                 list.forEach(function (model) {
                     var name = typeof model === 'string' ? model : (model && model.name ? model.name : '');
                     if (!name) return;
@@ -3968,10 +3977,25 @@
                     option.textContent = name;
                     select.appendChild(option);
                 });
-                if (list.length === 0) {
+
+                // Add Cloud Models
+                const cloudModels = availableModels.filter(m => m.size === 'Cloud');
+                if (cloudModels.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = "Cloud Models (High Performance)";
+                    cloudModels.forEach(m => {
+                        const option = document.createElement('option');
+                        option.value = m.id;
+                        option.textContent = m.name;
+                        optgroup.appendChild(option);
+                    });
+                    select.appendChild(optgroup);
+                }
+
+                if (list.length === 0 && cloudModels.length === 0) {
                     var empty = document.createElement('option');
                     empty.value = '';
-                    empty.textContent = 'No models — run ollama pull <name>';
+                    empty.textContent = 'No models found';
                     empty.disabled = true;
                     select.appendChild(empty);
                 }
@@ -4615,8 +4639,13 @@
 
                 sorted.forEach(m => {
                     const isRec = recommended.some(r => m.id.includes(r) || r.includes(m.id));
+                    const isCloud = (m.size === 'Cloud');
                     const item = document.createElement('div');
                     item.style.cssText = 'padding:10px; margin-bottom:5px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.08); border-radius:6px; display:flex; justify-content:space-between; align-items:center;';
+
+                    const pullButtonHTML = isCloud
+                        ? `<button class="pull-btn" disabled style="padding:4px 10px; background:rgba(0,0,0,0.05); color:rgba(0,0,0,0.4); border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:12px; cursor:not-allowed;">Cloud Model</button>`
+                        : `<button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-size:12px;">Pull</button>`;
 
                     item.innerHTML = `
                         <div style="flex-grow:1;">
@@ -4626,40 +4655,43 @@
                             </div>
                             <div style="font-size:11px; color:rgba(0,0,0,0.5);">${m.desc}</div>
                         </div>
-                        <button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-size:12px;">Pull</button>
+                        ${pullButtonHTML}
                     `;
 
-                    const btn = item.querySelector('.pull-btn');
-                    btn.onclick = async () => {
-                        const originalText = btn.textContent;
-                        btn.textContent = 'Pulling...';
-                        btn.disabled = true;
-                        btn.style.background = 'rgba(0,0,0,0.10)';
 
-                        try {
-                            const res = await fetch('/api/ollama/pull', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ model: m.id })
-                            });
-                            const data = await res.json();
+                    downloadList.appendChild(item);
 
-                            if (data.status === 'success' || !data.error) {
-                                btn.textContent = 'Installed';
-                                btn.style.background = 'rgba(0,0,0,0.10)';
-                            } else {
-                                btn.textContent = 'Failed';
+                    if (!isCloud) {
+                        const btn = item.querySelector('.pull-btn');
+                        btn.onclick = async () => {
+                            const originalText = btn.textContent;
+                            btn.textContent = 'Pulling...';
+                            btn.disabled = true;
+                            btn.style.background = 'rgba(0,0,0,0.10)';
+
+                            try {
+                                const res = await fetch('/api/ollama/pull', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ model: m.id })
+                                });
+                                const data = await res.json();
+
+                                if (data.status === 'success' || !data.error) {
+                                    btn.textContent = 'Installed';
+                                    btn.style.background = 'rgba(0,0,0,0.10)';
+                                } else {
+                                    btn.textContent = 'Failed';
+                                    btn.style.background = 'rgba(255,80,80,0.15)';
+                                    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = 'rgba(0,0,0,0.10)'; }, 3000);
+                                }
+                            } catch (e) {
+                                btn.textContent = 'Error';
                                 btn.style.background = 'rgba(255,80,80,0.15)';
                                 setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = 'rgba(0,0,0,0.10)'; }, 3000);
                             }
-                        } catch (e) {
-                            btn.textContent = 'Error';
-                            btn.style.background = 'rgba(255,80,80,0.15)';
-                            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; btn.style.background = 'rgba(0,0,0,0.10)'; }, 3000);
-                        }
-                    };
-
-                    downloadList.appendChild(item);
+                        };
+                    }
                 });
             }
 
