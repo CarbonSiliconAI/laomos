@@ -1,14 +1,22 @@
 {
   "name": "aos",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "AIOS Desktop",
+  "main": "electron/main.cjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:server": "tsc -p tsconfig.json",
+    "dev:electron": "npm run build:server && electron .",
+    "dist": "npm run build:server && electron-builder --publish never",
+    "dist:mac": "npm run build:server && electron-builder --mac --publish never",
+    "dist:win": "npm run build:server && electron-builder --win --publish never",
+    "dist:beta": "npm run build:server && electron-builder --publish always",
+    "dist:stable": "npm run build:server && electron-builder --publish always"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "repository": "github:CarbonSiliconAI/aios",
   "type": "commonjs",
   "dependencies": {
     "@lancedb/vectordb-darwin-arm64": "^0.21.2",
@@ -23,6 +31,47 @@
     "fs-extra": "^11.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "vectordb": "^0.21.2"
+    "vectordb": "^0.21.2",
+    "electron-updater": "^6.3.9",
+    "electron-log": "^5.2.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.aios.desktop",
+    "productName": "AIOS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "public/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "publish": [
+      { "provider": "github" }
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

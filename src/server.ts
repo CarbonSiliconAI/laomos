@@ -674,8 +674,8 @@ export class Server {
     }
 
     public start() {
-        this.app.listen(this.port, () => {
-            console.log(`[Server] Web Interface running at http://localhost:${this.port}`);
+        this.app.listen(this.port, '127.0.0.1', () => {
+            console.log(`[Server] Web Interface running at http://127.0.0.1:${this.port}`);
         });
     }
 }

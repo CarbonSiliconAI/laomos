@@ -5716,6 +5716,137 @@
                 await fetch('/api/cache', { method: 'DELETE' });
                 loadCacheStats();
             });
+
+            // ── Updates section (Electron desktop only) ─────────────────────────
+            const updatesSection = document.createElement('div');
+            updatesSection.className = 'os-card';
+            updatesSection.style.cssText = 'margin-top:16px;padding:14px;border-radius:var(--radius-card,12px);border:1px solid var(--glass-border-soft,rgba(0,0,0,0.08));background:rgba(255,255,255,0.5);';
+            updatesSection.innerHTML = `
+                <div style="font-size:13px;font-weight:600;color:var(--text,#1D1D1F);margin-bottom:10px;">Updates</div>
+                <div id="updates-desktop-only" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                        <span style="font-size:12px;color:var(--muted,rgba(0,0,0,0.5));">Version</span>
+                        <span id="updates-current-version" style="font-weight:600;font-size:12px;">—</span>
+                        <span style="font-size:12px;color:var(--muted);">·</span>
+                        <span style="font-size:12px;color:var(--muted);">Channel</span>
+                        <div class="os-seg" id="updates-channel-seg" style="display:inline-flex;">
+                            <button type="button" data-channel="stable">Stable</button>
+                            <button type="button" data-channel="beta">Beta</button>
+                        </div>
+                    </div>
+                    <div id="updates-status" style="font-size:12px;color:var(--muted);min-height:20px;margin-bottom:8px;"></div>
+                    <div id="updates-progress-wrap" style="display:none;margin-bottom:8px;">
+                        <div style="height:6px;background:rgba(0,0,0,0.08);border-radius:999px;overflow:hidden;">
+                            <div id="updates-progress-bar" style="height:100%;width:0%;background:var(--accent,#6366f1);transition:width 0.2s;"></div>
+                        </div>
+                    </div>
+                    <div id="updates-available-info" style="display:none;margin-bottom:8px;padding:8px;background:rgba(0,0,0,0.04);border-radius:8px;font-size:12px;"></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button type="button" class="os-button" id="updates-check-btn">Check for updates</button>
+                        <button type="button" class="os-button" id="updates-download-btn" style="display:none;">Download</button>
+                        <button type="button" class="os-button" id="updates-restart-btn" style="display:none;">Restart to update</button>
+                    </div>
+                    <div id="updates-last-check" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+                </div>
+                <div id="updates-browser-msg" style="font-size:12px;color:var(--muted);">
+                    Desktop updates are available in the installed app.
+                </div>
+            `;
+            listContainer.parentElement.appendChild(updatesSection);
+
+            const hasUpdater = typeof window.osUpdater !== 'undefined';
+            const desktopOnly = updatesSection.querySelector('#updates-desktop-only');
+            const browserMsg = updatesSection.querySelector('#updates-browser-msg');
+            if (hasUpdater) {
+                desktopOnly.style.display = 'block';
+                browserMsg.style.display = 'none';
+                const versionEl = updatesSection.querySelector('#updates-current-version');
+                const statusEl = updatesSection.querySelector('#updates-status');
+                const progressWrap = updatesSection.querySelector('#updates-progress-wrap');
+                const progressBar = updatesSection.querySelector('#updates-progress-bar');
+                const availableInfo = updatesSection.querySelector('#updates-available-info');
+                const checkBtn = updatesSection.querySelector('#updates-check-btn');
+                const downloadBtn = updatesSection.querySelector('#updates-download-btn');
+                const restartBtn = updatesSection.querySelector('#updates-restart-btn');
+                const lastCheckEl = updatesSection.querySelector('#updates-last-check');
+                const channelSeg = updatesSection.querySelector('#updates-channel-seg');
+
+                let currentChannel = 'stable';
+                let updateAvailable = null;
+
+                async function refreshVersionAndChannel() {
+                    versionEl.textContent = await window.osUpdater.version() || '—';
+                    currentChannel = await window.osUpdater.channel.get() || 'stable';
+                    channelSeg.querySelectorAll('button').forEach(btn => {
+                        btn.classList.toggle('is-active', btn.dataset.channel === currentChannel);
+                    });
+                }
+                refreshVersionAndChannel();
+
+                channelSeg.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const ch = btn.dataset.channel;
+                        if (ch !== currentChannel) {
+                            await window.osUpdater.channel.set(ch);
+                            currentChannel = ch;
+                            channelSeg.querySelectorAll('button').forEach(b => b.classList.toggle('is-active', b.dataset.channel === ch));
+                            statusEl.textContent = 'Channel set to ' + ch + '. Future checks will use this channel.';
+                        }
+                    });
+                });
+
+                const off = window.osUpdater.onStatus(function (ev) {
+                    if (ev.type === 'checking') {
+                        statusEl.textContent = 'Checking for updates…';
+                        progressWrap.style.display = 'none';
+                        downloadBtn.style.display = 'none';
+                        restartBtn.style.display = 'none';
+                        availableInfo.style.display = 'none';
+                    } else if (ev.type === 'available') {
+                        updateAvailable = ev;
+                        statusEl.textContent = 'Update available: ' + (ev.version || '');
+                        availableInfo.style.display = 'block';
+                        availableInfo.innerHTML = (ev.releaseNotes || '').substring(0, 400) + (ev.releaseNotes && ev.releaseNotes.length > 400 ? '…' : '');
+                        downloadBtn.style.display = 'inline-block';
+                        restartBtn.style.display = 'none';
+                        progressWrap.style.display = 'none';
+                    } else if (ev.type === 'not-available') {
+                        statusEl.textContent = 'You are on the latest version.';
+                        downloadBtn.style.display = 'none';
+                        restartBtn.style.display = 'none';
+                        availableInfo.style.display = 'none';
+                        progressWrap.style.display = 'none';
+                        lastCheckEl.textContent = 'Last check: ' + new Date().toLocaleString();
+                    } else if (ev.type === 'download-progress') {
+                        progressWrap.style.display = 'block';
+                        progressBar.style.width = (ev.percent != null ? ev.percent : 0) + '%';
+                        statusEl.textContent = 'Downloading… ' + (ev.percent != null ? Math.round(ev.percent) + '%' : '');
+                    } else if (ev.type === 'downloaded') {
+                        progressWrap.style.display = 'none';
+                        statusEl.textContent = 'Update downloaded. Restart to install.';
+                        downloadBtn.style.display = 'none';
+                        restartBtn.style.display = 'inline-block';
+                    } else if (ev.type === 'error') {
+                        statusEl.textContent = 'Error: ' + (ev.message || 'Unknown');
+                        progressWrap.style.display = 'none';
+                    }
+                });
+
+                checkBtn.addEventListener('click', async () => {
+                    statusEl.textContent = 'Checking…';
+                    await window.osUpdater.updates.check();
+                });
+                downloadBtn.addEventListener('click', async () => {
+                    await window.osUpdater.updates.download();
+                });
+                restartBtn.addEventListener('click', () => {
+                    window.osUpdater.updates.install();
+                });
+            } else {
+                desktopOnly.style.display = 'none';
+                browserMsg.style.display = 'block';
+            }
+
             wrapAppInteriorSkeleton(win, {
                 title: 'System',
                 subtitle: 'Control plane settings and health.',

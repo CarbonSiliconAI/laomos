@@ -1,0 +1,59 @@
+name: Build and publish installers
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-beta.*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server
+        run: npm run build:server
+
+      - name: Build and publish (mac)
+        if: matrix.platform == 'mac'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx electron-builder --mac --publish always
+
+      - name: Build and publish (win)
+        if: matrix.platform == 'win'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx electron-builder --win --publish always
+
+      - name: Mark release as prerelease (beta tags)
+        if: contains(github.ref, '-beta')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" -o release.json
+          RELEASE_ID=$(node -p "try { require('./release.json').id } catch(e) { '' }")
+          if [ -n "$RELEASE_ID" ]; then
+            curl -s -X PATCH -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}" -H "Content-Type: application/json" -d "{\"prerelease\":true}"
+          fi

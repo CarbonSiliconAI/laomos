@@ -83,7 +83,8 @@ async function main() {
     }, journal, defaultBudget);
     await scheduler.init();
 
-    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, 3001, journal);
+    const port = parseInt(process.env.PORT || '3123', 10);
+    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, port, journal);
     server.start();
 
     console.log('\n--- Agent OS Simulation Logic Complete (Server Running) ---');
