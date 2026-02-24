@@ -22,13 +22,19 @@ The "Kernel" of Agent OS handles complex background tasks and state management:
 - **Tool Registry:** Standardizes tools across the OS, providing an interface for apps to declare parameters and requirements for LLM function calling.
 - **File System Manager:** Simulates an OS file system (`storage/system`, `storage/personal`) for reading/writing configurations, images, and user data.
 
-### Security Model & Agent Inspector
+### Security Model & Safety Integrations
 
-Because Agent OS allows third-party (or LLM-generated) agents to run on your simulated desktop, it employs a strict **Launch Interception** loop:
-1. **Universal Invocation Hook:** When an app is triggered from the Dock, Desktop, Search Palette, or Widgets, its execution is routed through `requestAppLaunch()`.
-2. **Session Verification:** The OS checks `sessionStorage` to see if the agent has already been verified in the current runtime session.
-3. **Risk Evaluation Dialog:** If unverified, the **Agent Inspector** interrupts the launch, displaying a deep diagnostic scan UI. It evaluates the app against its configured authorization tier (Tier 1 vs. Tier 3 restricted).
-4. **Execution Gateway:** Once the scan clears, the user is presented with the underlying risk profile (e.g. green valid notice vs red strict warning). The user must explicitly click `Execute` to allow the agent to launch, successfully protecting the system from rogue agent execution.
+Because Agent OS allows third-party (or LLM-generated) agents (Native AI Apps and OpenClaw Skills) to run on your simulated desktop, it employs a multi-layered security architecture around the central AI Orchestration Kernel:
+
+1. **Security Manager:** This core component dictates overarching security policies, authorization tiers, and permissions for the kernel, ensuring robust and centralized access control.
+2. **Agent Inspector (Launch Interception):** Before any app or skill is executed, the Inspector interrupts the launch to perform a deep diagnostic scan:
+   - *Universal Invocation Hook:* Routes all triggers (Dock, Desktop, Search Palette) through `requestAppLaunch()`.
+   - *Session Verification:* Checks `sessionStorage` to see if the agent has already been verified in the current session.
+   - *Risk Evaluation Dialog:* Evaluates the app against its configured authorization tier (e.g., Tier 1 vs. Tier 3 restricted) and system hooks.
+   - *Execution Gateway:* Presents a risk profile dialog. The user must explicitly click `Execute` to allow the agent to launch, safeguarding against rogue executions.
+3. **System Firewall:** Acts as a strict boundary between the Orchestration Kernel and the Internet. All inbound and outbound traffic, including network requests initiated by running agents or LLMs, must pass through the firewall to prevent unauthorized data exfiltration or malicious connections.
+
+By combining the **Security Manager**, **Inspector**, and **Firewall**, Agent OS guarantees that plugins from the App Store and custom skills operate within a tightly controlled and user-approved safe environment.
 
 ## Getting Started
 

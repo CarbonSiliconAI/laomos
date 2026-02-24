@@ -578,7 +578,7 @@ export class Server {
             const prompt = req.query.prompt as string;
             if (!provider || !prompt) return res.status(400).json({ error: 'Provider and prompt required' });
 
-            if (provider !== 'openai' && provider !== 'mock' && provider !== 'google') return res.status(400).json({ error: 'Only OpenAI, Google, and Mock supported for image generation currently.' });
+            if (provider !== 'openai' && provider !== 'mock' && provider !== 'google' && provider !== 'pollinations') return res.status(400).json({ error: 'Only OpenAI, Google, Pollinations, and Mock supported for image generation currently.' });
 
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');

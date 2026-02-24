@@ -3006,9 +3006,10 @@
                     <div style="display:flex; gap:5px; margin-bottom:5px;">
                         <select id="ai-provider"
                             style="padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
+                            <option value="pollinations">Pollinations (Free AI)</option>
                             <option value="openai">OpenAI</option>
                             <option value="google">Google (Sim)</option>
-                            <option value="mock">Mock (Free)</option>
+                            <option value="mock">Mock</option>
                         </select>
                         <select id="ai-type"
                             style="padding:4px; font-size:12px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
@@ -5866,6 +5867,7 @@
                 { type: 'draw', label: '🎨 AI Draw', cat: 'Generative', domain: 'Art', func: 'Generates images from prompts', in: 'Text', out: 'Image URL' },
                 { type: 'video', label: '🎬 AI Video', cat: 'Generative', domain: 'Media', func: 'Generates video clips', in: 'Text', out: 'Video Stream' },
                 { type: 'search', label: '🔍 Web Search', cat: 'Search', domain: 'General', func: 'Queries real-time web data', in: 'Search Query', out: 'JSON Results' },
+                { type: 'display', label: '👁️ Input Display', cat: 'Utility', domain: 'General', func: 'Displays ingested input', in: 'Any', out: 'Same as Input' },
             ];
 
             // Add installed apps to palette dynamically
