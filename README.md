@@ -63,6 +63,12 @@ The **App Store** is a platform ecosystem that allows developers to create, publ
 
 ### Installation
 
+#### Pre-built Packages (Recommended)
+You can download the latest installation packages for your operating system directly from our releases page:
+[Agent OS Releases](https://github.com/CarbonSiliconAI/aios/releases)
+
+#### Manual Installation
+If you prefer to run from source:
 1. Clone the repository and navigate to the project directory.
 2. Install the dependencies:
    ```bash
