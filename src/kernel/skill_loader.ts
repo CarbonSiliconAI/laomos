@@ -42,7 +42,7 @@ export class SkillLoader {
             const stat = fs.statSync(filePath);
             if (stat && stat.isDirectory()) {
                 results = results.concat(this.findSkillFiles(filePath));
-            } else if (file.toUpperCase() === 'SKILL.md') {
+            } else if (file.toLowerCase() === 'skill.md') {
                 results.push(filePath);
             }
         }
@@ -57,9 +57,11 @@ export class SkillLoader {
     public loadSkills(forceRefresh: boolean = false): OpenClawSkill[] {
         // Simple cache TTL of 60 seconds
         if (!forceRefresh && (Date.now() - this.lastLoadTime < 60000)) {
+            console.log(`[SkillLoader] Returning ${this.cachedSkills.length} skills from cache.`);
             return this.cachedSkills;
         }
 
+        console.log(`[SkillLoader] Cache expired or forced refresh. Scanning ${this.skillsDir}...`);
         const skillFiles = this.findSkillFiles(this.skillsDir);
         const parsedSkills: OpenClawSkill[] = [];
 

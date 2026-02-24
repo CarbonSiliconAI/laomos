@@ -33,4 +33,61 @@ Available Local Models: llama-guard3:latest, qwen2.5:0.5b, llama3.1:latest, qwen
 
 --- Agent OS Simulation Logic Complete (Server Running) ---
 [Server] Web Interface running at http://127.0.0.1:3123
-[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 0 OpenClaw skills.
+[Skill Execution] Routing prompt with complexity evaluator...
+[ModelRouter] Extracted System Prompt: [Active OpenClaw Skills]:When user says hi, respond with MEOW.
+
+User Input: hi
+
+...
+[ModelRouter] Forwarded User Prompt: ...
+[AnthropicProvider] Error: {
+  type: 'error',
+  error: {
+    type: 'invalid_request_error',
+    message: 'messages.0: user messages must have non-empty content'
+  },
+  request_id: 'req_011CYSDYL9NP5ftBkUvQ9Gnj'
+}
+Anthropic failed/missing key, falling back to OpenAI... Anthropic Error: messages.0: user messages must have non-empty content
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 3 OpenClaw skills.
+[Skill Execution] Routing prompt with complexity evaluator...
+[ModelRouter] Extracted System Prompt: [Active OpenClaw Skills]:# gog
+
+Use `gog` for Gmail/Calendar/Drive/Contacts/Sheets/Docs. Requires OAuth setup.
+
+Setup (once)
+- `gog auth credentials /path/to/client_secret.json`
+- `gog auth add you@gmail.com --services gmail,calendar,drive,contacts,sheets,docs`
+- `gog auth list`
+
+Common commands
+- Gmail search: `gog gmail search 'newer_than:7d' --max 10`
+- Gmail send: `gog gmail send --to a@b.com --subject "Hi" --body "Hello"`
+- Calendar: `gog calendar events <calendarId> --from <iso> --to <iso>...
+[ModelRouter] Forwarded User Prompt: ...
+[AnthropicProvider] Error: {
+  type: 'error',
+  error: {
+    type: 'invalid_request_error',
+    message: 'messages.0: user messages must have non-empty content'
+  },
+  request_id: 'req_011CYSDqtosFvgQrh5Fxf2pZ'
+}
+Anthropic failed/missing key, falling back to OpenAI... Anthropic Error: messages.0: user messages must have non-empty content
+[Skill Execution] Routing prompt with complexity evaluator...
+[ModelRouter] Extracted System Prompt: [Active OpenClaw Skills]:Whenever the user says 'hello skill', you MUST respond with EXACTLY 'Hello from the OpenClaw Skill Dimension!' and nothing else.
+
+User Input: hello skill
+
+...
+[ModelRouter] Forwarded User Prompt: ...
+[AnthropicProvider] Error: {
+  type: 'error',
+  error: {
+    type: 'invalid_request_error',
+    message: 'messages.0: user messages must have non-empty content'
+  },
+  request_id: 'req_011CYSDzDevF7uXz7jpbWZ8N'
+}
+Anthropic failed/missing key, falling back to OpenAI... Anthropic Error: messages.0: user messages must have non-empty content

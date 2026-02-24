@@ -23,6 +23,7 @@ import { OpenAIProvider } from './kernel/providers/OpenAIProvider';
 import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
+import * as yauzl from 'yauzl';
 import { AIFirewall } from './kernel/firewall';
 
 // In-memory budget state (resets on restart — mock per spec)
@@ -287,24 +288,111 @@ export class Server {
             }
         });
 
-        // OpenClaw ClawHub Search Endpoint (Simulated)
+        // OpenClaw Skill Execution Endpoint
+        this.app.post('/api/skills/execute', async (req, res) => {
+            try {
+                const { skillContext, userInput } = req.body;
+
+                if (!skillContext || !userInput) {
+                    return res.status(400).json({ error: 'skillContext and userInput are required' });
+                }
+
+                // Construct a strict single-shot prompt mimicking the chat router format
+                const executionPrompt = `[Active OpenClaw Skills]:\n${skillContext}\n\nUser Input: ${userInput}`;
+
+                console.log(`[Skill Execution] Routing prompt with complexity evaluator...`);
+                // Let ModelRouter infer complexity and execute
+                const result = await this.modelRouter.routeChat(executionPrompt);
+
+                res.json({
+                    response: result.response,
+                    level: result.level,
+                    providerUsed: result.providerUsed
+                });
+            } catch (error: any) {
+                console.error('[Skill Execution] Error:', error);
+                res.status(500).json({ error: error.message || 'Skill execution failed.' });
+            }
+        });
+
+        // Helper function to extract SKILL.md from a zip buffer
+        const extractSkillMdFromZip = (buffer: Buffer): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                let foundSkill = false;
+                yauzl.fromBuffer(buffer, { lazyEntries: true }, (err: any, zipfile: any) => {
+                    if (err) return resolve(''); // Fail silently to not break catalog
+
+                    zipfile.readEntry();
+                    zipfile.on('entry', (entry: any) => {
+                        // Check if the file is SKILL.md (case-insensitive to be safe)
+                        if (/\/SKILL\.md$/i.test(entry.fileName) || entry.fileName.toLowerCase() === 'skill.md') {
+                            foundSkill = true;
+                            zipfile.openReadStream(entry, (err: any, readStream: any) => {
+                                if (err) return resolve('');
+                                let content = '';
+                                readStream.on('data', (chunk: any) => content += chunk.toString('utf8'));
+                                readStream.on('end', () => resolve(content));
+                            });
+                        } else {
+                            zipfile.readEntry();
+                        }
+                    });
+
+                    zipfile.on('end', () => {
+                        if (!foundSkill) resolve('');
+                    });
+                });
+            });
+        };
+
+        // OpenClaw ClawHub Search Endpoint (Official Registry)
         this.app.get('/api/clawhub/search', async (req, res) => {
             try {
                 const query = req.query.q as string || '';
-                // Simulating network delay to ClawHub registry
-                await new Promise(resolve => setTimeout(resolve, 600));
 
-                const mockClawHubSkills = [
-                    { name: 'github_pr', description: 'Creates pull requests automatically.', metadata: { author: '@clawhub', downloads: 1240 } },
-                    { name: 'docker_deploy', description: 'Deploys current workspace to a local docker daemon.', metadata: { author: '@openclaw', downloads: 3500 } },
-                    { name: 'weather_alert', description: 'Scrapes local weather and alerts if raining.', metadata: { author: '@community', downloads: 820 } },
-                    { name: 'code_reviewer', description: 'Reads codebase and suggests architectural improvements.', metadata: { author: '@ai_agent', downloads: 5410 } },
-                ];
+                // Fetch skills from the official ClawHub registry
+                const apiResponse = await fetch(`https://clawhub.ai/api/v1/skills?sort=downloads&search=${encodeURIComponent(query)}`);
 
-                const filtered = mockClawHubSkills.filter(s => s.name.toLowerCase().includes(query.toLowerCase()) || s.description.toLowerCase().includes(query.toLowerCase()));
+                if (!apiResponse.ok) {
+                    throw new Error(`ClawHub API returned ${apiResponse.status}: ${apiResponse.statusText}`);
+                }
 
-                res.json({ results: filtered });
+                const data = await apiResponse.json();
+
+                // Map the ClawHub payload and concurrently fetch the SKILL.md contents
+                const formattedSkills = await Promise.all((data.items || []).map(async (skillInfo: any) => {
+                    let markdownContent = '';
+                    const version = skillInfo.tags?.latest;
+                    const slug = skillInfo.slug;
+
+                    if (version && slug) {
+                        try {
+                            const zipUrl = `https://registry.clawhub.ai/${slug}/${version}.zip`;
+                            const zipResponse = await fetch(zipUrl);
+                            if (zipResponse.ok) {
+                                const buffer = Buffer.from(await zipResponse.arrayBuffer());
+                                markdownContent = await extractSkillMdFromZip(buffer);
+                            }
+                        } catch (e) {
+                            console.error(`[ClawHub] Failed to fetch zip for ${slug}:`, e);
+                        }
+                    }
+
+                    return {
+                        name: skillInfo.displayName || skillInfo.slug,
+                        description: skillInfo.summary || 'No description provided.',
+                        skill_markdown: markdownContent, // Attached raw Markdown text
+                        metadata: {
+                            author: `@clawhub`,
+                            downloads: skillInfo.stats?.downloads || 0,
+                            repo_url: `https://clawhub.ai/skills/${skillInfo.slug}`
+                        }
+                    };
+                }));
+
+                res.json({ results: formattedSkills });
             } catch (error: any) {
+                console.error('[ClawHub Search Error]', error);
                 res.status(500).json({ error: error.message });
             }
         });

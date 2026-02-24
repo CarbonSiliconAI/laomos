@@ -3295,20 +3295,67 @@
                 </div>
             </div>
 
-            <!-- Content Area -->
-            <div id="oc-scroll-area" style="flex:1; overflow-y:auto; padding:20px;">
-                <!-- Local Skills Grid -->
-                <div id="oc-grid-local"
-                    style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
-                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
-                        Loading local skills...</div>
+            <!-- Split Content Area -->
+            <div style="flex:1; display:flex; overflow:hidden;">
+                <!-- Left: List Area -->
+                <div id="oc-scroll-area"
+                    style="flex:1; overflow-y:auto; padding:20px; border-right:1px solid rgba(0,0,0,0.06);">
+                    <!-- Local Skills Grid -->
+                    <div id="oc-grid-local"
+                        style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+                        <div
+                            style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
+                            Loading local skills...</div>
+                    </div>
+
+                    <!-- ClawHub Grid -->
+                    <div id="oc-grid-hub"
+                        style="display:none; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+                        <div
+                            style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
+                            Search for skills above to discover new capabilities.</div>
+                    </div>
                 </div>
 
-                <!-- ClawHub Grid -->
-                <div id="oc-grid-hub"
-                    style="display:none; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
-                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
-                        Search for skills above to discover new capabilities.</div>
+                <!-- Right: Skill Inspector Pane -->
+                <div id="oc-inspector-pane"
+                    style="width:350px; display:none; flex-direction:column; background:var(--glass-strong); overflow:hidden;">
+                    <div
+                        style="padding:16px; border-bottom:1px solid rgba(0,0,0,0.06); background:rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                        <h3 id="oc-inspector-title"
+                            style="margin:0; font-size:16px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            Skill Name</h3>
+                        <button id="oc-inspector-close"
+                            style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:0 4px;">&times;</button>
+                    </div>
+
+                    <div style="flex:1; overflow-y:auto; padding:16px;">
+                        <h4
+                            style="margin:0 0 8px 0; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">
+                            Skill Instructions</h4>
+                        <div id="oc-inspector-instructions"
+                            style="font-family:monospace; font-size:12px; color:var(--text); background:rgba(0,0,0,0.03); padding:12px; border-radius:8px; white-space:pre-wrap; border:1px solid rgba(0,0,0,0.05); margin-bottom:16px; line-height:1.4;">
+                            Select a skill to view its workflow instructions.
+                        </div>
+
+                        <h4
+                            style="margin:0 0 8px 0; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">
+                            Execution</h4>
+                        <textarea id="oc-inspector-input" placeholder="Enter input here to run the skill..."
+                            style="width:100%; height:80px; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.7); font-size:13px; font-family:inherit; resize:vertical; margin-bottom:10px; outline:none;"></textarea>
+                        <button id="oc-inspector-run-btn" class="os-button"
+                            style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:var(--radius-pill); font-size:13px; font-weight:600; cursor:pointer;">Run
+                            Skill</button>
+
+                        <div id="oc-inspector-output-container" style="display:none; margin-top:16px;">
+                            <h4
+                                style="margin:0 0 8px 0; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">
+                                Output</h4>
+                            <div id="oc-inspector-output"
+                                style="font-family:monospace; font-size:12px; color:var(--text); background:#1e1e1e; color:#d4d4d4; padding:12px; border-radius:8px; white-space:pre-wrap; line-height:1.4;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6435,6 +6482,11 @@
                 card.style.background = 'var(--glass-strong)';
                 card.style.border = '1px solid var(--glass-border-soft)';
                 card.style.borderRadius = 'var(--radius-card)';
+                card.style.cursor = 'pointer';
+
+                // Add hover effect
+                card.onmouseenter = () => card.style.background = 'var(--glass-hover)';
+                card.onmouseleave = () => card.style.background = 'var(--glass-strong)';
 
                 const titleRow = document.createElement('div');
                 titleRow.style.display = 'flex';
@@ -6474,6 +6526,21 @@
                     actionRow.style.display = 'flex';
                     actionRow.style.justifyContent = 'flex-end';
 
+                    const viewBtn = document.createElement('button');
+                    viewBtn.className = 'os-button';
+                    viewBtn.textContent = 'View Instructions';
+                    viewBtn.style.padding = '6px 14px';
+                    viewBtn.style.fontSize = '12px';
+                    viewBtn.style.background = 'transparent';
+                    viewBtn.style.border = '1px solid var(--glass-border)';
+                    viewBtn.style.borderRadius = 'var(--radius-pill)';
+                    viewBtn.style.cursor = 'pointer';
+                    viewBtn.style.marginRight = '8px';
+                    viewBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        card.click();
+                    };
+
                     const installBtn = document.createElement('button');
                     installBtn.className = 'os-button';
                     installBtn.textContent = 'Install';
@@ -6483,14 +6550,101 @@
                     installBtn.style.border = '1px solid var(--glass-border)';
                     installBtn.style.borderRadius = 'var(--radius-pill)';
                     installBtn.style.cursor = 'pointer';
-                    installBtn.onclick = () => { alert(`Installing ${skill.name} from ClawHub is coming soon!`) };
+                    installBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (skill.metadata?.repo_url) {
+                            window.open(skill.metadata.repo_url, '_blank');
+                        } else {
+                            alert(`Repository URL not found for ${skill.name}.`);
+                        }
+                    };
 
+                    actionRow.appendChild(viewBtn);
                     actionRow.appendChild(installBtn);
                     card.appendChild(actionRow);
                 }
 
                 return card;
             }
+
+            // Global reference for currently selected skill
+            let currentSelectedSkill = null;
+
+            // Inspector Logic Setup
+            const inspectorPane = body.querySelector('#oc-inspector-pane');
+            const inspectorTitle = body.querySelector('#oc-inspector-title');
+            const inspectorInstructions = body.querySelector('#oc-inspector-instructions');
+            const inspectorClose = body.querySelector('#oc-inspector-close');
+            const inspectorInput = body.querySelector('#oc-inspector-input');
+            const inspectorRunBtn = body.querySelector('#oc-inspector-run-btn');
+            const inspectorOutputContainer = body.querySelector('#oc-inspector-output-container');
+            const inspectorOutput = body.querySelector('#oc-inspector-output');
+
+            inspectorClose.onclick = () => {
+                inspectorPane.style.display = 'none';
+                currentSelectedSkill = null;
+            };
+
+            inspectorRunBtn.onclick = async () => {
+                if (!currentSelectedSkill) return;
+                const userInput = inspectorInput.value.trim();
+                if (!userInput) {
+                    alert('Please enter some input to run this skill.');
+                    return;
+                }
+
+                inspectorRunBtn.disabled = true;
+                inspectorRunBtn.textContent = 'Executing...';
+                inspectorOutputContainer.style.display = 'block';
+                inspectorOutput.textContent = 'Contacting Kernel ModelRouter...';
+
+                try {
+                    const res = await fetch('/api/skills/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            skillContext: currentSelectedSkill.instructions || currentSelectedSkill.skill_markdown || '',
+                            userInput: userInput
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Execution failed');
+                    }
+
+                    const data = await res.json();
+                    inspectorOutput.textContent = `[Level ${data.level} via ${data.providerUsed}]\n\n${data.response}`;
+                } catch (e) {
+                    inspectorOutput.textContent = `Error: ${e.message}`;
+                } finally {
+                    inspectorRunBtn.disabled = false;
+                    inspectorRunBtn.textContent = 'Run Skill';
+                }
+            };
+
+            // Enhance createSkillCard to open inspector
+            const originalCreateSkillCard = createSkillCard;
+            createSkillCard = function (skill, isLocal) {
+                const card = originalCreateSkillCard(skill, isLocal);
+                card.onclick = () => {
+                    currentSelectedSkill = skill;
+                    inspectorPane.style.display = 'flex';
+                    inspectorTitle.textContent = skill.name || 'Unnamed Skill';
+
+                    let instr = skill.instructions || skill.skill_markdown;
+                    if (!instr) {
+                        instr = "No textual instructions found for this skill.";
+                    }
+                    inspectorInstructions.textContent = instr;
+
+                    // Reset execution state
+                    inspectorInput.value = '';
+                    inspectorOutputContainer.style.display = 'none';
+                    inspectorOutput.textContent = '';
+                };
+                return card;
+            };
 
             // Fetch Local Skills
             async function fetchLocalSkills() {
