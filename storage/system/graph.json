@@ -519,6 +519,16 @@
       "id": "model-llama3.1:latest",
       "label": "llama3.1:latest",
       "type": "model"
+    },
+    {
+      "id": "model-qwen2.5:0.5b",
+      "label": "qwen2.5:0.5b",
+      "type": "model"
+    },
+    {
+      "id": "model-llama-guard3:latest",
+      "label": "llama-guard3:latest",
+      "type": "model"
     }
   ],
   "edges": [
@@ -1530,6 +1540,16 @@
     {
       "source": "os-root",
       "target": "model-llama3.1:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-qwen2.5:0.5b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-llama-guard3:latest",
       "relation": "has_model"
     }
   ]

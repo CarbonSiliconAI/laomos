@@ -31,6 +31,18 @@ export class ExternalAPIManager {
             return "https://placehold.co/1024x1024/21262d/white?text=AI+Generated+Image";
         }
 
+        if (provider === 'pollinations') {
+            emit('Pre-flight Validation', 'completed', 'Provider is Pollinations (Free).');
+            emit('Image Generation (Pollinations)', 'running', 'Sending prompt to Pollinations...');
+            // Free API, no key required
+            const encodedPrompt = encodeURIComponent(prompt);
+            const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true`;
+            // Add a small delay for UI effect
+            await new Promise(r => setTimeout(r, 800));
+            emit('Image Generation (Pollinations)', 'completed', 'Received image URL from Pollinations.');
+            return url;
+        }
+
         const key = await this.identityManager.getKey(provider);
         if (!key) {
             emit('Pre-flight Validation', 'error', `API Key for ${provider} not found.`);

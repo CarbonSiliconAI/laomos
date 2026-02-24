@@ -13,6 +13,7 @@ import { Server } from './server';
 import { ExternalAPIManager } from './external_api';
 import { ExecutionJournal } from './telemetry/journal';
 import { BudgetConstraint } from './telemetry/types';
+import { AIFirewall } from './kernel/firewall';
 
 async function main() {
     console.log('--- Agent OS Simulation Starting ---');
@@ -63,6 +64,7 @@ async function main() {
 
     // 6. Start API Server
     const externalApiManager = new ExternalAPIManager(identityManager);
+    const firewall = new AIFirewall(ollamaManager);
 
     // 7. Initialize Execution Journal (telemetry)
     const journal = new ExecutionJournal(fsManager.getSystemDir());
@@ -84,7 +86,7 @@ async function main() {
     await scheduler.init();
 
     const port = parseInt(process.env.PORT || '3123', 10);
-    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, port, journal);
+    const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, firewall, port, journal);
     server.start();
 
     console.log('\n--- Agent OS Simulation Logic Complete (Server Running) ---');

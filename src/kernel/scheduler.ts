@@ -28,7 +28,7 @@ export interface JobState {
 function inferOutputType(tool: string): 'text' | 'image' | 'video' | 'url' | 'unknown' {
     if (tool === 'draw') return 'image';
     if (tool === 'video') return 'video';
-    if (tool === 'chat' || tool === 'search') return 'text';
+    if (tool === 'chat' || tool === 'search' || tool === 'display') return 'text';
     return 'unknown';
 }
 
@@ -197,30 +197,30 @@ export class AgentScheduler {
         const snapshot = this.jobToSnapshot.get(jobId);
         const nodeInfo = snapshot?.nodes?.find((n: any) => n.id === taskId);
         const context: Record<string, any> = {};
-        if (nodeInfo?.label)  context.label    = nodeInfo.label;
-        if (nodeInfo?.cat)    context.category = nodeInfo.cat;
-        if (nodeInfo?.domain) context.domain   = nodeInfo.domain;
+        if (nodeInfo?.label) context.label = nodeInfo.label;
+        if (nodeInfo?.cat) context.category = nodeInfo.cat;
+        if (nodeInfo?.domain) context.domain = nodeInfo.domain;
 
         const startTime = Date.now();
 
         // Emit START event so the trace panel shows live activity immediately
         if (runId) {
             telemetryBus.publish({
-                event_id:     crypto.randomUUID(),
-                flow_id:      jobId,
-                run_id:       runId,
-                node_id:      taskId,
-                tool:         task.type,
-                model:        undefined,
-                input_hash:   hashContent(inputData),
+                event_id: crypto.randomUUID(),
+                flow_id: jobId,
+                run_id: runId,
+                node_id: taskId,
+                tool: task.type,
+                model: undefined,
+                input_hash: hashContent(inputData),
                 input_tokens: estimateTokens(inputData),
                 output_tokens: 0,
-                latency_ms:   0,
-                cost_usd:     0,
-                status:       'running',
-                output_type:  inferOutputType(task.type),
-                timestamp:    Date.now(),
-                context:      Object.keys(context).length ? context : undefined,
+                latency_ms: 0,
+                cost_usd: 0,
+                status: 'running',
+                output_type: inferOutputType(task.type),
+                timestamp: Date.now(),
+                context: Object.keys(context).length ? context : undefined,
             });
         }
 
@@ -236,8 +236,8 @@ export class AgentScheduler {
                 const cacheKey = `${hashContent(inputData)}|${task.type}|auto`;
                 const cached = this.journal?.cacheGet(cacheKey);
                 if (cached) {
-                    result   = cached.result;
-                    model    = cached.model;
+                    result = cached.result;
+                    model = cached.model;
                     cacheHit = true;
                     context.cache_hit = true;
                 } else {
@@ -247,7 +247,7 @@ export class AgentScheduler {
 
                     const res = await this.apiHandlers.modelRouter.routeChat(inputData, preferredProvider);
                     result = res.response || 'No response';
-                    model  = res.model || res.providerUsed || 'local';
+                    model = res.model || res.providerUsed || 'local';
                     context.model_selected_reason = preferredProvider
                         ? `budget:${preferredProvider}`
                         : `auto:level_${res.level ?? '?'}`;
@@ -260,31 +260,34 @@ export class AgentScheduler {
                 try {
                     const res = await this.apiHandlers.externalApiManager.generateImage('openai', inputData);
                     result = await this.saveImageToDisk(res);
-                    model  = 'dall-e-3';
+                    model = 'dall-e-3';
                 } catch (e) {
                     console.warn('OpenAI Draw failed, falling back to mock:', e);
                     const mockRes = await this.apiHandlers.externalApiManager.generateImage('mock', inputData);
                     result = await this.saveImageToDisk(mockRes);
-                    model  = 'mock';
+                    model = 'mock';
                 }
             } else if (task.type === 'video') {
                 try {
                     const res = await this.apiHandlers.externalApiManager.generateVideo('google', inputData);
                     result = `Generated Video at: ${res}`;
-                    model  = 'gemini-video';
+                    model = 'gemini-video';
                 } catch (e) {
                     console.warn('Google Video failed, falling back to mock:', e);
                     const res = await this.apiHandlers.externalApiManager.generateVideo('mock', inputData);
                     result = `Generated Video at: ${res}`;
-                    model  = 'mock';
+                    model = 'mock';
                 }
             } else if (task.type === 'search') {
                 await new Promise(r => setTimeout(r, 800));
                 result = `Mock Search Result for: "${inputData}"\nFound 10,000 results.`;
-                model  = 'mock';
+                model = 'mock';
+            } else if (task.type === 'display') {
+                result = inputData;
+                model = 'passthrough';
             } else {
                 result = `Processed ${task.type}`;
-                model  = 'mock';
+                model = 'mock';
             }
         } catch (e: any) {
             succeeded = false;
@@ -294,11 +297,11 @@ export class AgentScheduler {
         } finally {
             // Emit END event (success or error)
             if (runId) {
-                const latency      = Date.now() - startTime;
-                const inputTokens  = estimateTokens(inputData);
+                const latency = Date.now() - startTime;
+                const inputTokens = estimateTokens(inputData);
                 const outputTokens = estimateTokens(result);
                 // Cache hits are free; only charge for real API calls
-                const costUsd      = cacheHit ? 0 : computeCost(model, inputTokens, outputTokens);
+                const costUsd = cacheHit ? 0 : computeCost(model, inputTokens, outputTokens);
 
                 // Store chat result in cache (on success, non-cache-hit)
                 if (task.type === 'chat' && !cacheHit && succeeded) {
@@ -317,22 +320,22 @@ export class AgentScheduler {
                         : inferOutputType(task.type);
 
                 telemetryBus.publish({
-                    event_id:      crypto.randomUUID(),
-                    flow_id:       jobId,
-                    run_id:        runId,
-                    node_id:       taskId,
-                    tool:          task.type,
+                    event_id: crypto.randomUUID(),
+                    flow_id: jobId,
+                    run_id: runId,
+                    node_id: taskId,
+                    tool: task.type,
                     model,
-                    input_hash:    hashContent(inputData),
-                    output_hash:   hashContent(result),
-                    input_tokens:  inputTokens,
+                    input_hash: hashContent(inputData),
+                    output_hash: hashContent(result),
+                    input_tokens: inputTokens,
                     output_tokens: outputTokens,
-                    latency_ms:    latency,
-                    cost_usd:      costUsd,
-                    status:        succeeded ? 'success' : 'error',
-                    output_type:   resultOutputType,
-                    timestamp:     Date.now(),
-                    context:       Object.keys(context).length ? context : undefined,
+                    latency_ms: latency,
+                    cost_usd: costUsd,
+                    status: succeeded ? 'success' : 'error',
+                    output_type: resultOutputType,
+                    timestamp: Date.now(),
+                    context: Object.keys(context).length ? context : undefined,
                     output_preview: result.slice(0, 200),
                     error_message: errorMessage,
                 });

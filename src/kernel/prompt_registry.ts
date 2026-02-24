@@ -102,8 +102,10 @@ Respond WITH THE SUMMARY TEXT ONLY. No intros, no greetings.`,
 
 {{memoryContext}}
 
+{{activeSkills}}
+
 Respond ONLY to the last message in the <L1_Cache_ActiveWindow>.`,
-            params: ['retrievedContext', 'memoryContext'],
+            params: ['retrievedContext', 'memoryContext', 'activeSkills'],
             config: {
                 temperature: 0.7
             },

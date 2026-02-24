@@ -1,0 +1,44 @@
+--- Agent OS Simulation Starting ---
+
+--- Initializing File System ---
+[FS] Directory ensured: /Users/youbinmo/Develop/aos/storage/system
+[FS] Directory ensured: /Users/youbinmo/Develop/aos/storage/personal
+[FS] Directory ensured: /Users/youbinmo/Develop/aos/storage/public
+[FS] Directory ensured: /Users/youbinmo/Develop/aos/storage/Docs
+[FS] Directory ensured: /Users/youbinmo/Develop/aos/storage/Rags
+
+--- Initializing Identity Manager ---
+
+--- Initializing Graph Manager ---
+
+--- Initializing Ollama Manager ---
+[Ollama] Service is already running.
+Available Local Models: llama-guard3:latest, qwen2.5:0.5b, llama3.1:latest, qwen2:1.5b, gemma:2b
+[PromptRegistry] Initialized abstraction layer.
+[PromptRegistry] Registered template: kernel_memory/summarize_context (v1.0.0)
+[PromptRegistry] Registered template: agent_chat/default_response (v1.0.0)
+[PromptRegistry] Registered template: agent_app_dalle/image_generation (v1.0.0)
+[PromptRegistry] Registered template: agent_app_weather/weather_summary (v1.0.0)
+[PromptRegistry] Registered template: agent_app_code/code_analysis (v1.0.0)
+[PromptRegistry] Registered template: agent_app_scrape/web_extraction (v1.0.0)
+[ContextManager] Initialized LanceDB at /Users/youbinmo/Develop/aos/storage/system/.aos_vectors
+[ToolRegistry] Initialized dynamic tool abstraction.
+[ToolRegistry] Registered tool: web_scrape
+[ToolRegistry] Registered tool: get_weather
+[ToolRegistry] Registered tool: read_file
+[ToolRegistry] Registered tool: smart_search
+[Journal] SQLite telemetry DB initialized at /Users/youbinmo/Develop/aos/storage/system/.aos_state/telemetry.db
+[Scheduler] Initialized Checkpoint Directory at /Users/youbinmo/Develop/aos/storage/system/.aos_state
+[SkillLoader] Using existing skills directory at /Users/youbinmo/Develop/aos/storage/skills
+
+--- Agent OS Simulation Logic Complete (Server Running) ---
+[Server] Web Interface running at http://127.0.0.1:3123
+[Scheduler] Suspending Job job-1771937820539 Task test-node (display) for I/O...
+[Scheduler] Job job-1771937820539 Completed.
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 4 OpenClaw skills.
+[Scheduler] Suspending Job job-1771937965427 Task node_1 (chat) for I/O...
+[ModelRouter] Extracted System Prompt: ...
+[ModelRouter] Forwarded User Prompt: Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: lion...
+[Scheduler] Suspending Job job-1771937965427 Task node_3 (display) for I/O...
+[Scheduler] Job job-1771937965427 Completed.

@@ -50,7 +50,40 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
      * Routes the chat request to the optimal provider based on complexity or explicit model provider.
      */
     async routeChat(prompt: string, preferredProvider?: string): Promise<{ response: string, level: string, providerUsed: string }> {
-        const messages: LLMMessage[] = [{ role: 'user', content: prompt }];
+        const messages: LLMMessage[] = [];
+
+        // Extract system prompts from the formatted string and move them into a system message
+        const systemRegex = /<Register_SystemPrompt>([\s\S]*?)<\/Register_SystemPrompt>/;
+        const systemMatch = prompt.match(systemRegex);
+        let systemContent = "";
+
+        if (systemMatch) {
+            systemContent += systemMatch[1].trim() + "\n\n";
+            prompt = prompt.replace(systemMatch[0], '').trim();
+        }
+
+        const activeSkillsRegex = /\[Active OpenClaw Skills\]:([\s\S]*)/;
+        const activeSkillsMatch = prompt.match(activeSkillsRegex);
+        if (activeSkillsMatch) {
+            // Extract everything until "Respond ONLY to the last message" (if present)
+            let skillsText = activeSkillsMatch[1];
+            const stopIndex = skillsText.indexOf('Respond ONLY to the last message');
+            if (stopIndex !== -1) {
+                skillsText = skillsText.substring(0, stopIndex);
+            }
+            systemContent += "[Active OpenClaw Skills]:" + skillsText.trim() + "\n\n";
+            // Remove the matched text from the user prompt
+            prompt = prompt.replace(/\[Active OpenClaw Skills\]:[\s\S]*?(?=Respond ONLY to the last message|$)/, '').trim();
+        }
+
+        if (systemContent.trim()) {
+            messages.push({ role: 'system', content: systemContent.trim() });
+        }
+
+        messages.push({ role: 'user', content: prompt });
+
+        console.log(`[ModelRouter] Extracted System Prompt:`, systemContent.substring(0, 500) + '...');
+        console.log(`[ModelRouter] Forwarded User Prompt:`, prompt.substring(0, 500) + '...');
 
         if (preferredProvider && this.providers.has(preferredProvider)) {
             try {

@@ -14,12 +14,17 @@ import { ContextManager } from './kernel/memory';
 import { AgentScheduler } from './kernel/scheduler';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
+import { SkillLoader } from './kernel/skill_loader';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
 import { ExecutionEvent, BudgetConstraint } from './telemetry/types';
+import { OpenAIProvider } from './kernel/providers/OpenAIProvider';
+import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
+import * as yauzl from 'yauzl';
+import { AIFirewall } from './kernel/firewall';
 
 // In-memory budget state (resets on restart — mock per spec)
 let currentBudget: BudgetConstraint = {
@@ -43,9 +48,11 @@ export class Server {
     private scheduler: AgentScheduler;
     private registry: PromptRegistry;
     private tools: ToolRegistry;
+    private firewall: AIFirewall;
+    private skillLoader: SkillLoader;
     private journal?: ExecutionJournal;
 
-    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, port: number = 3000, journal?: ExecutionJournal) {
+    constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
         this.port = port;
         this.graphManager = graphManager;
@@ -58,6 +65,8 @@ export class Server {
         this.scheduler = scheduler;
         this.registry = registry;
         this.tools = tools;
+        this.firewall = firewall;
+        this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
         this.configureRoutes();
     }
@@ -85,8 +94,48 @@ export class Server {
                 if (!model || !messages) {
                     return res.status(400).json({ error: 'Model and messages are required' });
                 }
-                const response = await this.ollamaManager.chat(model, messages);
-                res.json(response);
+
+                // AI Firewall Ingress Scan
+                const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+                if (lastUserMessage && lastUserMessage.content) {
+                    const ingressCheck = await this.firewall.validatePrompt(lastUserMessage.content, 'Ingress');
+                    if (!ingressCheck.safe) {
+                        return res.status(403).json({
+                            error: `Firewall Triggered: Unsafe Ingress Prompt blocked.\nReason: ${ingressCheck.reason}`
+                        });
+                    }
+                }
+
+                let responseContent = '';
+                let finalResponseObj: any = {};
+
+                if (model.startsWith('gpt')) {
+                    const provider = new OpenAIProvider(this.identityManager);
+                    responseContent = await provider.chat(messages, model);
+                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                } else if (model.startsWith('claude')) {
+                    const provider = new AnthropicProvider(this.identityManager);
+                    responseContent = await provider.chat(messages, model);
+                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                } else if (model.startsWith('gemini') || model.startsWith('grok')) {
+                    return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
+                } else {
+                    const response = await this.ollamaManager.chat(model, messages);
+                    responseContent = response?.message?.content || '';
+                    finalResponseObj = response;
+                }
+
+                // AI Firewall Egress Scan
+                if (responseContent) {
+                    const egressCheck = await this.firewall.validatePrompt(responseContent, 'Egress');
+                    if (!egressCheck.safe) {
+                        return res.status(403).json({
+                            error: `Firewall Triggered: Unsafe Egress Response blocked.\nReason: ${egressCheck.reason}`
+                        });
+                    }
+                }
+
+                res.json(finalResponseObj);
             } catch (error) {
                 console.error('[Server] Chat error:', error);
                 res.status(500).json({ error: (error as Error).message });
@@ -110,8 +159,24 @@ export class Server {
             }
         });
 
+        // API Endpoint to check Firewall state
+        this.app.get('/api/system/firewall', (req, res) => {
+            res.json({ enabled: this.firewall.enabled });
+        });
+
+        // API Endpoint to update Firewall state
+        this.app.post('/api/system/firewall', (req, res) => {
+            const { enabled } = req.body;
+            if (typeof enabled !== 'boolean') {
+                return res.status(400).json({ error: 'Body must contain boolean "enabled" property.' });
+            }
+            this.firewall.enabled = enabled;
+            console.log(`[Server] Firewall state updated to: ${enabled}`);
+            res.json({ success: true, enabled: this.firewall.enabled });
+        });
+
         // API Endpoint to get system specs
-        this.app.get('/api/system/specs', (req, res) => {
+        this.app.get('/api/system/specs', async (req, res) => {
             try {
                 const specs = this.ollamaManager.getSystemSpecs();
                 res.json(specs);
@@ -158,6 +223,20 @@ export class Server {
                 res.json({ content });
             } catch (error) {
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // API Endpoint to serve raw files (Images/PDFs)
+        this.app.get('/api/files/raw', async (req, res) => {
+            const filePath = req.query.path as string;
+            if (!filePath) {
+                return res.status(400).json({ error: 'Path is required' });
+            }
+            try {
+                const safePath = this.fsManager.resolvePath(filePath);
+                res.sendFile(safePath);
+            } catch (error) {
+                res.status(403).json({ error: (error as Error).message });
             }
         });
 
@@ -210,6 +289,140 @@ export class Server {
         this.app.get('/api/kernel/tools', (req, res) => {
             const declarations = this.tools.listTools();
             res.json(declarations);
+        });
+
+        // OpenClaw Skills Endpoint (Local)
+        this.app.get('/api/skills', (req, res) => {
+            try {
+                // Return structured SkillLoader data to frontend
+                const activeSkills = this.skillLoader.loadSkills();
+                res.json(activeSkills);
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // OpenClaw Skill Execution Endpoint
+        this.app.post('/api/skills/execute', async (req, res) => {
+            try {
+                const { skillContext, userInput } = req.body;
+
+                if (!skillContext || !userInput) {
+                    return res.status(400).json({ error: 'skillContext and userInput are required' });
+                }
+
+                // Construct a strict single-shot prompt mimicking the chat router format
+                const executionPrompt = `[Active OpenClaw Skills]:\n${skillContext}\n\nUser Input: ${userInput}`;
+
+                console.log(`[Skill Execution] Routing prompt with complexity evaluator...`);
+                // Let ModelRouter infer complexity and execute
+                const result = await this.modelRouter.routeChat(executionPrompt);
+
+                let finalResponse = result.response;
+
+                // Simple interceptor for file saving skills
+                const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+                let match;
+                while ((match = saveFileRegex.exec(result.response)) !== null) {
+                    const filePath = match[1];
+                    const content = match[2];
+                    const fullPath = `personal/${filePath}`;
+                    await this.fsManager.createFile(fullPath, content.trim());
+                    console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
+                    finalResponse = finalResponse.replace(match[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                }
+
+                res.json({
+                    response: finalResponse,
+                    level: result.level,
+                    providerUsed: result.providerUsed
+                });
+            } catch (error: any) {
+                console.error('[Skill Execution] Error:', error);
+                res.status(500).json({ error: error.message || 'Skill execution failed.' });
+            }
+        });
+
+        // Helper function to extract SKILL.md from a zip buffer
+        const extractSkillMdFromZip = (buffer: Buffer): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                let foundSkill = false;
+                yauzl.fromBuffer(buffer, { lazyEntries: true }, (err: any, zipfile: any) => {
+                    if (err) return resolve(''); // Fail silently to not break catalog
+
+                    zipfile.readEntry();
+                    zipfile.on('entry', (entry: any) => {
+                        // Check if the file is SKILL.md (case-insensitive to be safe)
+                        if (/\/SKILL\.md$/i.test(entry.fileName) || entry.fileName.toLowerCase() === 'skill.md') {
+                            foundSkill = true;
+                            zipfile.openReadStream(entry, (err: any, readStream: any) => {
+                                if (err) return resolve('');
+                                let content = '';
+                                readStream.on('data', (chunk: any) => content += chunk.toString('utf8'));
+                                readStream.on('end', () => resolve(content));
+                            });
+                        } else {
+                            zipfile.readEntry();
+                        }
+                    });
+
+                    zipfile.on('end', () => {
+                        if (!foundSkill) resolve('');
+                    });
+                });
+            });
+        };
+
+        // OpenClaw ClawHub Search Endpoint (Official Registry)
+        this.app.get('/api/clawhub/search', async (req, res) => {
+            try {
+                const query = req.query.q as string || '';
+
+                // Fetch skills from the official ClawHub registry
+                const apiResponse = await fetch(`https://clawhub.ai/api/v1/skills?sort=downloads&search=${encodeURIComponent(query)}`);
+
+                if (!apiResponse.ok) {
+                    throw new Error(`ClawHub API returned ${apiResponse.status}: ${apiResponse.statusText}`);
+                }
+
+                const data = await apiResponse.json();
+
+                // Map the ClawHub payload and concurrently fetch the SKILL.md contents
+                const formattedSkills = await Promise.all((data.items || []).map(async (skillInfo: any) => {
+                    let markdownContent = '';
+                    const version = skillInfo.tags?.latest;
+                    const slug = skillInfo.slug;
+
+                    if (version && slug) {
+                        try {
+                            const zipUrl = `https://registry.clawhub.ai/${slug}/${version}.zip`;
+                            const zipResponse = await fetch(zipUrl);
+                            if (zipResponse.ok) {
+                                const buffer = Buffer.from(await zipResponse.arrayBuffer());
+                                markdownContent = await extractSkillMdFromZip(buffer);
+                            }
+                        } catch (e) {
+                            console.error(`[ClawHub] Failed to fetch zip for ${slug}:`, e);
+                        }
+                    }
+
+                    return {
+                        name: skillInfo.displayName || skillInfo.slug,
+                        description: skillInfo.summary || 'No description provided.',
+                        skill_markdown: markdownContent, // Attached raw Markdown text
+                        metadata: {
+                            author: `@clawhub`,
+                            downloads: skillInfo.stats?.downloads || 0,
+                            repo_url: `https://clawhub.ai/skills/${skillInfo.slug}`
+                        }
+                    };
+                }));
+
+                res.json({ results: formattedSkills });
+            } catch (error: any) {
+                console.error('[ClawHub Search Error]', error);
+                res.status(500).json({ error: error.message });
+            }
         });
 
         // Smart Search App Endpoint (SSE)
@@ -338,9 +551,12 @@ export class Server {
 
                 const superContext = [retrieved, retrievedRags].filter(c => c.trim().length > 0).join('\n');
 
+                const openClawSkills = this.skillLoader.getFormattedSkillContext();
+
                 const promptData = this.registry.format('agent_chat', 'default_response', {
                     retrievedContext: superContext,
-                    memoryContext: context
+                    memoryContext: context,
+                    activeSkills: openClawSkills
                 });
 
                 // 3. Route
@@ -362,7 +578,7 @@ export class Server {
             const prompt = req.query.prompt as string;
             if (!provider || !prompt) return res.status(400).json({ error: 'Provider and prompt required' });
 
-            if (provider !== 'openai' && provider !== 'mock' && provider !== 'google') return res.status(400).json({ error: 'Only OpenAI, Google, and Mock supported for image generation currently.' });
+            if (provider !== 'openai' && provider !== 'mock' && provider !== 'google' && provider !== 'pollinations') return res.status(400).json({ error: 'Only OpenAI, Google, Pollinations, and Mock supported for image generation currently.' });
 
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
