@@ -3265,6 +3265,55 @@
         </div>
     </template>
 
+    <!-- OpenClaw App Template -->
+    <template id="app-openclaw-tpl">
+        <div class="os-app-base"
+            style="background:var(--bg); border-radius:inherit; display:flex; flex-direction:column; height:100%; overflow:hidden;">
+            <!-- Tabs / Header -->
+            <div
+                style="flex-shrink:0; padding:16px 20px 0; border-bottom:1px solid rgba(0,0,0,0.06); background:var(--glass-strong); display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="display:flex; gap:20px;">
+                    <div id="oc-tab-local" class="oc-tab active"
+                        style="padding-bottom:12px; font-weight:600; font-size:14px; color:var(--text); border-bottom:2px solid var(--accent); cursor:pointer;">
+                        Local Skills</div>
+                    <div id="oc-tab-hub" class="oc-tab"
+                        style="padding-bottom:12px; font-weight:500; font-size:14px; color:var(--muted); cursor:pointer; transition:color 0.2s;">
+                        ClawHub (Remote)</div>
+                </div>
+                <!-- Search bar for ClawHub, hidden by default -->
+                <div id="oc-search-container" style="display:none; padding-bottom:8px; margin-bottom:4px;">
+                    <div style="position:relative; width:220px;">
+                        <input type="text" id="oc-search-input" placeholder="Search ClawHub..."
+                            style="width:100%; height:32px; border-radius:16px; border:1px solid rgba(0,0,0,0.1); padding:0 12px 0 32px; font-size:13px; background:rgba(255,255,255,0.7); outline:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round"
+                            style="position:absolute; left:10px; top:8px; width:14px; height:14px;">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div id="oc-scroll-area" style="flex:1; overflow-y:auto; padding:20px;">
+                <!-- Local Skills Grid -->
+                <div id="oc-grid-local"
+                    style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
+                        Loading local skills...</div>
+                </div>
+
+                <!-- ClawHub Grid -->
+                <div id="oc-grid-hub"
+                    style="display:none; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+                    <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">
+                        Search for skills above to discover new capabilities.</div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <!-- App Store Template -->
     <template id="tpl-store">
         <div class="os-store-root"
@@ -3729,6 +3778,13 @@
                 icon: '🔀',
                 type: 'app',
                 action: () => openFlowApp()
+            },
+            'openclaw': {
+                id: 'openclaw',
+                name: 'OpenClaw',
+                icon: '🦅',
+                type: 'app',
+                action: () => openOpenClawApp()
             },
             'store': {
                 id: 'store',
@@ -4271,7 +4327,8 @@
         // Outline SVG icon set for the dock
         const DOCK_SVG = {
             'chat': `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-            'flow': `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+            'openclaw': `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+            'flow': `<svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>`,
             'draw': `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
             'video': `<svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
             'model-manager': `<svg viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z"/></svg>`,
@@ -4306,6 +4363,7 @@
         const NAV_ITEMS = [
             { id: 'home', label: 'Home', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>', appId: null },
             { id: 'chat', label: 'Chat', icon: DOCK_SVG.chat, appId: 'chat' },
+            { id: 'openclaw', label: 'OpenClaw', icon: DOCK_SVG.openclaw, appId: 'openclaw' },
             { id: 'projects', label: 'Projects', icon: DOCK_SVG.flow, appId: 'flow' },
             { id: 'memory', label: 'Memory', icon: DOCK_SVG.history, appId: 'history' },
             { id: 'agents', label: 'Agents', icon: DOCK_SVG.eval, appId: 'eval' },
@@ -5833,6 +5891,9 @@
                         <img src="" style="width:100%; height:auto; display:block;" />
                     </div>
 
+                    <!-- Output Text Display (Hidden initially) -->
+                    <div class="node-text-output" style="display:none; width:100%; max-height:80px; margin-bottom:10px; border-radius:6px; overflow-y:auto; background:#F5F5F7; border:1px solid rgba(0,0,0,0.08); padding:4px; box-sizing:border-box; font-size:10px; font-family:monospace; color:#1D1D1F; font-weight:normal; line-height:1.2; word-break:break-word; pointer-events:auto;"></div>
+
                     <!-- Ports wrapper -->
                     <div style="width:100%; position:relative; height:12px; margin-top:auto;">
                         <!-- In Port -->
@@ -5872,6 +5933,12 @@
                         e.stopPropagation();
                         deleteNode(data.id);
                     };
+                }
+
+                // Stop drag on text box so users can scroll
+                const textBox = el.querySelector('.node-text-output');
+                if (textBox) {
+                    textBox.onmousedown = (e) => e.stopPropagation();
                 }
 
                 // Node Selection & Dragging
@@ -6221,7 +6288,7 @@
                                 currEl.style.borderColor = 'rgba(0,0,0,0.08)';
                             }
 
-                            // Update node output + image preview
+                            // Update node output + preview boxes
                             const node = nodes.find(n => n.id === taskId);
                             if (node && task.output) {
                                 node.lastOutput = task.output;
@@ -6231,6 +6298,12 @@
                                     if (imgContainer && img) {
                                         img.src = task.output;
                                         imgContainer.style.display = 'block';
+                                    }
+                                } else {
+                                    const textContainer = currEl.querySelector('.node-text-output');
+                                    if (textContainer) {
+                                        textContainer.textContent = task.output;
+                                        textContainer.style.display = 'block';
                                     }
                                 }
                                 if (activeNodeId === taskId) {
@@ -6296,6 +6369,181 @@
                 subtitle: 'Compose agents and tools into a reusable workflow.',
                 toolbarLeftHTML: '',
                 toolbarRightHTML: '',
+                splitDefault: false
+            });
+        }
+
+
+        // --- OpenClaw App Logic ---
+        async function openOpenClawApp() {
+            const body = createWindow('OpenClaw Skills', 'openclaw', 700, 550);
+            if (!body) return;
+            body.innerHTML = document.getElementById('app-openclaw-tpl').innerHTML;
+
+            const tabLocal = body.querySelector('#oc-tab-local');
+            const tabHub = body.querySelector('#oc-tab-hub');
+            const gridLocal = body.querySelector('#oc-grid-local');
+            const gridHub = body.querySelector('#oc-grid-hub');
+            const searchContainer = body.querySelector('#oc-search-container');
+            const searchInput = body.querySelector('#oc-search-input');
+
+            // Tab Switching Logic
+            tabLocal.onclick = () => {
+                tabLocal.classList.add('active');
+                tabLocal.style.borderBottom = '2px solid var(--accent)';
+                tabLocal.style.color = 'var(--text)';
+                tabLocal.style.fontWeight = '600';
+
+                tabHub.classList.remove('active');
+                tabHub.style.borderBottom = 'none';
+                tabHub.style.color = 'var(--muted)';
+                tabHub.style.fontWeight = '500';
+
+                gridLocal.style.display = 'grid';
+                gridHub.style.display = 'none';
+                searchContainer.style.display = 'none';
+            };
+
+            tabHub.onclick = () => {
+                tabHub.classList.add('active');
+                tabHub.style.borderBottom = '2px solid var(--accent)';
+                tabHub.style.color = 'var(--text)';
+                tabHub.style.fontWeight = '600';
+
+                tabLocal.classList.remove('active');
+                tabLocal.style.borderBottom = 'none';
+                tabLocal.style.color = 'var(--muted)';
+                tabLocal.style.fontWeight = '500';
+
+                gridHub.style.display = 'grid';
+                gridLocal.style.display = 'none';
+                searchContainer.style.display = 'block';
+
+                // Trigger an initial search if empty
+                if (gridHub.children.length === 1 && gridHub.children[0].textContent.includes('Search for skills')) {
+                    fetchClawHubSkills('');
+                }
+            };
+
+            function createSkillCard(skill, isLocal) {
+                const card = document.createElement('div');
+                card.className = 'os-card';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '8px';
+                card.style.padding = 'var(--pad-card)';
+                card.style.background = 'var(--glass-strong)';
+                card.style.border = '1px solid var(--glass-border-soft)';
+                card.style.borderRadius = 'var(--radius-card)';
+
+                const titleRow = document.createElement('div');
+                titleRow.style.display = 'flex';
+                titleRow.style.justifyContent = 'space-between';
+                titleRow.style.alignItems = 'center';
+
+                const title = document.createElement('h4');
+                title.textContent = skill.name || 'Unnamed Skill';
+                title.style.margin = '0';
+                title.style.fontSize = '15px';
+                titleRow.appendChild(title);
+
+                if (!isLocal && skill.metadata?.downloads) {
+                    const dlBadge = document.createElement('span');
+                    dlBadge.style.fontSize = '11px';
+                    dlBadge.style.background = 'rgba(0,0,0,0.05)';
+                    dlBadge.style.padding = '2px 6px';
+                    dlBadge.style.borderRadius = '10px';
+                    dlBadge.style.color = 'var(--muted)';
+                    dlBadge.textContent = `↓ ${skill.metadata.downloads}`;
+                    titleRow.appendChild(dlBadge);
+                }
+
+                const desc = document.createElement('p');
+                desc.textContent = skill.description || 'No description provided.';
+                desc.style.margin = '0';
+                desc.style.fontSize = '13px';
+                desc.style.color = 'var(--muted)';
+                desc.style.flex = '1';
+
+                card.appendChild(titleRow);
+                card.appendChild(desc);
+
+                if (!isLocal) {
+                    const actionRow = document.createElement('div');
+                    actionRow.style.marginTop = '10px';
+                    actionRow.style.display = 'flex';
+                    actionRow.style.justifyContent = 'flex-end';
+
+                    const installBtn = document.createElement('button');
+                    installBtn.className = 'os-button';
+                    installBtn.textContent = 'Install';
+                    installBtn.style.padding = '6px 14px';
+                    installBtn.style.fontSize = '12px';
+                    installBtn.style.background = 'var(--glass)';
+                    installBtn.style.border = '1px solid var(--glass-border)';
+                    installBtn.style.borderRadius = 'var(--radius-pill)';
+                    installBtn.style.cursor = 'pointer';
+                    installBtn.onclick = () => { alert(`Installing ${skill.name} from ClawHub is coming soon!`) };
+
+                    actionRow.appendChild(installBtn);
+                    card.appendChild(actionRow);
+                }
+
+                return card;
+            }
+
+            // Fetch Local Skills
+            async function fetchLocalSkills() {
+                try {
+                    const res = await fetch('/api/skills');
+                    const skills = await res.json();
+                    gridLocal.innerHTML = '';
+                    if (skills.length === 0) {
+                        gridLocal.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">No local skills found in storage/skills.</div>';
+                        return;
+                    }
+                    skills.forEach(skill => {
+                        gridLocal.appendChild(createSkillCard(skill, true));
+                    });
+                } catch (e) {
+                    gridLocal.innerHTML = `<div style="grid-column:1/-1; color:var(--bad); font-size:13px;">Error loading local skills: ${e.message}</div>`;
+                }
+            }
+
+            let searchTimeout;
+            async function fetchClawHubSkills(query) {
+                try {
+                    gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">Searching ClawHub...</div>';
+                    const res = await fetch(`/api/clawhub/search?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    gridHub.innerHTML = '';
+                    if (!data.results || data.results.length === 0) {
+                        gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">No skills found on ClawHub.</div>';
+                        return;
+                    }
+                    data.results.forEach(skill => {
+                        gridHub.appendChild(createSkillCard(skill, false));
+                    });
+                } catch (e) {
+                    gridHub.innerHTML = `<div style="grid-column:1/-1; color:var(--bad); font-size:13px;">Error reaching ClawHub: ${e.message}</div>`;
+                }
+            }
+
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    fetchClawHubSkills(e.target.value);
+                }, 400);
+            });
+
+            // Init data
+            fetchLocalSkills();
+
+            wrapAppInteriorSkeleton(body, {
+                title: 'OpenClaw Skills',
+                subtitle: 'Manage local agent skills and discover community integrations.',
+                toolbarLeftHTML: '',
+                toolbarRightHTML: '<button class="os-button" style="padding:4px 12px; font-size:12px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-border-soft);" onclick="fetchLocalSkills()">Refresh</button>',
                 splitDefault: false
             });
         }

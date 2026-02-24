@@ -14,6 +14,7 @@ import { ContextManager } from './kernel/memory';
 import { AgentScheduler } from './kernel/scheduler';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
+import { SkillLoader } from './kernel/skill_loader';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
@@ -47,6 +48,7 @@ export class Server {
     private registry: PromptRegistry;
     private tools: ToolRegistry;
     private firewall: AIFirewall;
+    private skillLoader: SkillLoader;
     private journal?: ExecutionJournal;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -63,6 +65,7 @@ export class Server {
         this.registry = registry;
         this.tools = tools;
         this.firewall = firewall;
+        this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
         this.configureRoutes();
     }
@@ -273,6 +276,39 @@ export class Server {
             res.json(declarations);
         });
 
+        // OpenClaw Skills Endpoint (Local)
+        this.app.get('/api/skills', (req, res) => {
+            try {
+                // Return structured SkillLoader data to frontend
+                const activeSkills = this.skillLoader.loadSkills();
+                res.json(activeSkills);
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // OpenClaw ClawHub Search Endpoint (Simulated)
+        this.app.get('/api/clawhub/search', async (req, res) => {
+            try {
+                const query = req.query.q as string || '';
+                // Simulating network delay to ClawHub registry
+                await new Promise(resolve => setTimeout(resolve, 600));
+
+                const mockClawHubSkills = [
+                    { name: 'github_pr', description: 'Creates pull requests automatically.', metadata: { author: '@clawhub', downloads: 1240 } },
+                    { name: 'docker_deploy', description: 'Deploys current workspace to a local docker daemon.', metadata: { author: '@openclaw', downloads: 3500 } },
+                    { name: 'weather_alert', description: 'Scrapes local weather and alerts if raining.', metadata: { author: '@community', downloads: 820 } },
+                    { name: 'code_reviewer', description: 'Reads codebase and suggests architectural improvements.', metadata: { author: '@ai_agent', downloads: 5410 } },
+                ];
+
+                const filtered = mockClawHubSkills.filter(s => s.name.toLowerCase().includes(query.toLowerCase()) || s.description.toLowerCase().includes(query.toLowerCase()));
+
+                res.json({ results: filtered });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Smart Search App Endpoint (SSE)
         this.app.get('/api/apps/search', async (req, res) => {
             const query = req.query.q as string;
@@ -399,9 +435,12 @@ export class Server {
 
                 const superContext = [retrieved, retrievedRags].filter(c => c.trim().length > 0).join('\n');
 
+                const openClawSkills = this.skillLoader.getFormattedSkillContext();
+
                 const promptData = this.registry.format('agent_chat', 'default_response', {
                     retrievedContext: superContext,
-                    memoryContext: context
+                    memoryContext: context,
+                    activeSkills: openClawSkills
                 });
 
                 // 3. Route

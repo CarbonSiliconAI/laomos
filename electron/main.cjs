@@ -8,7 +8,7 @@ const { spawn } = require('child_process');
 const http = require('http');
 
 const log = require('electron-log/main');
-const { autoUpdater } = require('electron-updater');
+// AutoUpdater is initialized when app is ready
 
 const PORT = parseInt(process.env.PORT || '3123', 10);
 let serverProcess = null;
@@ -47,6 +47,7 @@ function setUpdateChannel(channel) {
 }
 
 function applyChannelToUpdater() {
+  if (!autoUpdater) return;
   const ch = getUpdateChannel();
   if (ch === 'beta') {
     autoUpdater.channel = 'beta';
@@ -64,50 +65,56 @@ function sendToRenderer(channel, ...args) {
   }
 }
 
-// --- Auto Updater config ---
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.logger = log;
-applyChannelToUpdater();
+let autoUpdater;
 
-autoUpdater.on('checking-for-update', () => {
-  log.info('[updater] checking-for-update');
-  sendToRenderer('update:checking');
-});
+function setupUpdater() {
+  autoUpdater = require('electron-updater').autoUpdater;
 
-autoUpdater.on('update-available', (info) => {
-  log.info('[updater] update-available', info.version);
-  sendToRenderer('update:available', {
-    version: info.version,
-    releaseNotes: (info.releaseNotes && typeof info.releaseNotes === 'string')
-      ? info.releaseNotes
-      : (Array.isArray(info.releaseNotes) ? info.releaseNotes.join('\n') : ''),
+  // --- Auto Updater config ---
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.logger = log;
+  applyChannelToUpdater();
+
+  autoUpdater.on('checking-for-update', () => {
+    log.info('[updater] checking-for-update');
+    sendToRenderer('update:checking');
   });
-});
 
-autoUpdater.on('update-not-available', () => {
-  log.info('[updater] update-not-available');
-  sendToRenderer('update:not-available');
-});
-
-autoUpdater.on('download-progress', (progress) => {
-  sendToRenderer('update:download-progress', {
-    percent: progress.percent,
-    bytesPerSecond: progress.bytesPerSecond,
-    transferred: progress.transferred,
-    total: progress.total,
+  autoUpdater.on('update-available', (info) => {
+    log.info('[updater] update-available', info.version);
+    sendToRenderer('update:available', {
+      version: info.version,
+      releaseNotes: (info.releaseNotes && typeof info.releaseNotes === 'string')
+        ? info.releaseNotes
+        : (Array.isArray(info.releaseNotes) ? info.releaseNotes.join('\n') : ''),
+    });
   });
-});
 
-autoUpdater.on('update-downloaded', () => {
-  log.info('[updater] update-downloaded');
-  sendToRenderer('update:downloaded');
-});
+  autoUpdater.on('update-not-available', () => {
+    log.info('[updater] update-not-available');
+    sendToRenderer('update:not-available');
+  });
 
-autoUpdater.on('error', (err) => {
-  log.error('[updater] error', err);
-  sendToRenderer('update:error', err ? err.message : 'Unknown error');
-});
+  autoUpdater.on('download-progress', (progress) => {
+    sendToRenderer('update:download-progress', {
+      percent: progress.percent,
+      bytesPerSecond: progress.bytesPerSecond,
+      transferred: progress.transferred,
+      total: progress.total,
+    });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    log.info('[updater] update-downloaded');
+    sendToRenderer('update:downloaded');
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error('[updater] error', err);
+    sendToRenderer('update:error', err ? err.message : 'Unknown error');
+  });
+}
 
 // --- IPC handlers ---
 ipcMain.handle('updater:getAppVersion', () => app.getVersion());
@@ -121,6 +128,7 @@ ipcMain.handle('updater:setChannel', (_e, channel) => {
 });
 ipcMain.handle('updater:checkForUpdates', async () => {
   try {
+    if (!autoUpdater) return { ok: false };
     await autoUpdater.checkForUpdates();
     return { ok: true };
   } catch (err) {
@@ -131,6 +139,7 @@ ipcMain.handle('updater:checkForUpdates', async () => {
 });
 ipcMain.handle('updater:downloadUpdate', async () => {
   try {
+    if (!autoUpdater) return { ok: false };
     await autoUpdater.downloadUpdate();
     return { ok: true };
   } catch (err) {
@@ -140,7 +149,7 @@ ipcMain.handle('updater:downloadUpdate', async () => {
   }
 });
 ipcMain.handle('updater:quitAndInstall', () => {
-  autoUpdater.quitAndInstall(false, true);
+  if (autoUpdater) autoUpdater.quitAndInstall(false, true);
 });
 
 // --- Server ---
@@ -227,6 +236,7 @@ function killServer() {
 }
 
 app.whenReady().then(async () => {
+  setupUpdater();
   await startServer();
   await waitForServer();
   createWindow();
