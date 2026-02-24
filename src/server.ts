@@ -226,6 +226,20 @@ export class Server {
             }
         });
 
+        // API Endpoint to serve raw files (Images/PDFs)
+        this.app.get('/api/files/raw', async (req, res) => {
+            const filePath = req.query.path as string;
+            if (!filePath) {
+                return res.status(400).json({ error: 'Path is required' });
+            }
+            try {
+                const safePath = this.fsManager.resolvePath(filePath);
+                res.sendFile(safePath);
+            } catch (error) {
+                res.status(403).json({ error: (error as Error).message });
+            }
+        });
+
         // API Endpoint to create file
         // express.json() is already applied at top
         this.app.post('/api/files/create', async (req, res) => {

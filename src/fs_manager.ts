@@ -61,19 +61,20 @@ export class FileSystemManager {
         }));
     }
 
-    async readFile(filePath: string): Promise<string> {
+    resolvePath(filePath: string): string {
         const safePath = path.resolve(filePath);
         if (!safePath.startsWith(path.resolve(this.rootDir))) {
             throw new Error('Access denied');
         }
-        return await fs.readFile(safePath, 'utf-8');
+        return safePath;
+    }
+
+    async readFile(filePath: string): Promise<string> {
+        return await fs.readFile(this.resolvePath(filePath), 'utf-8');
     }
 
     async createFile(filePath: string, content: string): Promise<void> {
-        const safePath = path.resolve(filePath);
-        if (!safePath.startsWith(path.resolve(this.rootDir))) {
-            throw new Error('Access denied');
-        }
+        const safePath = this.resolvePath(filePath);
         await fs.ensureFile(safePath);
         await fs.writeFile(safePath, content, 'utf-8');
     }
