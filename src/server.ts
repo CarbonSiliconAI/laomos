@@ -318,8 +318,22 @@ export class Server {
                 // Let ModelRouter infer complexity and execute
                 const result = await this.modelRouter.routeChat(executionPrompt);
 
+                let finalResponse = result.response;
+
+                // Simple interceptor for file saving skills
+                const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+                let match;
+                while ((match = saveFileRegex.exec(result.response)) !== null) {
+                    const filePath = match[1];
+                    const content = match[2];
+                    const fullPath = `personal/${filePath}`;
+                    await this.fsManager.createFile(fullPath, content.trim());
+                    console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
+                    finalResponse = finalResponse.replace(match[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                }
+
                 res.json({
-                    response: result.response,
+                    response: finalResponse,
                     level: result.level,
                     providerUsed: result.providerUsed
                 });

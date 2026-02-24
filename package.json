@@ -85,6 +85,7 @@
     }
   },
   "optionalDependencies": {
-    "@lancedb/vectordb-darwin-arm64": "^0.21.2"
+    "@lancedb/vectordb-darwin-arm64": "^0.21.2",
+    "@lancedb/vectordb-win32-x64-msvc": "^0.21.2"
   }
 }

@@ -62,9 +62,10 @@ export class FileSystemManager {
     }
 
     resolvePath(filePath: string): string {
-        const safePath = path.resolve(filePath);
+        // Resolve relative to the storage rootDir
+        const safePath = path.resolve(this.rootDir, filePath);
         if (!safePath.startsWith(path.resolve(this.rootDir))) {
-            throw new Error('Access denied');
+            throw new Error('Access denied: Path is outside allowed storage directory');
         }
         return safePath;
     }
