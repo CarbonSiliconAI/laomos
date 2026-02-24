@@ -14,6 +14,8 @@ Agent OS is a simulated AI-powered Operating System running as a Node.js applica
 
 ## System Architecture
 
+![Agent OS Architecture](public/AIOS_design.png)
+
 The "Kernel" of Agent OS handles complex background tasks and state management:
 
 - **Model Router:** Intelligently evaluates prompt complexity and routes requests to the most appropriate model (e.g., Local Ollama for simple tasks, Claude 3.5 Sonnet or GPT-4o for complex tasks), with automatic fallback mechanisms.
@@ -21,6 +23,9 @@ The "Kernel" of Agent OS handles complex background tasks and state management:
 - **Agent Scheduler:** An asynchronous job queue that handles the execution of AI Flow graphs. It manages task dependencies, yields execution to prevent blocking, and saves JSON checkpoints to `.aos_state` to allow recovery.
 - **Tool Registry:** Standardizes tools across the OS, providing an interface for apps to declare parameters and requirements for LLM function calling.
 - **File System Manager:** Simulates an OS file system (`storage/system`, `storage/personal`) for reading/writing configurations, images, and user data.
+- **VectorDB:** Serves as the long-term memory backend, providing dense vector search capabilities (e.g., LanceDB) for context retrieval and semantic understanding across user sessions and system data.
+- **OpenClaw Skills:** Extensions that provide specialized capabilities to the AI Orchestration Kernel, enabling it to perform specific actions and connect to third-party services.
+- **App Store & Developer:** A platform ecosystem that allows developers to create, publish, and distribute Native AI Apps and skills, which users can dynamically install to enhance their desktop environment.
 
 ### Security Model & Safety Integrations
 
@@ -60,8 +65,8 @@ npx ts-node src/index.ts
 ```
 
 Then, open your web browser and navigate to:
-```
-```
+
+```text
 http://localhost:3123
 ```
 
