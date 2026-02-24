@@ -23,9 +23,6 @@ The "Kernel" of Agent OS handles complex background tasks and state management:
 - **Agent Scheduler:** An asynchronous job queue that handles the execution of AI Flow graphs. It manages task dependencies, yields execution to prevent blocking, and saves JSON checkpoints to `.aos_state` to allow recovery.
 - **Tool Registry:** Standardizes tools across the OS, providing an interface for apps to declare parameters and requirements for LLM function calling.
 - **File System Manager:** Simulates an OS file system (`storage/system`, `storage/personal`) for reading/writing configurations, images, and user data.
-- **VectorDB:** Serves as the long-term memory backend, providing dense vector search capabilities (e.g., LanceDB) for context retrieval and semantic understanding across user sessions and system data.
-- **OpenClaw Skills:** Extensions that provide specialized capabilities to the AI Orchestration Kernel, enabling it to perform specific actions and connect to third-party services.
-- **App Store & Developer:** A platform ecosystem that allows developers to create, publish, and distribute Native AI Apps and skills, which users can dynamically install to enhance their desktop environment.
 
 ### Security Model & Safety Integrations
 
@@ -40,6 +37,22 @@ Because Agent OS allows third-party (or LLM-generated) agents (Native AI Apps an
 3. **System Firewall:** Acts as a strict boundary between the Orchestration Kernel and the Internet. All inbound and outbound traffic, including network requests initiated by running agents or LLMs, must pass through the firewall to prevent unauthorized data exfiltration or malicious connections.
 
 By combining the **Security Manager**, **Inspector**, and **Firewall**, Agent OS guarantees that plugins from the App Store and custom skills operate within a tightly controlled and user-approved safe environment.
+
+
+### VectorDB (Long-Term Memory)
+
+Serving as the system's long-term memory backend, **VectorDB** provides dense vector search capabilities (powered by LanceDB) for context retrieval and semantic understanding across user sessions and system data. The `ContextManager` uses a hierarchical caching strategy:
+- L1 cache holds recent interactions in memory.
+- L2 cache uses LLMs to periodically summarize conversation history.
+- When token thresholds are exceeded, older interactions are compressed and swapped to LanceDB (`.aos_vectors`), ensuring deep conversational history is available without overwhelming the context window of running models.
+
+### OpenClaw Skills (Extensions)
+
+**OpenClaw Skills** act as specialized capabilities that extend the AI Orchestration Kernel, enabling it to perform specific actions and connect to third-party services. Managed by the `SkillLoader`, these skills are dynamically loaded from `SKILL.md` files located in the `storage/skills` directory. The loader parses the metadata and instructions, injecting these explicitly into the LLM context to ensure strict adherence to required procedures and formats.
+
+### App Store & Developer Platform
+
+The **App Store** is a platform ecosystem that allows developers to create, publish, and distribute Native AI Apps and complex workflows. Users can dynamically install these extensions directly to their desktop environment. Because they run alongside the central Kernel, all App Store installations and third-party interactions are subject to strict oversight by the system's security and firewall protections.
 
 ## Getting Started
 
