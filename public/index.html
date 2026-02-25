@@ -6692,19 +6692,25 @@
             let searchTimeout;
             async function fetchClawHubSkills(query) {
                 try {
-                    gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">Searching ClawHub...</div>';
+                    gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:14px;">Searching ClawHub…</div>';
                     const res = await fetch(`/api/clawhub/search?q=${encodeURIComponent(query)}`);
                     const data = await res.json();
                     gridHub.innerHTML = '';
+
+                    // 503 = registry offline
+                    if (res.status === 503 || data.error) {
+                        gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">ClawHub registry is currently unreachable.<br><span style="font-size:11px;opacity:0.6;">Skills can still be installed locally.</span></div>';
+                        return;
+                    }
                     if (!data.results || data.results.length === 0) {
-                        gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--muted); font-size:14px;">No skills found on ClawHub.</div>';
+                        gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:14px;">No skills found on ClawHub.</div>';
                         return;
                     }
                     data.results.forEach(skill => {
                         gridHub.appendChild(createSkillCard(skill, false));
                     });
                 } catch (e) {
-                    gridHub.innerHTML = `<div style="grid-column:1/-1; color:var(--bad); font-size:13px;">Error reaching ClawHub: ${e.message}</div>`;
+                    gridHub.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">ClawHub registry is currently unreachable.</div>';
                 }
             }
 
