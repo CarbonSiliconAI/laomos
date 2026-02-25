@@ -1,6 +1,6 @@
 {
-  "name": "aos",
-  "version": "1.0.2",
+  "name": "laomos",
+  "version": "2.0.1",
   "description": "AIOS Desktop",
   "main": "electron/main.cjs",
   "scripts": {
@@ -23,6 +23,7 @@
     "@types/express": "^5.0.6",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.2.3",
+    "adm-zip": "^0.5.16",
     "apache-arrow": "^14.0.2",
     "axios": "^1.13.5",
     "better-sqlite3": "^12.6.2",
@@ -38,6 +39,7 @@
     "yauzl": "^3.2.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/yauzl": "^2.10.3",
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1"
