@@ -401,8 +401,12 @@ export class Server {
                                 const buffer = Buffer.from(await zipResponse.arrayBuffer());
                                 markdownContent = await extractSkillMdFromZip(buffer);
                             }
-                        } catch (e) {
-                            console.error(`[ClawHub] Failed to fetch zip for ${slug}:`, e);
+                        } catch (e: any) {
+                            // Silently skip — registry unreachable (offline / DNS failure)
+                            const code = e?.cause?.code ?? e?.code ?? '';
+                            if (code !== 'ENOTFOUND' && code !== 'ECONNREFUSED') {
+                                console.warn(`[ClawHub] Could not fetch zip for ${slug}: ${e.message}`);
+                            }
                         }
                     }
 
@@ -420,8 +424,13 @@ export class Server {
 
                 res.json({ results: formattedSkills });
             } catch (error: any) {
-                console.error('[ClawHub Search Error]', error);
-                res.status(500).json({ error: error.message });
+                const code = error?.cause?.code ?? error?.code ?? '';
+                if (code === 'ENOTFOUND' || code === 'ECONNREFUSED') {
+                    console.warn('[ClawHub] Registry unreachable (offline).');
+                } else {
+                    console.error('[ClawHub Search Error]', error.message);
+                }
+                res.status(503).json({ error: 'ClawHub registry is unavailable.' });
             }
         });
 

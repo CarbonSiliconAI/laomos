@@ -153,7 +153,7 @@ ipcMain.handle('updater:quitAndInstall', () => {
 });
 
 // --- Server ---
-function waitForServer(maxMs = 5000) {
+function waitForServer(maxMs = 20000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     function tryReq() {
@@ -203,8 +203,10 @@ function startServer() {
     serverProcess.stdout.on('data', (d) => process.stdout.write(d));
     serverProcess.stderr.on('data', (d) => process.stderr.write(d));
     serverProcess.on('error', reject);
-    serverProcess.on('exit', (code) => {
-      if (code !== null && code !== 0) reject(new Error(`Server exited ${code}`));
+    serverProcess.on('exit', (code, signal) => {
+      if (code !== null && code !== 0) {
+        log.warn('[server] Process exited with code', code, signal || '');
+      }
     });
     resolve();
   });
@@ -238,8 +240,13 @@ function killServer() {
 app.whenReady().then(async () => {
   setupUpdater();
   await startServer();
-  await waitForServer();
-  createWindow();
+  try {
+    await waitForServer();
+    createWindow();
+  } catch (err) {
+    log.error('[main]', err.message);
+    app.quit();
+  }
 });
 
 app.on('window-all-closed', () => {
