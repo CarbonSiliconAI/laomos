@@ -200,13 +200,14 @@ function startServer() {
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    serverProcess.stdout.on('data', (d) => process.stdout.write(d));
-    serverProcess.stderr.on('data', (d) => process.stderr.write(d));
-    serverProcess.on('error', reject);
+    serverProcess.stdout.on('data', (d) => log.info('[server]', d.toString().trimEnd()));
+    serverProcess.stderr.on('data', (d) => log.error('[server]', d.toString().trimEnd()));
+    serverProcess.on('error', (err) => {
+      log.error('[server] spawn error', err.message);
+      reject(err);
+    });
     serverProcess.on('exit', (code, signal) => {
-      if (code !== null && code !== 0) {
-        log.warn('[server] Process exited with code', code, signal || '');
-      }
+      log.warn('[server] process exited', { code, signal });
     });
     resolve();
   });
