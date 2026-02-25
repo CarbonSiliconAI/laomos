@@ -49,13 +49,13 @@
       "output": "release"
     },
     "files": [
-      "dist/**",
-      "public/**",
-      "electron/**",
+      "dist{,/**/*}",
+      "public{,/**/*}",
+      "electron{,/**/*}",
       "package.json"
     ],
     "asarUnpack": [
-      "dist/**"
+      "dist{,/**/*}"
     ],
     "publish": [
       {
