@@ -3,6 +3,7 @@ import axios from 'axios';
 import { exec, spawn } from 'child_process';
 import util from 'util';
 import os from 'os';
+import path from 'path';
 
 const execAsync = util.promisify(exec);
 
@@ -27,10 +28,24 @@ export class OllamaManager {
 
         console.log('[Ollama] Starting service...');
         try {
-            // This is a basic attempt to start ollama. It assumes 'ollama' is in the PATH.
-            // Using nohup to keep it running might be needed, or just spawning it.
-            // For a simulation, we'll try a simple spawn.
-            const { stdout, stderr } = await execAsync('ollama serve > /dev/null 2>&1 &');
+            // Include common brew/local bin paths in case the app doesn't inherit the full shell shell PATH
+            let envPath = process.env.PATH || '';
+            let command = 'ollama serve > /dev/null 2>&1 &';
+
+            if (os.platform() === 'win32') {
+                // Windows: Use start /B to run in background without blocking, and throw output to NUL
+                command = 'start /B ollama serve > NUL 2>&1';
+                // Windows typically has Ollama in AppData\Local\Programs\Ollama
+                const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+                const winOllamaPath = path.join(localAppData, 'Programs', 'Ollama');
+                envPath = `${envPath};${winOllamaPath}`;
+            } else {
+                // macOS/Linux: append common brew/local paths
+                envPath = `${envPath}:/usr/local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/bin:/usr/bin`;
+            }
+
+            const env = { ...process.env, PATH: envPath };
+            const { stdout, stderr } = await execAsync(command, { env });
             // Give it a moment to potentially start
             await new Promise(resolve => setTimeout(resolve, 2000));
 
