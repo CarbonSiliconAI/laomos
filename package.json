@@ -39,8 +39,8 @@
   },
   "devDependencies": {
     "@types/yauzl": "^2.10.3",
-    "electron": "^33.4.11",
-    "electron-builder": "^25.1.8"
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.aios.desktop",
