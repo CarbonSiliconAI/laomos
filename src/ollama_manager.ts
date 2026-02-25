@@ -45,9 +45,14 @@ export class OllamaManager {
     }
 
     async listModels(): Promise<string[]> {
-        if (!await this.checkStatus()) {
-            console.warn('[Ollama] Service not running. Cannot list models.');
-            return [];
+        let isRunning = await this.checkStatus();
+        if (!isRunning) {
+            console.warn('[Ollama] Service not running. Attempting to start...');
+            await this.ensureService();
+            isRunning = await this.checkStatus();
+            if (!isRunning) {
+                return [];
+            }
         }
 
         try {
@@ -63,8 +68,14 @@ export class OllamaManager {
     }
 
     async chat(model: string, messages: any[]): Promise<any> {
-        if (!await this.checkStatus()) {
-            throw new Error('Ollama service not running');
+        let isRunning = await this.checkStatus();
+        if (!isRunning) {
+            console.log('[Ollama] Service is not running. Attempting to start...');
+            await this.ensureService();
+            isRunning = await this.checkStatus();
+            if (!isRunning) {
+                throw new Error('Ollama service failed to start automatically.');
+            }
         }
 
         try {
@@ -83,8 +94,14 @@ export class OllamaManager {
     async pullModel(model: string): Promise<any> {
         // We use axios to trigger the pull via API if possible, or exec CLI
         // Ollama API has a /api/pull endpoint
-        if (!await this.checkStatus()) {
-            throw new Error('Ollama service not running');
+        let isRunning = await this.checkStatus();
+        if (!isRunning) {
+            console.log('[Ollama] Service is not running. Attempting to start...');
+            await this.ensureService();
+            isRunning = await this.checkStatus();
+            if (!isRunning) {
+                throw new Error('Ollama service failed to start automatically.');
+            }
         }
 
         try {

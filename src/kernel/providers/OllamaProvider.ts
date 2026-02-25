@@ -13,9 +13,14 @@ export class OllamaProvider implements ModelProvider {
     }
 
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
-        const isRunning = await this.manager.checkStatus();
+        let isRunning = await this.manager.checkStatus();
         if (!isRunning) {
-            throw new Error('Ollama service is not running.');
+            console.log('[OllamaProvider] Service is not running. Attempting to start...');
+            await this.manager.ensureService();
+            isRunning = await this.manager.checkStatus();
+            if (!isRunning) {
+                throw new Error('Ollama service failed to start automatically.');
+            }
         }
 
         try {
