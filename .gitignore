@@ -11,3 +11,4 @@ storage/personal/
 storage/Docs/
 storage/Rags/
 storage/system/keys.json
+.DS_Store
