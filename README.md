@@ -1,6 +1,6 @@
-# Agent OS (AOS)
+# LaoMOS
 
-Agent OS is a simulated AI-powered Operating System running as a Node.js application. It provides a web-based "desktop" environment where users can manage files, interact with local and cloud-based Large Language Models (LLMs), dynamically install Agent Apps, and build visual agent workflows.
+LaoMOS is a simulated AI-powered Operating System running as a Node.js application. It provides a web-based "desktop" environment where users can manage files, interact with local and cloud-based Large Language Models (LLMs), dynamically install Agent Apps, and build visual agent workflows.
 
 ## Features
 
@@ -20,7 +20,7 @@ The "Kernel" of Agent OS handles complex background tasks and state management:
 
 - **Model Router:** Intelligently evaluates prompt complexity and routes requests to the most appropriate model (e.g., Local Ollama for simple tasks, Claude 3.5 Sonnet or GPT-4o for complex tasks), with automatic fallback mechanisms.
 - **Context Manager:** Manages conversation history using a hierarchical caching system (L1 memory cache, L2 summarization) and a Disk layer powered by vector databases (`vectordb`).
-- **Agent Scheduler:** An asynchronous job queue that handles the execution of AI Flow graphs. It manages task dependencies, yields execution to prevent blocking, and saves JSON checkpoints to `.aos_state` to allow recovery.
+- **Agent Scheduler:** An asynchronous job queue that handles the execution of AI Flow graphs. It manages task dependencies, yields execution to prevent blocking, and saves JSON checkpoints to `.laomos_state` to allow recovery.
 - **Tool Registry:** Standardizes tools across the OS, providing an interface for apps to declare parameters and requirements for LLM function calling.
 - **File System Manager:** Simulates an OS file system (`storage/system`, `storage/personal`) for reading/writing configurations, images, and user data.
 
@@ -44,7 +44,7 @@ By combining the **Security Manager**, **Inspector**, and **Firewall**, Agent OS
 Serving as the system's long-term memory backend, **VectorDB** provides dense vector search capabilities (powered by LanceDB) for context retrieval and semantic understanding across user sessions and system data. The `ContextManager` uses a hierarchical caching strategy:
 - L1 cache holds recent interactions in memory.
 - L2 cache uses LLMs to periodically summarize conversation history.
-- When token thresholds are exceeded, older interactions are compressed and swapped to LanceDB (`.aos_vectors`), ensuring deep conversational history is available without overwhelming the context window of running models.
+- When token thresholds are exceeded, older interactions are compressed and swapped to LanceDB (`.laomos_vectors`), ensuring deep conversational history is available without overwhelming the context window of running models.
 
 ### OpenClaw Skills (Extensions)
 
@@ -77,7 +77,7 @@ If you prefer to run from source:
 
 ### Running the OS
 
-To start the Agent OS simulation, run:
+To start the LaoMOS simulation, run:
 
 ```bash
 npx ts-node src/index.ts

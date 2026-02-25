@@ -1,7 +1,7 @@
 {
-  "name": "aos",
-  "version": "1.0.2",
-  "description": "AIOS Desktop",
+  "name": "laomos",
+  "version": "1.0.3",
+  "description": "LaoMOS Desktop",
   "main": "electron/main.cjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -43,8 +43,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.aios.desktop",
-    "productName": "AIOS",
+    "appId": "com.laomos.desktop",
+    "productName": "LaoMOS",
     "directories": {
       "output": "release"
     },

@@ -5841,18 +5841,16 @@
 
             // Restore from localStorage
             try {
-                const saved = JSON.parse(localStorage.getItem('aos-budget') || '{}');
-                if (saved.maxCostUsdPerRun) { costSlider.value = saved.maxCostUsdPerRun; costLabel.textContent = '$' + parseFloat(saved.maxCostUsdPerRun).toFixed(2); }
-                if (saved.preferredModels?.[0]) provSelect.value = saved.preferredModels[0];
-            } catch (e) { }
+                const saved = JSON.parse(localStorage.getItem('laomos-budget') || '{}');
+                state.maxCostUsdPerRun = saved.maxCostUsdPerRun || 1.00;
+                state.providerCostTolerances = saved.providerCostTolerances || { openai: 1.0, anthropic: 1.0 };
+                updateUI();
+            } catch { }
 
-            async function pushBudget() {
-                const body = {
-                    maxCostUsdPerRun: parseFloat(costSlider.value),
-                    preferredModels: provSelect.value ? [provSelect.value] : [],
-                };
-                localStorage.setItem('aos-budget', JSON.stringify(body));
-                try { await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
+            function save() {
+                const body = { maxCostUsdPerRun: state.maxCostUsdPerRun, providerCostTolerances: state.providerCostTolerances };
+                localStorage.setItem('laomos-budget', JSON.stringify(body));
+                try { fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
             }
 
             costSlider.addEventListener('input', () => {
@@ -7585,9 +7583,9 @@
 
             // Restore toggle
             const cacheToggle = cacheSection.querySelector('#cache-enabled-toggle');
-            cacheToggle.checked = localStorage.getItem('aos-cache-enabled') !== 'false';
+            cacheToggle.checked = localStorage.getItem('laomos-cache-enabled') !== 'false';
             cacheToggle.addEventListener('change', () => {
-                localStorage.setItem('aos-cache-enabled', cacheToggle.checked ? 'true' : 'false');
+                localStorage.setItem('laomos-cache-enabled', cacheToggle.checked ? 'true' : 'false');
             });
 
             // Load cache stats
@@ -7769,7 +7767,7 @@
         //   steps: ExecutionEvent[], total_cost_usd, total_latency_ms,
         //   outcome, snapshot: { nodes, edges }, timestamp }
 
-        const _IDB_NAME = 'aos-journal';
+        const _IDB_NAME = 'laomos-journal';
         const _IDB_VER = 2;
 
         function _openJournalDB() {

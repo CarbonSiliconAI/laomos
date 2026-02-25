@@ -42,3 +42,372 @@ Available Local Models: llama-guard3:latest, qwen2.5:0.5b, llama3.1:latest, qwen
 [ModelRouter] Forwarded User Prompt: Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: lion...
 [Scheduler] Suspending Job job-1771937965427 Task node_3 (display) for I/O...
 [Scheduler] Job job-1771937965427 Completed.
+[Firewall] Scanning Ingress payload with llama-guard3...
+[Firewall] Ingress scanning complete. Verified safe.
+[Scheduler] Suspending Job job-1771946230299 Task node_1 (chat) for I/O...
+[ModelRouter] Extracted System Prompt: ...
+[ModelRouter] Forwarded User Prompt: Act as a professional image prompt designer. Create a descriptive, vivid, and highly detailed image prompt about {TOPIC}. Output ONLY the prompt text, nothing else. Topic: Lion...
+[Firewall] Scanning Egress payload with llama-guard3...
+[Firewall] Egress scanning complete. Verified safe.
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 4 OpenClaw skills.
+[SkillLoader] Returning 4 skills from cache.
+[ClawHub] Failed to fetch zip for self-improving-agent: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 1)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for gog: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 0)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for tavily-search: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 3)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for ontology: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 2)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for summarize: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 4)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for agent-browser: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for find-skills: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 6)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for github: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 7)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for twitter: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 8)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for weather: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 9)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for sonoscli: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 10)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for proactive-agent: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 11)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for byterover: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 12)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for notion: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 14)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for polymarketodds: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 13)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for nano-banana-pro: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 15)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for nano-pdf: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 16)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for api-gateway: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 17)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for obsidian: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 18)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for humanizer: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 19)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for openai-whisper: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 20)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[ClawHub] Failed to fetch zip for free-ride: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13502:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:388:49
+    at async Promise.all (index 21)
+    at async /Users/youbinmo/Develop/aos/dist/server.js:381:41 {
+  [cause]: Error: getaddrinfo ENOTFOUND registry.clawhub.ai
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.clawhub.ai'
+  }
+}
+[Skill Execution] Routing prompt with complexity evaluator...
+[ModelRouter] Extracted System Prompt: [Active OpenClaw Skills]:# Instruction Context
+You are a creative Fiction Writer assistant inside the Agent OS environment. 
+
+# Task
+Your task is to write a short fiction story based on the generic concept or prompt provided by the User Input. 
+
+# File System Output
+Because this OS supports direct file system access via markdown intercepts, you MUST output your final authored story encapsulated inside a special XML tag so that the OS can save it directly to the user's personal drive. 
+
+Generate ...
+[ModelRouter] Forwarded User Prompt: ...
+[Server] Listing files for path: storage/Docs
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/personal
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/skills
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/system
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/public
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/Docs
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 4 OpenClaw skills.
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/personal
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Scheduler] Suspending Job job-1771946230299 Task node_2 (draw) for I/O...
+[Scheduler] Job job-1771946230299 Completed.
+[AnthropicProvider] Error: {
+  type: 'error',
+  error: {
+    type: 'invalid_request_error',
+    message: 'messages.0: user messages must have non-empty content'
+  },
+  request_id: 'req_011CYT8oFjo2BnKUuWdrYcEz'
+}
+Anthropic failed/missing key, falling back to OpenAI... Anthropic Error: messages.0: user messages must have non-empty content
+[Skill Execution] Intercepted file save to: personal/TheRiseOfAIBot.txt
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/personal
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 4 OpenClaw skills.
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage
+[Server] Listing files for path: /Users/youbinmo/Develop/aos/storage/personal
+[SkillLoader] Cache expired or forced refresh. Scanning /Users/youbinmo/Develop/aos/storage/skills...
+[SkillLoader] Scanned /Users/youbinmo/Develop/aos/storage/skills, loaded 4 OpenClaw skills.

@@ -8,7 +8,7 @@ export class ExecutionJournal {
     private db: Database.Database;
 
     constructor(systemDir: string) {
-        const dbDir = path.join(systemDir, '.aos_state');
+        const dbDir = path.join(systemDir, '.laomos_state');
         fs.ensureDirSync(dbDir);
         const dbPath = path.join(dbDir, 'telemetry.db');
         this.db = new Database(dbPath);
@@ -200,10 +200,10 @@ export class ExecutionJournal {
             FROM runs WHERE status = 'completed'
         `).get() as any;
         return {
-            total_runs:     s.total_runs     || 0,
+            total_runs: s.total_runs || 0,
             total_cost_usd: s.total_cost_usd || 0,
             avg_latency_ms: s.avg_latency_ms || 0,
-            avg_rating:     s.avg_rating     || 0,
+            avg_rating: s.avg_rating || 0,
         };
     }
 
@@ -238,13 +238,13 @@ export class ExecutionJournal {
         const s = this.db.prepare(`
             SELECT COUNT(*) AS total_entries, SUM(hit_count) AS total_hits FROM cache
         `).get() as any;
-        const total   = s.total_entries || 0;
-        const hits    = s.total_hits    || 0;
+        const total = s.total_entries || 0;
+        const hits = s.total_hits || 0;
         const lookups = total + hits;
         return {
             total_entries: total,
-            total_hits:    hits,
-            hit_rate_pct:  lookups > 0 ? Math.round((hits / lookups) * 100) : 0,
+            total_hits: hits,
+            hit_rate_pct: lookups > 0 ? Math.round((hits / lookups) * 100) : 0,
         };
     }
 }

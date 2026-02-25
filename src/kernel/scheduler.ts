@@ -43,7 +43,7 @@ export class AgentScheduler {
     private jobCostAccumulator = new Map<string, number>();
 
     constructor(systemDir: string, apiHandlers: any, journal?: ExecutionJournal, budget?: BudgetConstraint) {
-        this.checkPointDir = path.join(systemDir, '.aos_state');
+        this.checkPointDir = path.join(systemDir, '.laomos_state');
         this.apiHandlers = apiHandlers;
         this.journal = journal;
         this.budget = budget;

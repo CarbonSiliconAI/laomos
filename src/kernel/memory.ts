@@ -24,7 +24,7 @@ export class ContextManager {
     private readonly L1_KEEP = 5; // keep last 5 messages when compressing
 
     constructor(systemDir: string, router: ModelRouter, registry: PromptRegistry) {
-        this.dbDir = path.join(systemDir, '.aos_vectors');
+        this.dbDir = path.join(systemDir, '.laomos_vectors');
         this.router = router;
         this.registry = registry;
     }
@@ -187,7 +187,7 @@ export class ContextManager {
 
     // Retrieve from Documents RAG
     public async retrieveFromRags(query: string, limit: number = 3): Promise<string> {
-        // Resolve Rags directory (dbDir is storage/system/.aos_vectors, Rags is storage/Rags)
+        // Resolve Rags directory (dbDir is storage/system/.laomos_vectors, Rags is storage/Rags)
         const ragsDir = path.join(this.dbDir, '../../Rags');
         try {
             await fs.ensureDir(ragsDir);
