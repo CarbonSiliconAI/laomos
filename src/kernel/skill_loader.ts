@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
+import AdmZip from 'adm-zip';
 
 export interface OpenClawSkill {
     name: string;
@@ -26,6 +27,32 @@ export class SkillLoader {
             fs.mkdirSync(this.skillsDir, { recursive: true });
         } else {
             console.log(`[SkillLoader] Using existing skills directory at ${this.skillsDir}`);
+        }
+    }
+
+    /**
+     * Extracts any .zip files found in the skills directory and deletes the archive.
+     */
+    private extractZipFiles(dir: string) {
+        if (!fs.existsSync(dir)) return;
+        
+        const list = fs.readdirSync(dir);
+        for (const file of list) {
+            if (file.toLowerCase().endsWith('.zip')) {
+                const zipPath = path.join(dir, file);
+                const extractFolderName = path.basename(file, path.extname(file));
+                const extractPath = path.join(dir, extractFolderName);
+                
+                try {
+                    console.log(`[SkillLoader] Extracting ${file} to ${extractPath}...`);
+                    const zip = new AdmZip(zipPath);
+                    zip.extractAllTo(extractPath, true);
+                    console.log(`[SkillLoader] Successfully extracted ${file}, deleting archive.`);
+                    fs.unlinkSync(zipPath);
+                } catch (error) {
+                    console.error(`[SkillLoader] Failed to extract ${zipPath}:`, error);
+                }
+            }
         }
     }
 
@@ -62,6 +89,10 @@ export class SkillLoader {
         }
 
         console.log(`[SkillLoader] Cache expired or forced refresh. Scanning ${this.skillsDir}...`);
+        
+        // Auto-extract any new zip files before scanning
+        this.extractZipFiles(this.skillsDir);
+        
         const skillFiles = this.findSkillFiles(this.skillsDir);
         const parsedSkills: OpenClawSkill[] = [];
 
