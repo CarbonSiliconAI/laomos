@@ -85,6 +85,52 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
         console.log(`[ModelRouter] Extracted System Prompt:`, systemContent.substring(0, 500) + '...');
         console.log(`[ModelRouter] Forwarded User Prompt:`, prompt.substring(0, 500) + '...');
 
+
+        let pAnthropic = this.providers.get('anthropic');
+        let pOpenAI = this.providers.get('openai');
+
+        // Use IdentityManager to see if user actually added a key before we blindly send requests
+        let hasAnthropic = false;
+        let hasOpenAI = false;
+
+        if (pAnthropic && (pAnthropic as any).identityManager) {
+            hasAnthropic = !!await (pAnthropic as any).identityManager.getKey('anthropic');
+        }
+        if (pOpenAI && (pOpenAI as any).identityManager) {
+            hasOpenAI = !!await (pOpenAI as any).identityManager.getKey('openai');
+        }
+
+        if (preferredProvider === 'cloud') {
+            if (hasAnthropic) {
+                try {
+                    return {
+                        response: await pAnthropic!.chat(messages),
+                        level: 'cloud-preferred',
+                        providerUsed: 'anthropic'
+                    };
+                } catch (e: any) {
+                    console.warn('Anthropic failed for cloud-preferred, falling back to OpenAI...', e.message);
+                }
+            }
+            if (hasOpenAI) {
+                try {
+                    return {
+                        response: await pOpenAI!.chat(messages),
+                        level: 'cloud-preferred (fallback)',
+                        providerUsed: 'openai'
+                    };
+                } catch (e: any) {
+                    console.warn('OpenAI failed for cloud-preferred, falling back to Local...', e.message);
+                }
+            }
+            console.warn('No valid cloud providers available or all failed. Falling back to Local...');
+            return {
+                response: await this.localProvider.chat(messages),
+                level: 'cloud-preferred (local fallback)',
+                providerUsed: 'local'
+            };
+        }
+
         if (preferredProvider && this.providers.has(preferredProvider)) {
             try {
                 const provider = this.providers.get(preferredProvider)!;
@@ -104,6 +150,9 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
         }
 
         const level = await this.evaluateComplexity(prompt);
+        // Try the best available provider for the level
+
+
 
         if (level === '1') {
             return {
@@ -112,45 +161,64 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 providerUsed: 'local'
             };
         } else if (level === '2') {
-            try {
-                return {
-                    response: await this.providers.get('anthropic')!.chat(messages),
-                    level: '2',
-                    providerUsed: 'anthropic'
-                };
-            } catch (e: any) {
-                console.warn('Anthropic failed/missing key, falling back to OpenAI...', e.message);
+            if (hasAnthropic) {
                 try {
                     return {
-                        response: await this.providers.get('openai')!.chat(messages),
+                        response: await pAnthropic!.chat(messages),
+                        level: '2',
+                        providerUsed: 'anthropic'
+                    };
+                } catch (e: any) {
+                    console.warn('Anthropic failed, falling back to OpenAI...', e.message);
+                }
+            }
+            if (hasOpenAI) {
+                try {
+                    return {
+                        response: await pOpenAI!.chat(messages),
                         level: '2 (fallback)',
                         providerUsed: 'openai'
                     };
-                } catch (err: any) {
-                    console.warn('OpenAI failed/missing key, falling back to Local...', err.message);
-                    return {
-                        response: await this.localProvider.chat(messages),
-                        level: '2 (local fallback)',
-                        providerUsed: 'local'
-                    };
+                } catch (e: any) {
+                    console.warn('OpenAI failed, falling back to Local...', e.message);
                 }
             }
+            // Ultimate fallback
+            return {
+                response: await this.localProvider.chat(messages),
+                level: '2 (local fallback)',
+                providerUsed: 'local'
+            };
         } else {
             // Level 3
-            try {
-                return {
-                    response: await this.providers.get('openai')!.chat(messages),
-                    level: '3',
-                    providerUsed: 'openai'
-                };
-            } catch (e: any) {
-                console.warn('OpenAI failed/missing key for level 3, falling back to Local...', e.message);
-                return {
-                    response: await this.localProvider.chat(messages),
-                    level: '3 (local fallback)',
-                    providerUsed: 'local'
-                };
+            if (hasOpenAI) {
+                try {
+                    return {
+                        response: await pOpenAI!.chat(messages),
+                        level: '3',
+                        providerUsed: 'openai'
+                    };
+                } catch (e: any) {
+                    console.warn('OpenAI failed for level 3, falling back to Anthropic...', e.message);
+                }
             }
+            if (hasAnthropic) {
+                try {
+                    return {
+                        response: await pAnthropic!.chat(messages),
+                        level: '3 (fallback)',
+                        providerUsed: 'anthropic'
+                    };
+                } catch (e: any) {
+                    console.warn('Anthropic failed for level 3, falling back to Local...', e.message);
+                }
+            }
+            // Ultimate fallback
+            return {
+                response: await this.localProvider.chat(messages),
+                level: '3 (local fallback)',
+                providerUsed: 'local'
+            };
         }
     }
 }

@@ -241,15 +241,29 @@ export class AgentScheduler {
                     cacheHit = true;
                     context.cache_hit = true;
                 } else {
-                    // 2. Select provider via budget constraint
+                    // 2. Select provider via budget constraint and check quotas
                     const accumulated = this.jobCostAccumulator.get(jobId) ?? 0;
-                    const preferredProvider = this.budget ? selectModel(accumulated, this.budget) : undefined;
+                    let preferredProvider = this.budget ? selectModel(accumulated, this.budget) : undefined;
+
+                    // If a preferred provider is selected, check if it's over its daily quota
+                    if (preferredProvider && preferredProvider !== 'local' && this.journal) {
+                        try {
+                            const usageData = await this.journal.getProviderUsage(24);
+                            const providerData = usageData.find(d => d.provider.toLowerCase() === preferredProvider);
+                            if (providerData && providerData.total_cost_usd >= providerData.quota_usd) {
+                                console.warn(`[Scheduler] Provider ${preferredProvider} is over 24h quota ($${providerData.total_cost_usd} / $${providerData.quota_usd}). Forcing local fallback.`);
+                                preferredProvider = 'local';
+                            }
+                        } catch (quotaErr) {
+                            console.error(`[Scheduler] Failed to check quota for ${preferredProvider}:`, quotaErr);
+                        }
+                    }
 
                     const res = await this.apiHandlers.modelRouter.routeChat(inputData, preferredProvider);
                     result = res.response || 'No response';
                     model = res.model || res.providerUsed || 'local';
                     context.model_selected_reason = preferredProvider
-                        ? `budget:${preferredProvider}`
+                        ? `budget_or_quota:${preferredProvider}`
                         : `auto:level_${res.level ?? '?'}`;
                     context.budget_snapshot = {
                         cost_so_far: accumulated,
@@ -258,22 +272,22 @@ export class AgentScheduler {
                 }
             } else if (task.type === 'draw') {
                 try {
-                    const res = await this.apiHandlers.externalApiManager.generateImage('openai', inputData);
+                    const res = await this.apiHandlers.externalApiManager.generateImage('auto', inputData);
                     result = await this.saveImageToDisk(res);
-                    model = 'dall-e-3';
+                    model = 'auto';
                 } catch (e) {
-                    console.warn('OpenAI Draw failed, falling back to mock:', e);
+                    console.warn('Auto Draw failed, falling back to mock:', e);
                     const mockRes = await this.apiHandlers.externalApiManager.generateImage('mock', inputData);
                     result = await this.saveImageToDisk(mockRes);
                     model = 'mock';
                 }
             } else if (task.type === 'video') {
                 try {
-                    const res = await this.apiHandlers.externalApiManager.generateVideo('google', inputData);
+                    const res = await this.apiHandlers.externalApiManager.generateVideo('auto', inputData);
                     result = `Generated Video at: ${res}`;
-                    model = 'gemini-video';
+                    model = 'auto-video';
                 } catch (e) {
-                    console.warn('Google Video failed, falling back to mock:', e);
+                    console.warn('Auto Video failed, falling back to mock:', e);
                     const res = await this.apiHandlers.externalApiManager.generateVideo('mock', inputData);
                     result = `Generated Video at: ${res}`;
                     model = 'mock';

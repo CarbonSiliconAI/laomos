@@ -25,6 +25,7 @@ import axios from 'axios';
 import * as lancedb from 'vectordb';
 import * as yauzl from 'yauzl';
 import { AIFirewall } from './kernel/firewall';
+import { GameManager } from './game_manager';
 
 // In-memory budget state (resets on restart — mock per spec)
 let currentBudget: BudgetConstraint = {
@@ -51,6 +52,7 @@ export class Server {
     private firewall: AIFirewall;
     private skillLoader: SkillLoader;
     private journal?: ExecutionJournal;
+    private gameManager: GameManager;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
@@ -68,6 +70,7 @@ export class Server {
         this.firewall = firewall;
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
+        this.gameManager = new GameManager();
         this.configureRoutes();
     }
 
@@ -163,6 +166,76 @@ export class Server {
         this.app.get('/api/system/firewall', (req, res) => {
             res.json({ enabled: this.firewall.enabled });
         });
+
+        // --- Game API Endpoints ---
+        this.app.get('/api/game/state', (req, res) => {
+            res.json(this.gameManager.getState());
+        });
+
+        this.app.post('/api/game/chat', async (req, res) => {
+            try {
+                const { action } = req.body;
+                if (!action) return res.status(400).json({ error: 'Action is required' });
+
+                const state = this.gameManager.getState();
+
+                // Format prompt via registry
+                const { prompt } = this.registry.format('agent_game', 'dungeon_master', {
+                    context: state.context,
+                    inventory: state.inventory,
+                    action: action
+                });
+
+                // Save user action to history
+                this.gameManager.appendUserAction(action);
+
+                // Re-fetch state for updated history length
+                const updatedState = this.gameManager.getState();
+
+                // Build context for the router from the full prompt configuration
+                // Router extracts <Register_SystemPrompt>
+
+                const responseObj = await this.modelRouter.routeChat(prompt, 'cloud');
+                let responseContent = responseObj.response;
+
+                let newContext = "";
+                let newInventory = "";
+
+                // Parse XML tags if the model returned them
+                const contextMatch = responseContent.match(/<Context>([\s\S]*?)<\/Context>/i);
+                if (contextMatch) {
+                    newContext = contextMatch[1].trim();
+                    responseContent = responseContent.replace(contextMatch[0], '');
+                }
+
+                const invMatch = responseContent.match(/<Inventory>([\s\S]*?)<\/Inventory>/i);
+                if (invMatch) {
+                    newInventory = invMatch[1].trim();
+                    responseContent = responseContent.replace(invMatch[0], '');
+                }
+
+                // Clean up string
+                responseContent = responseContent.trim();
+
+                // Append assistant message and potentially update context/inventory
+                this.gameManager.updateState(
+                    newContext,
+                    newInventory,
+                    { role: 'assistant', content: responseContent }
+                );
+
+                res.json({ state: this.gameManager.getState() });
+            } catch (error) {
+                console.error('[Server] Game chat error:', error);
+                res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        this.app.post('/api/game/reset', (req, res) => {
+            const emptyState = this.gameManager.resetState();
+            res.json(emptyState);
+        });
+        // -----------------------
 
         // API Endpoint to update Firewall state
         this.app.post('/api/system/firewall', (req, res) => {
@@ -802,6 +875,18 @@ export class Server {
         this.app.get('/api/telemetry/stats', (req, res) => {
             if (!this.journal) return res.json({ total_runs: 0, total_cost_usd: 0, avg_latency_ms: 0, avg_rating: 0 });
             res.json(this.journal.getStats());
+        });
+
+        this.app.get('/api/telemetry/usage-per-hour', (req, res) => {
+            if (!this.journal) return res.json([]);
+            const limit = parseInt(req.query.limit as string) || 24;
+            res.json(this.journal.getApiUsagePerHour(limit));
+        });
+
+        this.app.get('/api/telemetry/provider-usage', (req, res) => {
+            if (!this.journal) return res.json([]);
+            const hours = parseInt(req.query.hours as string) || 24;
+            res.json(this.journal.getProviderUsage(hours));
         });
 
         this.app.get('/api/telemetry/runs', (req, res) => {

@@ -3834,6 +3834,13 @@
                 type: 'app',
                 action: () => openOpenClawApp()
             },
+            'game': {
+                id: 'game',
+                name: 'AI Dungeon Master',
+                icon: '🎲',
+                type: 'app',
+                action: () => openGameApp()
+            },
             'store': {
                 id: 'store',
                 name: 'App Store',
@@ -4010,6 +4017,21 @@
                         </div>
                     </div>
                     <div class="hw-section">
+                        <div class="hw-section-label" style="display:flex; justify-content:space-between;">
+                            <span>API Usage (per hour)</span>
+                            <span id="hw-api-refresh" style="cursor:pointer; font-size:14px;" title="Refresh Usage">↻</span>
+                        </div>
+                        <div id="hw-api-usage-list" style="font-size:11px; max-height:80px; overflow-y:auto; color:var(--c-text-2);">
+                            Loading...
+                        </div>
+                    </div>
+                    <div class="hw-section">
+                        <div class="hw-section-label">Provider Quotas (24h)</div>
+                        <div id="hw-provider-usage-list" style="font-size:11px; max-height:100px; overflow-y:auto; color:var(--c-text-2); display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+                            Loading provider stats...
+                        </div>
+                    </div>
+                    <div class="hw-section">
                         <div class="hw-section-label">Quick Launch</div>
                         <div class="hw-qa-row">
                             <div class="hw-qa-btn" onclick="requestAppLaunch('chat')">Chat</div>
@@ -4022,6 +4044,7 @@
 
             const pill = document.getElementById('hw-pill-toggle');
             const body = document.getElementById('hw-body');
+            const apiRefreshBtn = document.getElementById('hw-api-refresh');
             let expanded = false;
 
             pill.addEventListener('click', () => {
@@ -4029,6 +4052,17 @@
                 body.style.display = expanded ? 'block' : 'none';
                 pill.classList.toggle('expanded', expanded);
             });
+
+            if (apiRefreshBtn) {
+                apiRefreshBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const usageListEl = document.getElementById('hw-api-usage-list');
+                    const provListEl = document.getElementById('hw-provider-usage-list');
+                    if (usageListEl) usageListEl.innerHTML = 'Loading...';
+                    if (provListEl) provListEl.innerHTML = 'Loading provider stats...';
+                    refreshWidgetStats();
+                });
+            }
 
             // Arc gauge renderer (half-circle, muted blue)
             function renderArcGauge(pct) {
@@ -4068,44 +4102,107 @@
                 const barEl = document.getElementById('hw-budget-bar');
                 const gaugeEl = document.getElementById('hw-gauge-wrap');
                 const pillSub = document.getElementById('hw-pill-status');
+                const usageListEl = document.getElementById('hw-api-usage-list');
+                const provListEl = document.getElementById('hw-provider-usage-list');
 
                 if (winsEl) winsEl.textContent = windows.length;
 
                 try {
-                    const r = await fetch('/api/telemetry/stats');
-                    if (!r.ok) return;
-                    const s = await r.json();
+                    const [rStats, rUsage, rProv] = await Promise.all([
+                        fetch('/api/telemetry/stats'),
+                        fetch('/api/telemetry/usage-per-hour?limit=5'),
+                        fetch('/api/telemetry/provider-usage?hours=24')
+                    ]);
 
-                    if (runsEl) runsEl.textContent = s.total_runs ?? '—';
-                    if (latEl) latEl.textContent = s.avg_latency_ms ? `${Math.round(s.avg_latency_ms)}ms` : '—';
-                    if (costEl) costEl.textContent = s.total_cost_usd != null ? `$${s.total_cost_usd.toFixed(4)}` : '—';
+                    if (rStats.ok) {
+                        const s = await rStats.json();
+                        if (runsEl) runsEl.textContent = s.total_runs ?? '—';
+                        if (latEl) latEl.textContent = s.avg_latency_ms ? `${Math.round(s.avg_latency_ms)}ms` : '—';
+                        if (costEl) costEl.textContent = s.total_cost_usd != null ? `$${s.total_cost_usd.toFixed(4)}` : '—';
 
-                    // Budget bar
-                    let budgetPct = 0;
-                    if (barEl) {
-                        budgetPct = Math.min(1, (s.total_cost_usd || 0) / budgetMax);
-                        barEl.style.width = (budgetPct * 100).toFixed(1) + '%';
-                        barEl.style.background = budgetPct > 0.85 ? 'var(--warning)' : 'var(--accent)';
+                        // Budget bar
+                        let budgetPct = 0;
+                        if (barEl) {
+                            budgetPct = Math.min(1, (s.total_cost_usd || 0) / budgetMax);
+                            barEl.style.width = (budgetPct * 100).toFixed(1) + '%';
+                            barEl.style.background = budgetPct > 0.85 ? 'var(--warning)' : 'var(--accent)';
+                        }
+
+                        // Arc gauge (avg_rating 0-5 → 0-1)
+                        let confPct = 0;
+                        if (gaugeEl) {
+                            confPct = s.avg_rating ? s.avg_rating / 5 : 0;
+                            gaugeEl.innerHTML = renderArcGauge(confPct);
+                        }
+
+                        // Update pill status line: "· Stable · Budget 48% · Pass 92%"
+                        if (pillSub) {
+                            const budStr = s.total_cost_usd != null
+                                ? `Budget ${Math.round(budgetPct * 100)}%`
+                                : 'Budget —';
+                            const passStr = s.avg_rating != null
+                                ? `Pass ${Math.round(confPct * 100)}%`
+                                : 'Pass —';
+                            pillSub.textContent = `· Stable · ${budStr} · ${passStr}`;
+                        }
                     }
 
-                    // Arc gauge (avg_rating 0-5 → 0-1)
-                    let confPct = 0;
-                    if (gaugeEl) {
-                        confPct = s.avg_rating ? s.avg_rating / 5 : 0;
-                        gaugeEl.innerHTML = renderArcGauge(confPct);
+                    if (rUsage.ok && usageListEl) {
+                        const usageData = await rUsage.json();
+                        if (!usageData || usageData.length === 0) {
+                            usageListEl.innerHTML = '<div style="padding:4px 0; text-align:center;">No usage yet.</div>';
+                        } else {
+                            usageListEl.innerHTML = usageData.map(u =>
+                                `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(0,0,0,0.05);">
+                                    <span>${u.hour ? u.hour.split(' ')[1] : 'Unknown'}</span>
+                                    <span>${u.total_requests} reqs</span>
+                                    <span>$${(u.total_cost_usd || 0).toFixed(4)}</span>
+                                </div>`
+                            ).join('');
+                        }
+                    } else if (!rUsage.ok && usageListEl) {
+                        usageListEl.innerHTML = `<div style="padding:4px 0; color:var(--error); text-align:center;">Failed to load.</div>`;
                     }
 
-                    // Update pill status line: "· Stable · Budget 48% · Pass 92%"
-                    if (pillSub) {
-                        const budStr = s.total_cost_usd != null
-                            ? `Budget ${Math.round(budgetPct * 100)}%`
-                            : 'Budget —';
-                        const passStr = s.avg_rating != null
-                            ? `Pass ${Math.round(confPct * 100)}%`
-                            : 'Pass —';
-                        pillSub.textContent = `· Stable · ${budStr} · ${passStr}`;
+                    // Render Provider Usage
+                    if (rProv && rProv.ok && provListEl) {
+                        const provData = await rProv.json();
+                        if (!provData || provData.length === 0) {
+                            provListEl.innerHTML = '<div style="padding:4px 0; text-align:center;">No provider data (24h).</div>';
+                        } else {
+                            provListEl.innerHTML = provData.map(p => {
+                                const costStr = p.total_cost_usd > 0 ? `$${p.total_cost_usd.toFixed(4)}` : 'Free';
+                                const quotaStr = p.quota_usd > 0 ? ` / $${p.quota_usd.toFixed(2)} quota` : '';
+                                const pct = p.quota_usd > 0 ? Math.min(100, (p.total_cost_usd / p.quota_usd) * 100) : 0;
+                                const barColor = pct > 85 ? 'var(--warning)' : 'var(--accent)';
+                                return `
+                                    <div style="display:flex; flex-direction:column; gap:2px;">
+                                        <div style="display:flex; justify-content:space-between; font-weight:500;">
+                                            <span>${p.provider} <span style="font-weight:400; color:var(--c-text-3);">(${p.total_requests})</span></span>
+                                            <span>${costStr}${quotaStr}</span>
+                                        </div>
+                                        ${p.quota_usd > 0 ? `
+                                        <div class="hw-budget-track" style="height:4px; margin-top:2px;">
+                                            <div class="hw-budget-fill" style="width:${pct}%; background:${barColor};"></div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                    } else if (rProv && !rProv.ok && provListEl) {
+                        provListEl.innerHTML = `<div style="padding:4px 0; color:var(--error); text-align:center;">Failed to load.</div>`;
                     }
-                } catch { }
+
+                } catch (err) {
+                    console.error('Widget stats error:', err);
+                    if (usageListEl && usageListEl.innerHTML.includes('Loading...')) {
+                        usageListEl.innerHTML = `<div style="padding:4px 0; color:var(--error); text-align:center;">Network error.</div>`;
+                    }
+                    if (provListEl && provListEl.innerHTML.includes('Loading...')) {
+                        provListEl.innerHTML = `<div style="padding:4px 0; color:var(--error); text-align:center;">Network error.</div>`;
+                    }
+                }
             }
 
             refreshWidgetStats();
@@ -4387,6 +4484,7 @@
             'computer': `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
             'network': `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="16" x2="19" y2="16"/><line x1="12" y1="16" x2="5" y2="16"/></svg>`,
             'settings': `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+            'game': `<svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM8 8v8M16 8v8M8 12h8" fill="none" class="stroke-current" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
         };
 
         // Toolbar icons (stroke style, same as dock — no emoji)
@@ -4416,6 +4514,7 @@
             { id: 'memory', label: 'Memory', icon: DOCK_SVG.history, appId: 'history' },
             { id: 'agents', label: 'Agents', icon: DOCK_SVG.eval, appId: 'eval' },
             { id: 'files', label: 'Files', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', appId: 'rag' },
+            { id: 'game', label: 'Game', icon: DOCK_SVG.game, appId: 'game' },
             { id: 'system', label: 'System', icon: DOCK_SVG.settings, appId: 'settings' },
         ];
         // Bottom apps (restored from original dock)
@@ -4848,6 +4947,179 @@
         // --- App: Ollama Chat (unified with Ask anything overlay) ---
         function openChat() {
             openAIChatOverlay();
+        }
+
+        // --- App: DND Game ---
+        async function openGameApp() {
+            const body = createWindow('AI Dungeon Master', 'game', 800, 600);
+            if (!body) return; // Window already exists
+
+            body.innerHTML = `
+                <div style="display: flex; height: 100%; width: 100%; font-family: 'Inter', sans-serif;">
+                    <!-- Sidebar -->
+                    <div style="width: 260px; background: #fafafa; border-right: 1px solid rgba(0,0,0,0.08); display: flex; flex-direction: column;">
+                        <div style="padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                            <h3 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #333; display: flex; justify-content: space-between; align-items: center;">
+                                Story Context
+                            </h3>
+                            <div id="dnd-context" style="font-size: 12px; color: #666; height: 140px; overflow-y: auto; line-height: 1.5; white-space: pre-wrap;">
+                                <em>Loading campaign context...</em>
+                            </div>
+                        </div>
+                        <div style="padding: 16px; flex: 1; border-bottom: 1px solid rgba(0,0,0,0.05); overflow-y: auto;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #333;">Character / Inventory</h3>
+                            <div id="dnd-inventory" style="font-size: 12px; color: #666; line-height: 1.5; white-space: pre-wrap;">
+                                <em>Loading stats...</em>
+                            </div>
+                        </div>
+                        <div style="padding: 12px; text-align: center; background: #fff; border-top: 1px solid rgba(0,0,0,0.05);">
+                            <button id="btn-dnd-reset" style="padding: 8px 12px; border: 1px solid #ef4444; color: #ef4444; background: transparent; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; font-weight: 500; transition: all 0.2s;">Reset Campaign</button>
+                        </div>
+                    </div>
+
+                    <!-- Main Chat Area -->
+                    <div style="flex: 1; display: flex; flex-direction: column; background: #ffffff;">
+                         <div id="dnd-chat-history" style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.6;">
+                            <div style="color: #9ca3af; text-align: center; margin-top: 40px; font-style: italic;">Welcome to AI Dungeon Master. Awaiting your first action...</div>
+                         </div>
+                         <div style="padding: 16px; border-top: 1px solid rgba(0,0,0,0.08); background: #fdfdfd; display: flex; gap: 12px; align-items: center;">
+                             <input type="text" id="dnd-chat-input" placeholder="What do you do? (e.g. 'I roll to attack the goblin')" style="flex: 1; padding: 12px 16px; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                             <button id="btn-dnd-send" style="padding: 0 24px; height: 44px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
+                                <span>Action</span>
+                             </button>
+                         </div>
+                    </div>
+                </div>
+            `;
+
+            // Wrap in the standard window chrome
+            wrapAppInteriorSkeleton(body, {
+                title: 'AI Dungeon Master',
+                subtitle: 'LLM Powered RPG Campaign',
+                toolbarRightHTML: '<span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;"><span class="status-dot" style="background:#10b981;"></span> Active Sync</span>'
+            });
+
+            const chatHistory = body.querySelector('#dnd-chat-history');
+            const inputField = body.querySelector('#dnd-chat-input');
+            const sendBtn = body.querySelector('#btn-dnd-send');
+            const resetBtn = body.querySelector('#btn-dnd-reset');
+            const contextPanel = body.querySelector('#dnd-context');
+            const inventoryPanel = body.querySelector('#dnd-inventory');
+
+            let isProcessing = false;
+
+            // Load initial state
+            async function fetchGameState() {
+                try {
+                    const res = await fetch('/api/game/state');
+                    if (!res.ok) throw new Error('Failed to load state');
+                    const state = await res.json();
+                    renderState(state);
+                } catch (e) {
+                    chatHistory.innerHTML = `<div style="color:#ef4444;text-align:center;">Failed to connect to Dungeon Master Backend.</div>`;
+                    contextPanel.innerHTML = 'Error loading.';
+                }
+            }
+
+            function renderState(state) {
+                // Render Context
+                contextPanel.textContent = state.context || 'No story context yet. Take an action to begin.';
+                inventoryPanel.textContent = state.inventory || 'No items or stats tracked currently.';
+
+                // Render History
+                chatHistory.innerHTML = '';
+                if (!state.history || state.history.length === 0) {
+                    chatHistory.innerHTML = '<div style="color: #9ca3af; text-align: center; margin-top: 40px; font-style: italic;">Welcome to AI Dungeon Master. Take your first action to begin the adventure.</div>';
+                } else {
+                    state.history.forEach(msg => appendMessage(msg.role, msg.content));
+                }
+                setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
+            }
+
+            function appendMessage(role, content) {
+                const isUser = role === 'user';
+                const el = document.createElement('div');
+                el.style.cssText = `display:flex; flex-direction:column; max-width:85%; ${isUser ? 'align-self:flex-end;' : 'align-self:flex-start;'}`;
+
+                const bubble = document.createElement('div');
+                bubble.style.cssText = `
+                    padding: 12px 16px;
+                    border-radius: 12px;
+                    background: ${isUser ? 'var(--accent)' : '#f3f4f6'};
+                    color: ${isUser ? '#fff' : '#1f2937'};
+                    border: 1px solid ${isUser ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.05)'};
+                    font-family: 'Inter', sans-serif;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                `;
+
+                // Allow simple markdown newlines
+                bubble.innerHTML = content.replace(/\n/g, '<br/>');
+
+                const label = document.createElement('div');
+                label.style.cssText = `font-size: 11px; margin-top: 4px; color: #9ca3af; ${isUser ? 'text-align:right;' : 'text-align:left;'}`;
+                label.textContent = isUser ? 'You' : 'Dungeon Master';
+
+                el.appendChild(bubble);
+                el.appendChild(label);
+                chatHistory.appendChild(el);
+            }
+
+            async function submitAction() {
+                const text = inputField.value.trim();
+                if (!text || isProcessing) return;
+
+                isProcessing = true;
+                inputField.value = '';
+                inputField.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = 'Rolling...';
+
+                // Optimistic UI updates
+                if (chatHistory.querySelector('div[style*="Welcome"]')) chatHistory.innerHTML = '';
+                appendMessage('user', text);
+                setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
+
+                try {
+                    const res = await fetch('/api/game/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: text })
+                    });
+
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+
+                    // Render the updated state perfectly synchronized
+                    renderState(data.state);
+                } catch (e) {
+                    appendMessage('system', `Network Error: ${e.message}`);
+                } finally {
+                    isProcessing = false;
+                    inputField.disabled = false;
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = 'Action';
+                    inputField.focus();
+                    setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
+                }
+            }
+
+            async function resetGame() {
+                if (!confirm('Are you sure you want to completely erase the current campaign?')) return;
+                try {
+                    const res = await fetch('/api/game/reset', { method: 'POST' });
+                    if (!res.ok) throw new Error('Reset failed');
+                    await fetchGameState();
+                } catch (e) {
+                    alert('Error resetting game: ' + e.message);
+                }
+            }
+
+            sendBtn.onclick = submitAction;
+            inputField.onkeydown = (e) => { if (e.key === 'Enter') submitAction(); };
+            resetBtn.onclick = resetGame;
+
+            // Load eagerly
+            fetchGameState();
         }
 
         // --- App: Model Manager ---

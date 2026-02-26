@@ -211,5 +211,42 @@ Extract the main article text, clear away navbars/footers/ads, and summarize the
                 params: {}
             }
         });
+
+        // 7. System App: AI Dungeon Master
+        this.register({
+            role: 'agent_game',
+            functionName: 'dungeon_master',
+            template: `<Register_SystemPrompt>You are a strictly immersive text-based RPG Dungeon Master. 
+You are managing an ongoing campaign. Respond to the player's action. 
+You implicitly roll dice and decide the outcomes of actions. 
+
+Important formatting instructions:
+1. Provide your narrative response.
+2. If the active Story Context fundamentally changes or progresses, output a completely updated concise summary enclosed in <Context> tags at the very end of your response.
+3. If the player's inventory, levels, stats, or HP change, output the completely updated inventory/stats enclosed in <Inventory> tags at the very end.
+
+Always maintain character and do not break the 4th wall, except for formatting those XML tags at the bottom.
+</Register_SystemPrompt>
+
+[Current Campaign Context]:
+{{context}}
+
+[Player Inventory & Stats]:
+{{inventory}}
+
+[Player Action]:
+{{action}}`,
+            params: ['context', 'inventory', 'action'],
+            config: {
+                temperature: 0.7,
+                max_tokens: 1500
+            },
+            version: '1.0.0',
+            modelMetadata: {
+                adaptedTo: 'creative_writer',
+                params: {}
+            }
+        });
     }
 }
+

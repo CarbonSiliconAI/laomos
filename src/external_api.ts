@@ -23,7 +23,25 @@ export class ExternalAPIManager {
         };
 
         emit('Pre-flight Validation', 'running', `Validating input for provider: ${provider}`);
-        if (provider === 'mock') {
+
+        // --- Handle Auto Provider Resolution ---
+        let actualProvider = provider;
+        if (provider === 'auto') {
+            emit('Pre-flight Validation', 'running', 'Auto-selecting optimal provider...');
+            const hasOpenAI = !!await this.identityManager.getKey('openai');
+            const hasGoogle = !!await this.identityManager.getKey('google');
+
+            if (hasOpenAI) {
+                actualProvider = 'openai';
+            } else if (hasGoogle) {
+                actualProvider = 'google';
+            } else {
+                actualProvider = 'pollinations'; // Fallback to free provider
+            }
+            emit('Pre-flight Validation', 'running', `Auto-selected: ${actualProvider}`);
+        }
+
+        if (actualProvider === 'mock') {
             emit('Pre-flight Validation', 'completed', 'Provider is mock.');
             emit('Image Generation', 'running', 'Simulating generation time...');
             await new Promise(r => setTimeout(r, 1000));
@@ -31,7 +49,7 @@ export class ExternalAPIManager {
             return "https://placehold.co/1024x1024/21262d/white?text=AI+Generated+Image";
         }
 
-        if (provider === 'pollinations') {
+        if (actualProvider === 'pollinations') {
             emit('Pre-flight Validation', 'completed', 'Provider is Pollinations (Free).');
             emit('Image Generation (Pollinations)', 'running', 'Sending prompt to Pollinations...');
             // Free API, no key required
@@ -43,14 +61,14 @@ export class ExternalAPIManager {
             return url;
         }
 
-        const key = await this.identityManager.getKey(provider);
+        const key = await this.identityManager.getKey(actualProvider);
         if (!key) {
-            emit('Pre-flight Validation', 'error', `API Key for ${provider} not found.`);
-            throw new Error(`API Key for ${provider} not found.`);
+            emit('Pre-flight Validation', 'error', `API Key for ${actualProvider} not found.`);
+            throw new Error(`API Key for ${actualProvider} not found.`);
         }
         emit('Pre-flight Validation', 'completed', 'Keys validated.');
 
-        if (provider === 'openai') {
+        if (actualProvider === 'openai') {
             try {
                 emit('Image Generation (DALL-E)', 'running', 'Sending prompt to OpenAI API...');
                 const response = await axios.post('https://api.openai.com/v1/images/generations', {
@@ -122,7 +140,26 @@ export class ExternalAPIManager {
         };
 
         emit('Pre-flight Validation', 'running', `Validating input for provider: ${provider}`);
-        if (provider === 'mock') {
+
+        // --- Handle Auto Provider Resolution ---
+        let actualProvider = provider;
+        if (provider === 'auto') {
+            emit('Pre-flight Validation', 'running', 'Auto-selecting optimal provider for graph...');
+            const hasOpenAI = !!await this.identityManager.getKey('openai');
+            const hasGoogle = !!await this.identityManager.getKey('google');
+
+            // For graphs, Google Gemini 1.5 Flash is very fast and good, OpenAI is also great.
+            if (hasGoogle) {
+                actualProvider = 'google';
+            } else if (hasOpenAI) {
+                actualProvider = 'openai';
+            } else {
+                actualProvider = 'mock'; // Fallback
+            }
+            emit('Pre-flight Validation', 'running', `Auto-selected: ${actualProvider}`);
+        }
+
+        if (actualProvider === 'mock') {
             emit('Pre-flight Validation', 'completed', 'Provider is mock.');
             emit('Graph Generation', 'running', 'Simulating generation time...');
             // Simulating generation time
@@ -134,16 +171,16 @@ export class ExternalAPIManager {
     B -- No --> D[Debug more]`;
         }
 
-        const key = await this.identityManager.getKey(provider);
+        const key = await this.identityManager.getKey(actualProvider);
         if (!key) {
-            emit('Pre-flight Validation', 'error', `API Key for ${provider} not found.`);
-            throw new Error(`API Key for ${provider} not found.`);
+            emit('Pre-flight Validation', 'error', `API Key for ${actualProvider} not found.`);
+            throw new Error(`API Key for ${actualProvider} not found.`);
         }
         emit('Pre-flight Validation', 'completed', 'Keys validated.');
 
         const systemPrompt = "You are a helper that generates Mermaid.js diagram code. Return ONLY the mermaid code, no markdown ticks, no commentary. Starts with 'graph' or 'sequenceDiagram'.";
 
-        if (provider === 'openai') {
+        if (actualProvider === 'openai') {
             try {
                 emit('Graph Generation (GPT-4o)', 'running', 'Sending prompt to OpenAI API...');
                 const response = await axios.post('https://api.openai.com/v1/chat/completions', {
@@ -247,7 +284,26 @@ export class ExternalAPIManager {
         };
 
         emit('Pre-flight Validation', 'running', `Validating input for provider: ${provider}`);
-        if (provider === 'mock') {
+
+        // --- Handle Auto Provider Resolution ---
+        let actualProvider = provider;
+        if (provider === 'auto') {
+            emit('Pre-flight Validation', 'running', 'Auto-selecting optimal provider for video...');
+            const hasGoogle = !!await this.identityManager.getKey('google');
+            const hasOpenAI = !!await this.identityManager.getKey('openai');
+
+            // For video, Google Veo 2 is usually available, Sora is often waitlisted.
+            if (hasGoogle) {
+                actualProvider = 'google';
+            } else if (hasOpenAI) {
+                actualProvider = 'openai';
+            } else {
+                actualProvider = 'mock'; // Fallback
+            }
+            emit('Pre-flight Validation', 'running', `Auto-selected: ${actualProvider}`);
+        }
+
+        if (actualProvider === 'mock') {
             emit('Pre-flight Validation', 'completed', 'Provider is mock.');
             emit('Video Generation', 'running', 'Simulating generation time...');
             // Simulating generation time
@@ -256,10 +312,10 @@ export class ExternalAPIManager {
             return "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
         }
 
-        const key = await this.identityManager.getKey(provider);
+        const key = await this.identityManager.getKey(actualProvider);
         if (!key) {
-            emit('Pre-flight Validation', 'error', `API Key for ${provider} not found.`);
-            throw new Error(`API Key for ${provider} not found.`);
+            emit('Pre-flight Validation', 'error', `API Key for ${actualProvider} not found.`);
+            throw new Error(`API Key for ${actualProvider} not found.`);
         }
         emit('Pre-flight Validation', 'completed', 'Keys validated.');
 
