@@ -4949,12 +4949,75 @@
             openAIChatOverlay();
         }
 
-        // --- App: DND Game ---
+        // --- App: Game Hub ---
         async function openGameApp() {
-            const body = createWindow('AI Dungeon Master', 'game', 800, 600);
+            const body = createWindow('Game Hub', 'game', 900, 650);
             if (!body) return; // Window already exists
 
             body.innerHTML = `
+                <div style="display: flex; flex-direction: column; height: 100%; font-family: 'Inter', sans-serif;">
+                    <!-- Game Tabs -->
+                    <div style="display: flex; gap: 8px; padding: 12px 16px; background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.08); backdrop-filter: blur(10px); z-index: 10;">
+                        <button class="os-button game-tab active" data-game="dnd" style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: var(--accent); color: white; font-weight: 500; cursor: pointer; transition: all 0.2s;">AI Dungeon Master</button>
+                        <button class="os-button game-tab" data-game="chess" style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); background: white; color: #333; font-weight: 500; cursor: pointer; transition: all 0.2s;">Chess (vs AI)</button>
+                    </div>
+                    
+                    <!-- Game Container -->
+                    <div id="game-container" style="flex: 1; display: flex; overflow: hidden; position: relative;">
+                    </div>
+                </div>
+            `;
+
+            wrapAppInteriorSkeleton(body, {
+                title: 'Game Hub',
+                subtitle: 'Play intelligent agent-driven games',
+                toolbarRightHTML: '<span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;"><span class="status-dot" style="background:#10b981;"></span> Active Hub</span>'
+            });
+
+            const container = body.querySelector('#game-container');
+            const tabs = body.querySelectorAll('.game-tab');
+
+            function switchTab(gameId) {
+                // Update tabs ui
+                tabs.forEach(t => {
+                    if (t.dataset.game === gameId) {
+                        t.style.background = 'var(--accent)';
+                        t.style.color = 'white';
+                        t.classList.add('active');
+                    } else {
+                        t.style.background = 'white';
+                        t.style.color = '#333';
+                        t.classList.remove('active');
+                    }
+                });
+
+                // Clear container and destroy intervals if needed inside games
+                container.innerHTML = '';
+
+                // Render specific game
+                if (gameId === 'dnd') {
+                    renderDNDGame(container);
+                } else if (gameId === 'chess') {
+                    renderChessGame(container);
+                }
+            }
+
+            // Bind clicks
+            tabs.forEach(t => {
+                t.onclick = () => {
+                    if (!t.classList.contains('active')) {
+                        switchTab(t.dataset.game);
+                    }
+                };
+            });
+
+            // Init default
+            switchTab('dnd');
+        }
+
+        // --- DND Sub-App ---
+        function renderDNDGame(container) {
+            container.innerHTML = `
                 <div style="display: flex; height: 100%; width: 100%; font-family: 'Inter', sans-serif;">
                     <!-- Sidebar -->
                     <div style="width: 260px; background: #fafafa; border-right: 1px solid rgba(0,0,0,0.08); display: flex; flex-direction: column;">
@@ -4992,19 +5055,12 @@
                 </div>
             `;
 
-            // Wrap in the standard window chrome
-            wrapAppInteriorSkeleton(body, {
-                title: 'AI Dungeon Master',
-                subtitle: 'LLM Powered RPG Campaign',
-                toolbarRightHTML: '<span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;"><span class="status-dot" style="background:#10b981;"></span> Active Sync</span>'
-            });
-
-            const chatHistory = body.querySelector('#dnd-chat-history');
-            const inputField = body.querySelector('#dnd-chat-input');
-            const sendBtn = body.querySelector('#btn-dnd-send');
-            const resetBtn = body.querySelector('#btn-dnd-reset');
-            const contextPanel = body.querySelector('#dnd-context');
-            const inventoryPanel = body.querySelector('#dnd-inventory');
+            const chatHistory = container.querySelector('#dnd-chat-history');
+            const inputField = container.querySelector('#dnd-chat-input');
+            const sendBtn = container.querySelector('#btn-dnd-send');
+            const resetBtn = container.querySelector('#btn-dnd-reset');
+            const contextPanel = container.querySelector('#dnd-context');
+            const inventoryPanel = container.querySelector('#dnd-inventory');
 
             let isProcessing = false;
 
@@ -5120,6 +5176,308 @@
 
             // Load eagerly
             fetchGameState();
+        }
+
+        // --- Chess Sub-App ---
+        function renderChessGame(container) {
+            container.innerHTML = `
+                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafafa;">
+                    <h3 style="margin-bottom: 20px;">Chess (Loading engine...)</h3>
+                    <div id="chess-board-wrapper"></div>
+                </div>
+            `;
+
+            // Dynamically load chess.js
+            if (typeof Chess === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js';
+                script.onload = () => initChessLogic(container);
+                document.head.appendChild(script);
+            } else {
+                initChessLogic(container);
+            }
+        }
+
+        function initChessLogic(container) {
+            container.innerHTML = `
+                <div style="width: 100%; height: 100%; display: flex; background: #fafafa; font-family: 'Inter', sans-serif;">
+                    <!-- Chess Board Area -->
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                        <div id="chess-board" style="display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 440px; height: 440px; border: 2px solid rgba(0,0,0,0.8); box-shadow: 0 10px 30px rgba(0,0,0,0.15); user-select: none; border-radius: 4px; overflow: hidden;">
+                        </div>
+                    </div>
+                    
+                    <!-- Side Panel -->
+                    <div style="width: 250px; border-left: 1px solid rgba(0,0,0,0.1); background: white; display: flex; flex-direction: column;">
+                        <div style="padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); background: #fdfdfd;">
+                            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #333;">Game Status</h3>
+                            <div id="chess-status" style="margin-top: 8px; font-size: 13px; color: #666; padding: 10px; background: #f3f4f6; border-radius: 6px; font-weight: 500;">White to move</div>
+                        </div>
+                        
+                        <div style="flex: 1; overflow-y: auto; padding: 16px;">
+                            <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #666;">Move Log</h3>
+                            <div id="chess-history" style="font-size: 13px; font-family: 'JetBrains Mono', monospace; display: grid; grid-template-columns: 30px 1fr 1fr; gap: 8px; color: #444;">
+                                <!-- History filled here -->
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 16px; border-top: 1px solid rgba(0,0,0,0.05);">
+                            <button id="btn-chess-reset" class="os-button" style="padding: 10px 16px; width: 100%; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);">
+                                New Game
+                            </button>
+                            <label style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #555; cursor: pointer;">
+                                <input type="checkbox" id="chess-ai-toggle" checked style="accent-color: var(--accent); cursor: pointer; width: 16px; height: 16px;"> Play against AI (Black)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const boardEl = container.querySelector('#chess-board');
+            const statusEl = container.querySelector('#chess-status');
+            const historyEl = container.querySelector('#chess-history');
+            const resetBtn = container.querySelector('#btn-chess-reset');
+            const aiToggle = container.querySelector('#chess-ai-toggle');
+
+            const game = new Chess();
+            let selectedSquare = null;
+            let possibleMoves = [];
+
+            const unicodePieces = {
+                'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚',
+                'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔'
+            };
+
+            function getSquareColor(r, c) {
+                return (r + c) % 2 === 0 ? '#f0d9b5' : '#b58863';
+            }
+
+            function renderBoard() {
+                boardEl.innerHTML = '';
+                const board = game.board(); // 8x8 array
+
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const squareId = String.fromCharCode('a'.charCodeAt(0) + c) + (8 - r);
+                        const cell = document.createElement('div');
+                        cell.style.width = '100%';
+                        cell.style.height = '100%';
+                        cell.style.display = 'flex';
+                        cell.style.alignItems = 'center';
+                        cell.style.justifyContent = 'center';
+                        cell.style.fontSize = '34px';
+                        cell.style.cursor = 'pointer';
+                        cell.style.position = 'relative';
+                        cell.dataset.square = squareId;
+
+                        // Base Color
+                        let bgColor = getSquareColor(r, c);
+
+                        // Highlight logic
+                        if (selectedSquare === squareId) {
+                            bgColor = '#baca44';
+                        } else if (possibleMoves.some(m => m.to === squareId)) {
+                            // Highlight legal moves
+                            const dot = document.createElement('div');
+                            dot.style.width = '14px';
+                            dot.style.height = '14px';
+                            dot.style.borderRadius = '50%';
+                            dot.style.background = 'rgba(0,0,0,0.2)';
+                            dot.style.position = 'absolute';
+                            cell.appendChild(dot);
+                        }
+
+                        cell.style.background = bgColor;
+
+                        const piece = board[r][c];
+                        if (piece) {
+                            const char = piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
+                            const span = document.createElement('span');
+                            span.textContent = unicodePieces[char];
+                            // To prevent picking up text on double clicks
+                            span.style.pointerEvents = 'none';
+                            cell.appendChild(span);
+                        }
+
+                        cell.onclick = () => handleSquareClick(squareId);
+                        boardEl.appendChild(cell);
+                    }
+                }
+            }
+
+            function updateStatus() {
+                let status = '';
+                let moveColor = game.turn() === 'w' ? 'White' : 'Black';
+
+                if (game.in_checkmate()) {
+                    status = `Game over, ${moveColor} is in checkmate.`;
+                    statusEl.style.color = '#ef4444';
+                    statusEl.style.background = '#fee2e2';
+                } else if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) {
+                    status = 'Game over, drawn position';
+                    statusEl.style.color = '#f59e0b';
+                    statusEl.style.background = '#fef3c7';
+                } else {
+                    status = `${moveColor} to move`;
+                    if (game.in_check()) {
+                        status += ', ' + moveColor + ' is in check';
+                        statusEl.style.color = '#ef4444';
+                        statusEl.style.background = '#fee2e2';
+                    } else {
+                        statusEl.style.color = '#666';
+                        statusEl.style.background = '#f3f4f6';
+                    }
+                }
+                statusEl.textContent = status;
+
+                // Update history
+                historyEl.innerHTML = '';
+                const history = game.history();
+                for (let i = 0; i < history.length; i += 2) {
+                    const moveNum = document.createElement('div');
+                    moveNum.textContent = (i / 2 + 1) + '.';
+                    moveNum.style.color = '#9ca3af';
+
+                    const wMove = document.createElement('div');
+                    wMove.textContent = history[i];
+                    wMove.style.fontWeight = '500';
+
+                    const bMove = document.createElement('div');
+                    bMove.textContent = history[i + 1] ? history[i + 1] : '';
+                    bMove.style.fontWeight = '500';
+
+                    historyEl.appendChild(moveNum);
+                    historyEl.appendChild(wMove);
+                    historyEl.appendChild(bMove);
+                }
+                historyEl.scrollTop = historyEl.scrollHeight;
+            }
+
+            // Simple piece values
+            const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+
+            function evaluateBoard() {
+                let totalEvaluation = 0;
+                const board = game.board();
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const piece = board[i][j];
+                        if (piece) {
+                            const val = pieceValues[piece.type] || 0;
+                            totalEvaluation += piece.color === 'w' ? val : -val;
+                        }
+                    }
+                }
+                return totalEvaluation;
+            }
+
+            function minimax(depth, isMaximizingPlayer) {
+                if (depth === 0 || game.game_over()) {
+                    return evaluateBoard();
+                }
+
+                const moves = game.moves();
+
+                if (isMaximizingPlayer) {
+                    let bestVal = -9999;
+                    for (let i = 0; i < moves.length; i++) {
+                        game.move(moves[i]);
+                        bestVal = Math.max(bestVal, minimax(depth - 1, !isMaximizingPlayer));
+                        game.undo();
+                    }
+                    return bestVal;
+                } else {
+                    let bestVal = 9999;
+                    for (let i = 0; i < moves.length; i++) {
+                        game.move(moves[i]);
+                        bestVal = Math.min(bestVal, minimax(depth - 1, !isMaximizingPlayer));
+                        game.undo();
+                    }
+                    return bestVal;
+                }
+            }
+
+            function makeBestMove() {
+                if (game.game_over()) return;
+                const moves = game.moves();
+                if (moves.length === 0) return;
+
+                let bestMove = null;
+                let bestValue = 9999; // AI is black (minimizing)
+
+                for (let i = 0; i < moves.length; i++) {
+                    const move = moves[i];
+                    game.move(move);
+                    const boardValue = minimax(1, true); // Depth 2 lookahead (1 level deep here + 1 inside minimax)
+                    game.undo();
+                    if (boardValue < bestValue) {
+                        bestValue = boardValue;
+                        bestMove = move;
+                    }
+                }
+
+                if (!bestMove) {
+                    bestMove = moves[Math.floor(Math.random() * moves.length)];
+                }
+
+                game.move(bestMove);
+                renderBoard();
+                updateStatus();
+            }
+
+            function handleSquareClick(square) {
+                if (game.game_over() || (game.turn() === 'b' && aiToggle.checked)) return;
+
+                if (selectedSquare === null) {
+                    // Select piece
+                    const piece = game.get(square);
+                    if (piece && piece.color === game.turn()) {
+                        selectedSquare = square;
+                        possibleMoves = game.moves({ square: square, verbose: true });
+                        renderBoard();
+                    }
+                } else {
+                    // Attempt to move
+                    const move = game.move({
+                        from: selectedSquare,
+                        to: square,
+                        promotion: 'q' // Always promote to queen for simplicity
+                    });
+
+                    selectedSquare = null;
+                    possibleMoves = [];
+
+                    if (move === null) {
+                        // Invalid move, maybe they clicked another of their own pieces
+                        const piece = game.get(square);
+                        if (piece && piece.color === game.turn()) {
+                            selectedSquare = square;
+                            possibleMoves = game.moves({ square: square, verbose: true });
+                        }
+                    } else {
+                        // Move was valid
+                        updateStatus();
+
+                        // Trigger AI if enabled
+                        if (!game.game_over() && aiToggle.checked) {
+                            setTimeout(makeBestMove, 250); // slight delay for feel
+                        }
+                    }
+                    renderBoard();
+                }
+            }
+
+            resetBtn.onclick = () => {
+                game.reset();
+                selectedSquare = null;
+                possibleMoves = [];
+                renderBoard();
+                updateStatus();
+            };
+
+            // Initial render
+            renderBoard();
+            updateStatus();
         }
 
         // --- App: Model Manager ---

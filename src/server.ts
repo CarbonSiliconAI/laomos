@@ -428,7 +428,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     iterations++;
                     console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
 
-                    const result = await this.modelRouter.routeChat(messages);
+                    const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\\n');
+                    const result = await this.modelRouter.routeChat(chatString);
                     const aiMessage = result.response;
                     levelUsed = result.level;
                     providerUsed = result.providerUsed;

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:server": "tsc -p tsconfig.json",
-    "dev:electron": "npm run build:server && electron .",
+    "dev:electron": "npm run build:server && env ELECTRON_RUN_AS_NODE= electron .",
     "dist": "npm run build:server && electron-builder --publish never",
     "dist:mac": "npm run build:server && electron-builder --mac --publish never",
     "dist:win": "npm run build:server && electron-builder --win --publish never",
