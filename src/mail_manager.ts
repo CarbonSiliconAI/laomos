@@ -87,7 +87,7 @@ export class MailManager {
         const refreshToken = await this.identityManager.getKey('gmail_refresh_token');
         if (refreshToken) {
             try {
-                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
                 const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
                 const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
                 oauth2Client.setCredentials({ refresh_token: refreshToken });
@@ -187,7 +187,7 @@ export class MailManager {
                         auth: { user: address, pass: appPassword }
                     });
                 } else if (refreshToken) {
-                    const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+                    const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
                     const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
                     const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
                     oauth2Client.setCredentials({ refresh_token: refreshToken });

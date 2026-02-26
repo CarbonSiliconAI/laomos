@@ -304,7 +304,7 @@ export class Server {
         });
 
         this.app.get('/api/mail/auth-url', async (req, res) => {
-            const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+            const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
             const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
             const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
 
@@ -348,7 +348,7 @@ export class Server {
                 const { code } = req.body;
                 if (!code) return res.status(400).json({ error: 'Auth code is required' });
 
-                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
                 const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
                 const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
 
