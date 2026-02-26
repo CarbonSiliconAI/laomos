@@ -3,6 +3,7 @@ dist/
 dist-electron/
 release/
 .DS_Store
+*.log
 
 # Agent OS specific paths
 storage/system/.aos_state/
