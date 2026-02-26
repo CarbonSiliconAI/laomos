@@ -2912,6 +2912,187 @@
             style="width:100%; height:100%; background:#FAFAFA; color:#1D1D1F; border:none; padding:12px; resize:none; font-family:'JetBrains Mono', monospace; outline:none; font-size:13px; line-height:1.6;"></textarea>
     </template>
 
+    <!-- Mail Template -->
+    <template id="tpl-mail">
+        <div
+            style="display:flex; height:100%; background:var(--bg-primary); color:var(--text-primary); font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <!-- Left Pane: Folders -->
+            <div
+                style="width:200px; border-right:1px solid rgba(0,0,0,0.1); background:var(--bg-secondary); padding:16px;">
+                <div
+                    style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; letter-spacing:0.5px;">
+                    Folders</div>
+                <div class="mail-folder-row active" data-folder="inbox"
+                    style="padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; background:rgba(0,0,0,0.05); margin-bottom:4px; display:flex; align-items:center;">
+                    <span style="margin-right:8px;">📥</span> Inbox
+                </div>
+                <div class="mail-folder-row" data-folder="sent"
+                    style="padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; margin-bottom:4px; display:flex; align-items:center;">
+                    <span style="margin-right:8px;">📤</span> Sent
+                </div>
+                <div class="mail-folder-row" data-folder="trash"
+                    style="padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; margin-bottom:24px; display:flex; align-items:center;">
+                    <span style="margin-right:8px;">🗑️</span> Trash
+                </div>
+
+                <div
+                    style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; letter-spacing:0.5px;">
+                    AI Actions</div>
+                <button id="mail-summarize-btn"
+                    style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:var(--bg-primary); cursor:pointer; font-size:13px; font-weight:500; display:flex; justify-content:center; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:background 0.2s;">
+                    ✨ Summarize Unread
+                </button>
+            </div>
+
+            <!-- Middle Pane: Email List -->
+            <div
+                style="width:300px; border-right:1px solid rgba(0,0,0,0.1); display:flex; flex-direction:column; background:var(--bg-primary);">
+                <div
+                    style="padding:16px; border-bottom:1px solid rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:16px; font-weight:600;" id="mail-list-title">Inbox</div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="mail-sync-btn"
+                            style="padding:6px 8px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:var(--bg-secondary); color:var(--text-primary); font-size:12px; font-weight:600; cursor:pointer;"
+                            title="Sync Mail">🔄</button>
+                        <button id="mail-account-btn"
+                            style="padding:6px 8px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:var(--bg-secondary); color:var(--text-primary); font-size:12px; font-weight:600; cursor:pointer;"
+                            title="Account Settings">⚙️</button>
+                        <button id="mail-compose-btn"
+                            style="padding:6px 12px; border-radius:6px; border:none; background:#007AFF; color:white; font-size:12px; font-weight:600; cursor:pointer;">Compose</button>
+                    </div>
+                </div>
+                <div id="mail-list-container" style="flex:1; overflow-y:auto;">
+                    <!-- Emails go here -->
+                </div>
+            </div>
+
+            <!-- Right Pane: Reading/Compose Area -->
+            <div id="mail-reading-pane"
+                style="flex:1; display:flex; flex-direction:column; background:#ffffff; position:relative;">
+                <div
+                    style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:14px;">
+                    Select an email to read</div>
+            </div>
+
+            <!-- AI Summary Overlay -->
+            <div id="mail-ai-overlay"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center;">
+                <div
+                    style="width:500px; max-height:80%; background:#ffffff; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow:hidden;">
+                    <div
+                        style="padding:16px; border-bottom:1px solid rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+                        <div style="font-weight:600; display:flex; align-items:center;"><span
+                                style="font-size:18px; margin-right:8px;">✨</span> AI Inbox Summary</div>
+                        <button id="mail-ai-close"
+                            style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-muted);">&times;</button>
+                    </div>
+                    <div id="mail-ai-content"
+                        style="padding:20px; overflow-y:auto; line-height:1.6; font-size:14px; white-space:pre-wrap;">
+                        Loading summary...</div>
+                </div>
+            </div>
+
+            <!-- Account Settings Overlay -->
+            <div id="mail-account-overlay"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center;">
+                <div
+                    style="width:400px; background:#ffffff; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow:hidden;">
+                    <div
+                        style="padding:16px; border-bottom:1px solid rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+                        <div style="font-weight:600; display:flex; align-items:center;"><span
+                                style="font-size:18px; margin-right:8px;">⚙️</span> Gmail Sync</div>
+                        <button id="mail-account-close"
+                            style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-muted);">&times;</button>
+                    </div>
+                    <div
+                        style="padding:32px 20px; font-size:14px; color:var(--text-color); line-height:1.5; text-align:center; display:flex; flex-direction:column; align-items:center;">
+                        <svg style="width:48px; height:48px; margin-bottom:16px;" viewBox="0 0 48 48">
+                            <path fill="#EA4335"
+                                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#4285F4"
+                                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05"
+                                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                            <path fill="#34A853"
+                                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
+                        <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Sign in to Sync</h3>
+                        <p style="margin:0 0 24px 0; color:var(--text-muted); font-size:13px; max-width:280px;">Securely
+                            grant Agent OS native IMAP and SMTP access to your real Gmail inbox.</p>
+
+                        <!-- TABS -->
+                        <div
+                            style="display:flex; width:100%; margin-bottom:20px; background:#f1f5f9; border-radius:8px; padding:4px; box-sizing:border-box;">
+                            <button id="tab-oauth"
+                                style="flex:1; padding:8px 0; border:none; background:#ffffff; border-radius:6px; font-size:13px; font-weight:600; color:#0f172a; box-shadow:0 1px 3px rgba(0,0,0,0.1); cursor:pointer;">OAuth</button>
+                            <button id="tab-app-pass"
+                                style="flex:1; padding:8px 0; border:none; background:transparent; border-radius:6px; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">App
+                                Password</button>
+                        </div>
+
+                        <!-- OAUTH FORM -->
+                        <div id="form-oauth" style="width:100%;">
+                            <div style="width:100%; margin-bottom:12px;">
+                                <label
+                                    style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; text-align:left; color:#3c4043;">Google
+                                    Client ID (Optional if prefilled)</label>
+                                <input type="password" id="mail-client-id" value=""
+                                    placeholder="...apps.googleusercontent.com"
+                                    style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:14px; background:#f8fafc;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:6px; text-align:left;">
+                                    Create OAuth credentials in <a
+                                        href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                                        style="color:var(--accent); text-decoration:none;">Google Cloud Console</a>
+                                </div>
+                            </div>
+
+                            <div style="width:100%; margin-bottom:16px;">
+                                <label
+                                    style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; text-align:left; color:#3c4043;">Google
+                                    Client Secret</label>
+                                <input type="password" id="mail-client-secret" value="" placeholder="GOCSPX-..."
+                                    style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:14px; background:#f8fafc;">
+                            </div>
+
+                            <button id="mail-account-save"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid rgba(0,0,0,0.1); background:#ffffff; box-shadow:0 2px 4px rgba(0,0,0,0.05); color:#3c4043; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s;">
+                                <span style="margin-right:8px; font-size:18px;">🌐</span> Continue with Google
+                            </button>
+                        </div>
+
+                        <!-- APP PASSWORD FORM -->
+                        <div id="form-app-pass" style="width:100%; display:none;">
+                            <div style="width:100%; margin-bottom:12px;">
+                                <label
+                                    style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; text-align:left; color:#3c4043;">Gmail
+                                    Address</label>
+                                <input type="text" id="mail-app-email" placeholder="you@gmail.com"
+                                    style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:14px; background:#f8fafc;">
+                            </div>
+
+                            <div style="width:100%; margin-bottom:16px;">
+                                <label
+                                    style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; text-align:left; color:#3c4043;">16-Character
+                                    App Password</label>
+                                <input type="password" id="mail-app-password" placeholder="xxxx xxxx xxxx xxxx"
+                                    style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid rgba(0,0,0,0.1); border-radius:6px; font-size:14px; background:#f8fafc;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:6px; text-align:left;">
+                                    Create one in your <a href="https://myaccount.google.com/apppasswords"
+                                        target="_blank" style="color:var(--accent); text-decoration:none;">Google
+                                        Account Security</a> settings
+                                </div>
+                            </div>
+
+                            <button id="mail-app-pass-save"
+                                style="width:100%; padding:12px; border-radius:8px; border:none; background:var(--accent); color:#ffffff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s;">
+                                <span style="margin-right:8px; font-size:18px;">🔑</span> Connect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </template>
+
     <!-- Chat Template -->
     <template id="tpl-chat">
         <div style="display:flex; flex-direction:column; height:100%; padding:0;">
@@ -2928,6 +3109,33 @@
                     <input id="chat-input" type="text" placeholder="Type a message..."
                         style="flex-grow:1; padding:5px; background:#FFFFFF; color:#1D1D1F; border:1px solid rgba(0,0,0,0.1);">
                     <button id="chat-send" style="padding:5px 10px; cursor:pointer;">Send</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Activity Monitor Template -->
+    <template id="tpl-activity-monitor">
+        <div
+            style="display:flex; flex-direction:column; height:100%; padding:20px; box-sizing:border-box; background:#F5F5F7;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; font-size:24px; font-weight:600; color:#1D1D1F;">Activity Monitor</h2>
+                <div style="font-size:12px; color:var(--text-muted);">Auto-updating</div>
+            </div>
+
+            <div
+                style="flex:1; background:#ffffff; border-radius:12px; border:1px solid rgba(0,0,0,0.1); overflow:hidden; display:flex; flex-direction:column; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+                <div
+                    style="display:flex; background:#fafafa; border-bottom:1px solid rgba(0,0,0,0.1); padding:12px 16px; font-weight:600; font-size:13px; color:var(--text-muted);">
+                    <div style="flex:2;">Job Description</div>
+                    <div style="flex:1;">Model Provider</div>
+                    <div style="flex:1;">Duration</div>
+                    <div style="flex:0; width:100px; text-align:right;">Action</div>
+                </div>
+                <div id="activity-monitor-list" style="flex:1; overflow-y:auto; padding:0;">
+                    <!-- Jobs populate here -->
+                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:14px;">Loading...
+                    </div>
                 </div>
             </div>
         </div>
@@ -3841,6 +4049,20 @@
                 type: 'app',
                 action: () => openGameApp()
             },
+            'mail': {
+                id: 'mail',
+                name: 'Mail',
+                icon: '✉️',
+                type: 'app',
+                action: () => openMailApp()
+            },
+            'monitor': {
+                id: 'monitor',
+                name: 'Activity Monitor',
+                icon: '📈',
+                type: 'app',
+                action: () => openActivityMonitorApp()
+            },
             'store': {
                 id: 'store',
                 name: 'App Store',
@@ -4484,7 +4706,9 @@
             'computer': `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
             'network': `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="12" y1="16" x2="19" y2="16"/><line x1="12" y1="16" x2="5" y2="16"/></svg>`,
             'settings': `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-            'game': `<svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM8 8v8M16 8v8M8 12h8" fill="none" class="stroke-current" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            'game': `<svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM8 8v8M16 8v8M8 12h8" fill="none" class="stroke-current" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            'mail': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
+            'monitor': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line><polyline points="4 10 9 10 12 5 15 15 18 10 20 10"></polyline></svg>`
         };
 
         // Toolbar icons (stroke style, same as dock — no emoji)
@@ -4515,6 +4739,8 @@
             { id: 'agents', label: 'Agents', icon: DOCK_SVG.eval, appId: 'eval' },
             { id: 'files', label: 'Files', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', appId: 'rag' },
             { id: 'game', label: 'Game', icon: DOCK_SVG.game, appId: 'game' },
+            { id: 'mail', label: 'Mail', icon: DOCK_SVG.mail, appId: 'mail' },
+            { id: 'monitor', label: 'Monitor', icon: DOCK_SVG.monitor, appId: 'monitor' },
             { id: 'system', label: 'System', icon: DOCK_SVG.settings, appId: 'settings' },
         ];
         // Bottom apps (restored from original dock)
@@ -5518,7 +5744,7 @@
                 // Sort: Recommended first, then others
                 const sorted = [...availableModels].sort((a, b) => {
                     const aRec = recommended.some(r => a.id.includes(r) || r.includes(a.id));
-                    const bRec = recommended.some(r => b.id.includes(r) || r.includes(b.id));
+                    const bRec = recommended.some(r => b.id.includes(r) || r.includes(a.id));
                     return bRec - aRec;
                 });
 
@@ -5843,6 +6069,509 @@
                 node
                     .attr("transform", d => `translate(${d.x},${d.y})`);
             });
+        }
+
+        // --- App: Mail Client ---
+        async function openMailApp() {
+            const body = createWindow('Mail', 'mail', 800, 600);
+            if (!body) return;
+            body.innerHTML = document.getElementById('tpl-mail').innerHTML;
+
+            const folderRows = body.querySelectorAll('.mail-folder-row');
+            const listTitle = body.querySelector('#mail-list-title');
+            const listContainer = body.querySelector('#mail-list-container');
+            const readingPane = body.querySelector('#mail-reading-pane');
+
+            const summarizeBtn = body.querySelector('#mail-summarize-btn');
+            const composeBtn = body.querySelector('#mail-compose-btn');
+            const aiOverlay = body.querySelector('#mail-ai-overlay');
+            const aiCloseBtn = body.querySelector('#mail-ai-close');
+            const aiContent = body.querySelector('#mail-ai-content');
+
+            let currentFolder = 'inbox';
+            let currentEmails = [];
+
+            // Load Emails
+            async function loadFolder(folder, forceSync = false) {
+                currentFolder = folder;
+                listTitle.textContent = folder.charAt(0).toUpperCase() + folder.slice(1);
+                listContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">Loading...</div>';
+                readingPane.innerHTML = '<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:14px;">Select an email to read</div>';
+
+                try {
+                    const res = await fetch(`/api/mail/inbox?folder=${folder}&sync=${forceSync}`);
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    currentEmails = data.emails || [];
+                    renderList();
+                } catch (err) {
+                    listContainer.innerHTML = `<div style="padding:20px; color:var(--error); font-size:13px;">Error: ${err.message}</div>`;
+                }
+            }
+
+            function renderList() {
+                listContainer.innerHTML = '';
+                if (currentEmails.length === 0) {
+                    listContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">No emails found.</div>';
+                    return;
+                }
+
+                currentEmails.forEach(email => {
+                    const isUnread = currentFolder === 'inbox' && !email.isRead;
+                    const el = document.createElement('div');
+                    el.style.cssText = `padding:12px 16px; border-bottom:1px solid rgba(0,0,0,0.05); cursor:pointer; background:${isUnread ? 'rgba(0,122,255,0.04)' : 'transparent'}; transition:background 0.2s;`;
+
+                    const displayEntity = (email.sender || email.recipient || 'Unknown');
+                    const safeEntity = displayEntity.replace ? displayEntity.replace(/</g, '&lt;') : displayEntity;
+                    const safeSubject = email.subject ? email.subject.replace(/</g, '&lt;') : '(No Subject)';
+                    const safeBody = email.body ? email.body.substring(0, 60).replace(/</g, '&lt;') : '';
+
+                    el.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span style="font-weight:${isUnread ? '700' : '500'}; font-size:13px; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${safeEntity}</span>
+                            <span style="font-size:11px; color:var(--text-muted);">${new Date(email.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <div style="font-weight:${isUnread ? '600' : '400'}; font-size:13px; color:var(--text-primary); margin-bottom:4px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                            ${isUnread ? '<span style="color:#007AFF; margin-right:4px;">●</span>' : ''}${safeSubject}
+                        </div>
+                        <div style="font-size:12px; color:var(--text-secondary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                            ${safeBody}...
+                        </div>
+                    `;
+
+                    el.onmouseenter = () => { if (!isUnread || el.dataset.active !== 'true') el.style.background = 'rgba(0,0,0,0.03)'; };
+                    el.onmouseleave = () => {
+                        if (el.dataset.active === 'true') {
+                            el.style.background = 'rgba(0,0,0,0.06)';
+                        } else {
+                            el.style.background = isUnread ? 'rgba(0,122,255,0.04)' : 'transparent';
+                        }
+                    };
+
+                    el.onclick = () => {
+                        Array.from(listContainer.children).forEach(c => { c.dataset.active = 'false'; c.style.background = c.dataset.unread === 'true' ? 'rgba(0,122,255,0.04)' : 'transparent'; });
+                        el.dataset.active = 'true';
+                        el.dataset.unread = 'false'; // mark read visually
+                        el.style.background = 'rgba(0,0,0,0.06)';
+                        el.querySelector('span[style*="#007AFF"]')?.remove();
+                        el.querySelector('span[style*="font-weight:700"]')?.style.setProperty('font-weight', '500');
+                        el.querySelectorAll('div[style*="font-weight:600"]')[0]?.style.setProperty('font-weight', '400');
+
+                        readEmail(email);
+                    };
+                    if (isUnread) el.dataset.unread = 'true';
+                    listContainer.appendChild(el);
+                });
+            }
+
+            async function readEmail(email) {
+                // Mark read in DB if it's an inbox email
+                if (currentFolder === 'inbox' && !email.isRead) {
+                    try {
+                        await fetch('/api/mail/read', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: email.id })
+                        });
+                        email.isRead = 1;
+                    } catch (e) { console.error('Failed to mark read', e); }
+                }
+
+                const safeSubject = email.subject ? email.subject.replace(/</g, '&lt;') : '(No Subject)';
+                const safeSender = email.sender ? 'From: ' + email.sender.replace(/</g, '&lt;') : (email.recipient ? 'To: ' + email.recipient.replace(/</g, '&lt;') : 'Unknown');
+                const safeBody = email.body ? email.body.replace(/</g, '&lt;') : '';
+
+                readingPane.innerHTML = `
+                    <div style="padding:24px; border-bottom:1px solid rgba(0,0,0,0.08);">
+                        <div style="font-size:20px; font-weight:700; margin-bottom:16px;">${safeSubject}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div style="font-size:14px; font-weight:600; margin-bottom:2px;">${safeSender}</div>
+                                <div style="font-size:12px; color:var(--text-muted);">${new Date(email.timestamp).toLocaleString()}</div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                ${currentFolder === 'inbox' ? `<button id="btn-draft-${email.id}" class="os-button" style="padding:6px 12px; font-size:12px; background:#e8f0fe; color:#1a73e8; border:none;">✨ AI Draft Reply</button>` : ''}
+                                <button id="btn-del-${email.id}" class="os-button" style="padding:6px 12px; font-size:12px; color:#d93025; background:transparent; border:1px solid #d93025;">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:24px; flex:1; overflow-y:auto; font-size:14px; line-height:1.6; white-space:pre-wrap;">${safeBody}</div>
+                `;
+
+                // Bind Delete
+                readingPane.querySelector(`#btn-del-${email.id}`).onclick = async () => {
+                    if (!confirm('Are you sure you want to delete this email?')) return;
+                    try {
+                        const res = await fetch('/api/mail/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: email.id })
+                        });
+                        if (res.ok) {
+                            showToast('Email deleted to trash');
+                            loadFolder(currentFolder);
+                        }
+                    } catch (e) {
+                        showToast('Failed to delete email', 'error');
+                    }
+                };
+
+                // Bind AI Draft Draft
+                if (currentFolder === 'inbox') {
+                    readingPane.querySelector(`#btn-draft-${email.id}`).onclick = async (e) => {
+                        const btn = e.target;
+                        const originalText = btn.textContent;
+                        btn.textContent = '✨ Drafting...';
+                        btn.disabled = true;
+
+                        try {
+                            const res = await fetch('/api/mail/draft', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: email.id })
+                            });
+                            const data = await res.json();
+                            if (data.error) throw new Error(data.error);
+
+                            // Open compose view with draft
+                            openCompose(data.recipient, data.subject, data.draft);
+                        } catch (err) {
+                            showToast('Drafting failed: ' + err.message, 'error');
+                        } finally {
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                        }
+                    };
+                }
+            }
+
+            function openCompose(to = '', subject = '', bodyText = '') {
+                readingPane.innerHTML = `
+                    <div style="padding:16px 24px; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
+                        <div style="font-weight:600;">New Message</div>
+                        <button id="mail-send-exec" style="padding:6px 16px; border-radius:6px; border:none; background:#007AFF; color:white; font-size:13px; font-weight:600; cursor:pointer;">Send Send</button>
+                    </div>
+                    <div style="padding:16px 24px; display:flex; flex-direction:column; gap:12px; border-bottom:1px solid rgba(0,0,0,0.08);">
+                        <input id="compose-to" type="text" placeholder="To" value="${to}" style="border:none; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px 0; font-size:14px; outline:none; background:transparent;">
+                        <input id="compose-subject" type="text" placeholder="Subject" value="${subject}" style="border:none; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px 0; font-size:14px; font-weight:600; outline:none; background:transparent;">
+                    </div>
+                    <textarea id="compose-body" style="flex:1; border:none; padding:24px; font-size:14px; line-height:1.6; resize:none; outline:none; background:transparent; font-family:inherit;">${bodyText}</textarea>
+                `;
+
+                readingPane.querySelector('#mail-send-exec').onclick = async (e) => {
+                    const btn = e.target;
+                    const recipient = readingPane.querySelector('#compose-to').value.trim();
+                    const subj = readingPane.querySelector('#compose-subject').value.trim();
+                    const bodyContent = readingPane.querySelector('#compose-body').value.trim();
+
+                    if (!recipient || !subj) {
+                        showToast('Recipient and subject are required', 'warning');
+                        return;
+                    }
+
+                    btn.textContent = 'Sending...';
+                    btn.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/mail/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ recipient, subject: subj, body: bodyContent })
+                        });
+                        if (!res.ok) throw new Error('Failed to send');
+
+                        showToast('Message sent successfully!');
+                        readingPane.innerHTML = '<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:14px;">Select an email to read</div>';
+                        if (currentFolder === 'sent') loadFolder('sent');
+                    } catch (err) {
+                        showToast('Failed to send email', 'error');
+                        btn.textContent = 'Send';
+                        btn.disabled = false;
+                    }
+                };
+            }
+
+            // Folder Switching
+            folderRows.forEach(row => {
+                row.onclick = () => {
+                    folderRows.forEach(r => r.classList.remove('active'));
+                    row.classList.add('active');
+                    loadFolder(row.dataset.folder);
+                };
+            });
+
+            composeBtn.onclick = () => openCompose();
+
+            // AI Summarization
+            summarizeBtn.onclick = async () => {
+                aiOverlay.style.display = 'flex';
+                aiContent.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100px; color:var(--text-muted);">✨ AI is analyzing your unread inbox...</div>';
+
+                try {
+                    const res = await fetch('/api/mail/summarize', { method: 'POST' });
+                    const data = await res.json();
+
+                    if (data.error) throw new Error(data.error);
+                    if (data.summary) {
+                        aiContent.innerHTML = data.summary.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+                    } else if (data.message) {
+                        aiContent.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin-top:20px;">${data.message.replace(/</g, '&lt;')}</div>`;
+                    }
+                } catch (err) {
+                    aiContent.innerHTML = `<div style="color:var(--error); padding:20px;">Failed to generate summary: ${err.message}</div>`;
+                }
+            };
+
+            aiCloseBtn.onclick = () => aiOverlay.style.display = 'none';
+
+            // Account Config Modal
+            const accountOverlay = body.querySelector('#mail-account-overlay');
+            const accountBtn = body.querySelector('#mail-account-btn');
+            const syncBtn = body.querySelector('#mail-sync-btn'); // New line
+            const accountCloseBtn = body.querySelector('#mail-account-close');
+            const accountSaveBtn = body.querySelector('#mail-account-save');
+
+            // --- Handlers ---
+            if (syncBtn) {
+                syncBtn.onclick = () => {
+                    const originalIcon = syncBtn.innerHTML;
+                    syncBtn.innerHTML = '⌛';
+                    syncBtn.disabled = true;
+                    loadFolder(currentFolder, true).finally(() => {
+                        syncBtn.innerHTML = originalIcon;
+                        syncBtn.disabled = false;
+                        showToast('Inbox synced');
+                    });
+                };
+            }
+
+            accountBtn.onclick = () => accountOverlay.style.display = 'flex';
+            accountCloseBtn.onclick = () => accountOverlay.style.display = 'none';
+
+            // --- TABS LOGIC ---
+            const tabOauth = body.querySelector('#tab-oauth');
+            const tabAppPass = body.querySelector('#tab-app-pass');
+            const formOauth = body.querySelector('#form-oauth');
+            const formAppPass = body.querySelector('#form-app-pass');
+
+            if (tabOauth && tabAppPass) {
+                tabOauth.onclick = () => {
+                    tabOauth.style.background = '#ffffff';
+                    tabOauth.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                    tabOauth.style.color = '#0f172a';
+
+                    tabAppPass.style.background = 'transparent';
+                    tabAppPass.style.boxShadow = 'none';
+                    tabAppPass.style.color = '#64748b';
+
+                    formOauth.style.display = 'block';
+                    formAppPass.style.display = 'none';
+                };
+
+                tabAppPass.onclick = () => {
+                    tabAppPass.style.background = '#ffffff';
+                    tabAppPass.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                    tabAppPass.style.color = '#0f172a';
+
+                    tabOauth.style.background = 'transparent';
+                    tabOauth.style.boxShadow = 'none';
+                    tabOauth.style.color = '#64748b';
+
+                    formAppPass.style.display = 'block';
+                    formOauth.style.display = 'none';
+                };
+            }
+
+            // --- APP PASSWORD SAVE ---
+            const appPassSaveBtn = body.querySelector('#mail-app-pass-save');
+            if (appPassSaveBtn) {
+                appPassSaveBtn.onclick = async () => {
+                    const emailInput = body.querySelector('#mail-app-email');
+                    const passInput = body.querySelector('#mail-app-password');
+                    const emailAddress = emailInput ? emailInput.value.trim() : '';
+                    const appPassword = passInput ? passInput.value.trim() : '';
+
+                    if (!emailAddress || !appPassword) {
+                        showToast('Please provide both Email and App Password', 'warning');
+                        return;
+                    }
+
+                    const originalText = appPassSaveBtn.innerHTML;
+                    appPassSaveBtn.innerHTML = '<span style="margin-right:8px; font-size:18px;">⏳</span> Saving...';
+                    appPassSaveBtn.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/mail/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ emailAddress, appPassword })
+                        });
+
+                        if (!res.ok) throw new Error('Failed to save configuration');
+
+                        showToast('App Password saved! Mail will now live sync.');
+                        accountOverlay.style.display = 'none';
+                        loadFolder(currentFolder, true);
+                    } catch (err) {
+                        showToast(err.message, 'error');
+                    } finally {
+                        appPassSaveBtn.innerHTML = originalText;
+                        appPassSaveBtn.disabled = false;
+                    }
+                };
+            }
+
+            accountSaveBtn.onclick = async () => {
+                const clientIdInput = body.querySelector('#mail-client-id');
+                const clientSecretInput = body.querySelector('#mail-client-secret');
+                const clientId = clientIdInput ? clientIdInput.value.trim() : '';
+                const clientSecret = clientSecretInput ? clientSecretInput.value.trim() : '';
+
+                if (!clientId || !clientSecret) {
+                    showToast('Please provide both your Client ID and Client Secret', 'warning');
+                    return;
+                }
+
+                const originalText = accountSaveBtn.innerHTML;
+                accountSaveBtn.innerHTML = '<span style="margin-right:8px; font-size:18px;">⏳</span> Connecting...';
+                accountSaveBtn.disabled = true;
+
+                try {
+                    // Send configuring secret first
+                    await fetch('/api/mail/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId, clientSecret })
+                    });
+
+                    const res = await fetch('/api/mail/auth-url');
+                    const data = await res.json();
+                    if (!data.url) throw new Error('Failed to retrieve authentication URL.');
+
+                    const width = 500;
+                    const height = 600;
+                    const left = window.screenX + (window.outerWidth - width) / 2;
+                    const top = window.screenY + (window.outerHeight - height) / 2;
+
+                    // We don't need a reference since it's opening in the OS browser, but Electron returns an empty proxy
+                    window.open(data.url, 'Google OAuth', `width=${width},height=${height},left=${left},top=${top}`);
+
+                    // Poll the backend every 1.5 seconds to see if the callback successfully caught the token
+                    let pollCount = 0;
+                    const maxPolls = 120; // 3 minutes max
+
+                    const pollTimer = setInterval(async () => {
+                        pollCount++;
+                        try {
+                            const statusRes = await fetch('/api/mail/status');
+                            const statusData = await statusRes.json();
+
+                            if (statusData.configured) {
+                                clearInterval(pollTimer);
+                                accountSaveBtn.innerHTML = '<span style="margin-right:8px; font-size:18px;">✅</span> Connected';
+                                showToast('Gmail OAuth credentials securely saved! Mail will now live sync.');
+                                setTimeout(() => {
+                                    accountOverlay.style.display = 'none';
+                                    accountSaveBtn.innerHTML = originalText;
+                                    accountSaveBtn.disabled = false;
+                                    loadFolder('inbox');
+                                }, 1000);
+                            } else if (pollCount >= maxPolls) {
+                                clearInterval(pollTimer);
+                                showToast('OAuth wait timeout elapsed. Please try again.', 'warning');
+                                accountSaveBtn.innerHTML = originalText;
+                                accountSaveBtn.disabled = false;
+                            }
+                        } catch (e) {
+                            console.error('Polling error', e);
+                        }
+                    }, 1500);
+
+                } catch (err) {
+                    showToast(err.message, 'error');
+                    accountSaveBtn.innerHTML = originalText;
+                    accountSaveBtn.disabled = false;
+                }
+            };
+
+            // Initial Load
+            loadFolder('inbox');
+        }
+
+        // --- App: Activity Monitor ---
+        function openActivityMonitorApp() {
+            const body = createWindow('Activity Monitor', 'monitor', 650, 450);
+            if (!body) return; // Window already exists and was brought to front
+
+            body.innerHTML = document.getElementById('tpl-activity-monitor').innerHTML;
+            const listContainer = body.querySelector('#activity-monitor-list');
+
+            const fetchJobs = async () => {
+                if (!document.body.contains(body)) {
+                    clearInterval(pollInterval);
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/ai/jobs');
+                    const data = await res.json();
+
+                    if (!data.jobs || data.jobs.length === 0) {
+                        listContainer.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-muted); font-size:14px;">No AI jobs running</div>';
+                        return;
+                    }
+
+                    listContainer.innerHTML = '';
+                    const now = Date.now();
+
+                    data.jobs.forEach(job => {
+                        const durationSec = Math.floor((now - job.startTime) / 1000);
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex; padding:12px 16px; border-bottom:1px solid rgba(0,0,0,0.05); align-items:center; font-size:13px; color:#1D1D1F;';
+                        row.innerHTML = `
+                            <div style="flex:2; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:12px;" title="${job.description}">${job.description}</div>
+                            <div style="flex:1;">
+                                <span style="background:rgba(0,122,255,0.1); color:#007AFF; padding:2px 8px; border-radius:10px; font-weight:600; font-size:11px;">
+                                    ${job.provider}
+                                </span>
+                            </div>
+                            <div style="flex:1; color:var(--text-muted); font-variant-numeric: tabular-nums;">${durationSec}s</div>
+                            <div style="flex:0; width:100px; text-align:right;">
+                                <button class="btn-kill-job" data-id="${job.id}" style="background:#ff3b30; color:white; border:none; border-radius:4px; padding:4px 12px; font-size:12px; font-weight:600; cursor:pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Kill</button>
+                            </div>
+                        `;
+                        listContainer.appendChild(row);
+                    });
+
+                    // Bind kill buttons
+                    body.querySelectorAll('.btn-kill-job').forEach(btn => {
+                        btn.onclick = async (e) => {
+                            const jobId = e.target.dataset.id;
+                            e.target.disabled = true;
+                            e.target.textContent = 'Killing...';
+                            e.target.style.opacity = '0.5';
+                            e.target.style.cursor = 'default';
+                            try {
+                                const res = await fetch('/api/ai/stop', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ jobId })
+                                });
+                                if (res.ok) {
+                                    fetchJobs(); // Refresh immediately
+                                }
+                            } catch (err) {
+                                console.error('Failed to kill job', err);
+                            }
+                        };
+                    });
+
+                } catch (e) {
+                    listContainer.innerHTML = '<div style="padding:24px; text-align:center; color:#ff3b30; font-size:14px;">Failed to fetch jobs</div>';
+                }
+            };
+
+            fetchJobs();
+            const pollInterval = setInterval(fetchJobs, 1500);
         }
 
         // --- App: Drawing App ---

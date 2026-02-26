@@ -4,16 +4,40 @@ import { LLMMessage, ModelProvider } from './providers/base';
 import { OpenAIProvider } from './providers/OpenAIProvider';
 import { AnthropicProvider } from './providers/AnthropicProvider';
 import { OllamaProvider } from './providers/OllamaProvider';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface AIJob {
+    id: string;
+    description: string;
+    provider: string;
+    startTime: number;
+    abortController: AbortController;
+}
 
 export class ModelRouter {
     private providers: Map<string, ModelProvider> = new Map();
     private localProvider: OllamaProvider;
+    private activeJobs: Map<string, AIJob> = new Map();
 
     constructor(identityManager: IdentityManager, ollamaManager: OllamaManager) {
         this.localProvider = new OllamaProvider(ollamaManager);
         this.providers.set('local', this.localProvider);
         this.providers.set('openai', new OpenAIProvider(identityManager));
         this.providers.set('anthropic', new AnthropicProvider(identityManager));
+    }
+
+    getActiveJobs(): AIJob[] {
+        return Array.from(this.activeJobs.values());
+    }
+
+    abortJob(jobId: string): boolean {
+        const job = this.activeJobs.get(jobId);
+        if (job) {
+            job.abortController.abort();
+            this.activeJobs.delete(jobId);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -49,8 +73,23 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
     /**
      * Routes the chat request to the optimal provider based on complexity or explicit model provider.
      */
-    async routeChat(prompt: string, preferredProvider?: string): Promise<{ response: string, level: string, providerUsed: string }> {
+    async routeChat(prompt: string, preferredProvider?: string, jobDescription?: string): Promise<{ response: string, level: string, providerUsed: string }> {
         const messages: LLMMessage[] = [];
+        const jobId = uuidv4();
+        const abortController = new AbortController();
+
+        const trackJob = (provider: string) => {
+            this.activeJobs.set(jobId, {
+                id: jobId,
+                description: jobDescription || (prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt),
+                provider: provider,
+                startTime: Date.now(),
+                abortController
+            });
+        };
+        const cleanupJob = () => {
+            this.activeJobs.delete(jobId);
+        };
 
         // Extract system prompts from the formatted string and move them into a system message
         const systemRegex = /<Register_SystemPrompt>([\s\S]*?)<\/Register_SystemPrompt>/;
@@ -103,49 +142,80 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
         if (preferredProvider === 'cloud') {
             if (hasAnthropic) {
                 try {
+                    trackJob('anthropic');
+                    const response = await pAnthropic!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pAnthropic!.chat(messages),
+                        response: response,
                         level: 'cloud-preferred',
                         providerUsed: 'anthropic'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('Anthropic failed for cloud-preferred, falling back to OpenAI...', e.message);
                 }
             }
             if (hasOpenAI) {
                 try {
+                    trackJob('openai');
+                    const response = await pOpenAI!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pOpenAI!.chat(messages),
+                        response: response,
                         level: 'cloud-preferred (fallback)',
                         providerUsed: 'openai'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('OpenAI failed for cloud-preferred, falling back to Local...', e.message);
                 }
             }
             console.warn('No valid cloud providers available or all failed. Falling back to Local...');
-            return {
-                response: await this.localProvider.chat(messages),
-                level: 'cloud-preferred (local fallback)',
-                providerUsed: 'local'
-            };
+            try {
+                trackJob('local');
+                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
+                cleanupJob();
+                return {
+                    response: response,
+                    level: 'cloud-preferred (local fallback)',
+                    providerUsed: 'local'
+                };
+            } catch (e: any) {
+                cleanupJob();
+                throw e;
+            }
         }
 
         if (preferredProvider && this.providers.has(preferredProvider)) {
             try {
                 const provider = this.providers.get(preferredProvider)!;
+                trackJob(preferredProvider);
+                const response = await provider.chat(messages, undefined, { signal: abortController.signal });
+                cleanupJob();
                 return {
-                    response: await provider.chat(messages),
+                    response: response,
                     level: 'explicit',
                     providerUsed: preferredProvider
                 };
             } catch (err: any) {
+                cleanupJob();
+                if (err.name === 'AbortError' || err.message === 'canceled') throw err;
                 console.warn(`${preferredProvider} failed explicitly, falling back to local...`, err.message);
-                return {
-                    response: await this.localProvider.chat(messages),
-                    level: 'explicit (local fallback)',
-                    providerUsed: 'local'
-                };
+                try {
+                    trackJob('local');
+                    const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
+                    return {
+                        response: response,
+                        level: 'explicit (local fallback)',
+                        providerUsed: 'local'
+                    };
+                } catch (e: any) {
+                    cleanupJob();
+                    throw e;
+                }
             }
         }
 
@@ -155,70 +225,114 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
 
 
         if (level === '1') {
-            return {
-                response: await this.localProvider.chat(messages),
-                level: '1',
-                providerUsed: 'local'
-            };
+            try {
+                trackJob('local');
+                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
+                cleanupJob();
+                return {
+                    response: response,
+                    level: '1',
+                    providerUsed: 'local'
+                };
+            } catch (e: any) {
+                cleanupJob();
+                throw e;
+            }
         } else if (level === '2') {
             if (hasAnthropic) {
                 try {
+                    trackJob('anthropic');
+                    const response = await pAnthropic!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pAnthropic!.chat(messages),
+                        response: response,
                         level: '2',
                         providerUsed: 'anthropic'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('Anthropic failed, falling back to OpenAI...', e.message);
                 }
             }
             if (hasOpenAI) {
                 try {
+                    trackJob('openai');
+                    const response = await pOpenAI!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pOpenAI!.chat(messages),
+                        response: response,
                         level: '2 (fallback)',
                         providerUsed: 'openai'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('OpenAI failed, falling back to Local...', e.message);
                 }
             }
             // Ultimate fallback
-            return {
-                response: await this.localProvider.chat(messages),
-                level: '2 (local fallback)',
-                providerUsed: 'local'
-            };
+            try {
+                trackJob('local');
+                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
+                cleanupJob();
+                return {
+                    response: response,
+                    level: '2 (local fallback)',
+                    providerUsed: 'local'
+                };
+            } catch (e: any) {
+                cleanupJob();
+                throw e;
+            }
         } else {
             // Level 3
             if (hasOpenAI) {
                 try {
+                    trackJob('openai');
+                    const response = await pOpenAI!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pOpenAI!.chat(messages),
+                        response: response,
                         level: '3',
                         providerUsed: 'openai'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('OpenAI failed for level 3, falling back to Anthropic...', e.message);
                 }
             }
             if (hasAnthropic) {
                 try {
+                    trackJob('anthropic');
+                    const response = await pAnthropic!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
                     return {
-                        response: await pAnthropic!.chat(messages),
+                        response: response,
                         level: '3 (fallback)',
                         providerUsed: 'anthropic'
                     };
                 } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('Anthropic failed for level 3, falling back to Local...', e.message);
                 }
             }
             // Ultimate fallback
-            return {
-                response: await this.localProvider.chat(messages),
-                level: '3 (local fallback)',
-                providerUsed: 'local'
-            };
+            try {
+                trackJob('local');
+                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
+                cleanupJob();
+                return {
+                    response: response,
+                    level: '3 (local fallback)',
+                    providerUsed: 'local'
+                };
+            } catch (e: any) {
+                cleanupJob();
+                throw e;
+            }
         }
     }
 }

@@ -32,6 +32,8 @@ export class OllamaProvider implements ModelProvider {
                     temperature: options?.temperature,
                     num_predict: options?.max_tokens
                 }
+            }, {
+                signal: options?.signal
             });
             return response.data.message.content;
         } catch (error: any) {

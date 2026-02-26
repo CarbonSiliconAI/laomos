@@ -226,6 +226,16 @@ function createWindow() {
   });
   mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
   mainWindow.setMenuBarVisibility(false);
+
+  // Force external links (like Google OAuth) to open in the native OS browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.includes('accounts.google.com') || url.includes('oauth2')) {
+      electron.shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

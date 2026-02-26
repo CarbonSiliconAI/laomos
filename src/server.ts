@@ -27,6 +27,12 @@ import * as yauzl from 'yauzl';
 import * as util from 'util';
 import { AIFirewall } from './kernel/firewall';
 import { GameManager } from './game_manager';
+import { MailManager } from './mail_manager';
+import { google } from 'googleapis';
+
+export interface RequestManager {
+    [requestId: string]: AbortController;
+}
 
 // In-memory budget state (resets on restart — mock per spec)
 let currentBudget: BudgetConstraint = {
@@ -54,6 +60,8 @@ export class Server {
     private skillLoader: SkillLoader;
     private journal?: ExecutionJournal;
     private gameManager: GameManager;
+    private mailManager: MailManager;
+    private activeRequests: RequestManager = {};
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
@@ -72,12 +80,17 @@ export class Server {
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
         this.gameManager = new GameManager();
+
+        const systemDir = path.join(this.fsManager.getRootDir(), 'system');
+        this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
+
         this.configureRoutes();
     }
 
     private configureRoutes() {
         // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
         const appRoot = process.env.APP_ROOT || process.cwd();
+
         this.app.use(express.static(path.join(appRoot, 'public')));
         this.app.use(express.json({ limit: '50mb' }));
 
@@ -88,6 +101,29 @@ export class Server {
                 res.json({ models });
             } catch (error) {
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // AI Job Management
+        this.app.get('/api/ai/jobs', (req, res) => {
+            // Strip out the non-serializable abortController
+            const activeJobs = this.modelRouter.getActiveJobs().map(job => {
+                const { abortController, ...safeJob } = job;
+                return safeJob;
+            });
+            res.json({ jobs: activeJobs });
+        });
+
+        this.app.post('/api/ai/stop', (req, res) => {
+            const { jobId } = req.body;
+            if (!jobId) {
+                return res.status(400).json({ error: 'jobId is required' });
+            }
+            const success = this.modelRouter.abortJob(jobId);
+            if (success) {
+                res.json({ success: true, message: `Job ${jobId} aborted.` });
+            } else {
+                res.status(404).json({ error: `Job ${jobId} not found.` });
             }
         });
 
@@ -229,6 +265,175 @@ export class Server {
             } catch (error) {
                 console.error('[Server] Game chat error:', error);
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // --- Mail API Endpoints ---
+        this.app.get('/api/mail/inbox', async (req, res) => {
+            try {
+                const folder = req.query.folder as string || 'inbox';
+                const sync = req.query.sync === 'true';
+                const emails = await this.mailManager.getInbox(folder, sync);
+                res.json({ emails });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/config', async (req, res) => {
+            try {
+                const { clientId, clientSecret, emailAddress, appPassword } = req.body;
+
+                if (emailAddress && appPassword) {
+                    await this.identityManager.addKey('gmail_address', emailAddress);
+                    await this.identityManager.addKey('gmail_app_password', appPassword.replace(/\s+/g, ''));
+                    return res.json({ success: true, message: 'App Password cached securely' });
+                }
+
+                if (clientId && clientSecret) {
+                    await this.identityManager.addKey('gmail_client_id', clientId);
+                    await this.identityManager.addKey('gmail_client_secret', clientSecret);
+                    return res.json({ success: true, message: 'Google Client Secret cached securely' });
+                }
+
+                return res.status(400).json({ error: 'Either Client Credentials or App Password/Email are required' });
+            } catch (err: any) {
+                console.error('[Mail] Config Error:', err);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.get('/api/mail/auth-url', async (req, res) => {
+            const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+            const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
+            const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
+
+            const oauth2Client = new google.auth.OAuth2(
+                GOOGLE_CLIENT_ID,
+                GOOGLE_CLIENT_SECRET,
+                GOOGLE_REDIRECT_URI
+            );
+
+            const scopes = [
+                'https://mail.google.com/',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ];
+
+            const url = oauth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: scopes,
+                prompt: 'consent'
+            });
+
+            res.json({ url });
+        });
+
+        this.app.get('/api/mail/status', async (req, res) => {
+            try {
+                const address = await this.identityManager.getKey('gmail_address');
+                const refreshToken = await this.identityManager.getKey('gmail_refresh_token');
+
+                if (address && refreshToken) {
+                    res.json({ configured: true, address });
+                } else {
+                    res.json({ configured: false });
+                }
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/token', async (req, res) => {
+            try {
+                const { code } = req.body;
+                if (!code) return res.status(400).json({ error: 'Auth code is required' });
+
+                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || '724390580229-1qn05pb5t4rahdqce6rgkoveojabf3bc.apps.googleusercontent.com';
+                const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
+                const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
+
+                const oauth2Client = new google.auth.OAuth2(
+                    GOOGLE_CLIENT_ID,
+                    GOOGLE_CLIENT_SECRET,
+                    GOOGLE_REDIRECT_URI
+                );
+
+                const { tokens } = await oauth2Client.getToken(code);
+                oauth2Client.setCredentials(tokens);
+
+                let emailAddress = 'user@gmail.com';
+                try {
+                    const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+                    const userInfo = await oauth2.userinfo.get();
+                    if (userInfo.data.email) emailAddress = userInfo.data.email;
+                } catch (e) { console.warn('Could not fetch email address:', e); }
+
+                await this.identityManager.addKey('gmail_address', emailAddress);
+                if (tokens.refresh_token) {
+                    await this.identityManager.addKey('gmail_refresh_token', tokens.refresh_token);
+                }
+                if (tokens.access_token) {
+                    await this.identityManager.addKey('gmail_access_token', tokens.access_token);
+                }
+
+                res.json({ success: true, message: 'OAuth credentials securely cached.' });
+            } catch (err: any) {
+                console.error('[Mail] Token Error:', err);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/send', async (req, res) => {
+            try {
+                const { recipient, subject, body } = req.body;
+                if (!recipient || !subject) return res.status(400).json({ error: 'Recipient and subject required.' });
+                const result = await this.mailManager.sendEmail(recipient, subject, body);
+                res.json(result);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/delete', (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                const success = this.mailManager.deleteEmail(id);
+                if (!success) return res.status(404).json({ error: 'Email not found.' });
+                res.json({ success: true });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/read', (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                this.mailManager.markRead(id);
+                res.json({ success: true });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/summarize', async (req, res) => {
+            try {
+                const result = await this.mailManager.summarizeInbox();
+                res.json(result);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/draft', async (req, res) => {
+            try {
+                const { id, instruction } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                const draft = await this.mailManager.draftReply(id, instruction);
+                res.json(draft);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
             }
         });
 

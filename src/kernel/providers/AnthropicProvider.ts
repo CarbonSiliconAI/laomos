@@ -42,7 +42,8 @@ export class AnthropicProvider implements ModelProvider {
                     'x-api-key': key,
                     'anthropic-version': '2023-06-01',
                     'content-type': 'application/json'
-                }
+                },
+                signal: options?.signal
             });
 
             return response.data.content[0].text;
