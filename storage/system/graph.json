@@ -529,6 +529,56 @@
       "id": "model-llama-guard3:latest",
       "label": "llama-guard3:latest",
       "type": "model"
+    },
+    {
+      "id": "model-qwen3:4b",
+      "label": "qwen3:4b",
+      "type": "model"
+    },
+    {
+      "id": "model-llama3:latest",
+      "label": "llama3:latest",
+      "type": "model"
+    },
+    {
+      "id": "model-qwen2.5:latest",
+      "label": "qwen2.5:latest",
+      "type": "model"
+    },
+    {
+      "id": "model-mistral:latest",
+      "label": "mistral:latest",
+      "type": "model"
+    },
+    {
+      "id": "model-nomic-embed-text:latest",
+      "label": "nomic-embed-text:latest",
+      "type": "model"
+    },
+    {
+      "id": "model-gemma3:1b",
+      "label": "gemma3:1b",
+      "type": "model"
+    },
+    {
+      "id": "model-gemma3:4b",
+      "label": "gemma3:4b",
+      "type": "model"
+    },
+    {
+      "id": "model-gpt-oss:120b",
+      "label": "gpt-oss:120b",
+      "type": "model"
+    },
+    {
+      "id": "model-qwen3-coder:30b",
+      "label": "qwen3-coder:30b",
+      "type": "model"
+    },
+    {
+      "id": "model-llama3.1:8b",
+      "label": "llama3.1:8b",
+      "type": "model"
     }
   ],
   "edges": [
@@ -1550,6 +1600,56 @@
     {
       "source": "os-root",
       "target": "model-llama-guard3:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-qwen3:4b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-llama3:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-qwen2.5:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-mistral:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-nomic-embed-text:latest",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-gemma3:1b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-gemma3:4b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-gpt-oss:120b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-qwen3-coder:30b",
+      "relation": "has_model"
+    },
+    {
+      "source": "os-root",
+      "target": "model-llama3.1:8b",
       "relation": "has_model"
     }
   ]

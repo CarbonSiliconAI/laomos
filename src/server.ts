@@ -24,6 +24,7 @@ import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
 import * as yauzl from 'yauzl';
+import * as util from 'util';
 import { AIFirewall } from './kernel/firewall';
 import { GameManager } from './game_manager';
 
@@ -78,7 +79,7 @@ export class Server {
         // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
         const appRoot = process.env.APP_ROOT || process.cwd();
         this.app.use(express.static(path.join(appRoot, 'public')));
-        this.app.use(express.json());
+        this.app.use(express.json({ limit: '50mb' }));
 
         // API Endpoint to proxy Ollama models
         this.app.get('/api/ollama/models', async (req, res) => {
@@ -384,31 +385,130 @@ export class Server {
                     return res.status(400).json({ error: 'skillContext and userInput are required' });
                 }
 
-                // Construct a strict single-shot prompt mimicking the chat router format
-                const executionPrompt = `[Active OpenClaw Skills]:\n${skillContext}\n\nUser Input: ${userInput}`;
+                const systemInstruction = `<Register_SystemPrompt>
+You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
+You have been granted access to the following skills:
+${skillContext}
 
-                console.log(`[Skill Execution] Routing prompt with complexity evaluator...`);
-                // Let ModelRouter infer complexity and execute
-                const result = await this.modelRouter.routeChat(executionPrompt);
+To execute these skills, you have access to the following XML tools. You MUST use these exact formats. 
+Do NOT wrap the XML tags in markdown code blocks.
 
-                let finalResponse = result.response;
+1. Execute a shell command:
+<bash>
+your command here
+</bash>
 
-                // Simple interceptor for file saving skills
-                const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
-                let match;
-                while ((match = saveFileRegex.exec(result.response)) !== null) {
-                    const filePath = match[1];
-                    const content = match[2];
-                    const fullPath = `personal/${filePath}`;
-                    await this.fsManager.createFile(fullPath, content.trim());
-                    console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
-                    finalResponse = finalResponse.replace(match[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+2. Read a file from the file system:
+<read_file>
+/absolute/path/or/relative/path/to/file.txt
+</read_file>
+
+3. Save content to a file in the user's personal directory:
+<save_file path="output.txt">
+File content here
+</save_file>
+
+When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
+You can use tools multiple times in a row. Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+</Register_SystemPrompt>`;
+
+                let messages: any[] = [
+                    { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
+                ];
+
+                let finalResponse = '';
+                let iterations = 0;
+                const maxIterations = 10;
+                let levelUsed = '1';
+                let providerUsed = 'local';
+
+                const execAsync = util.promisify(require('child_process').exec);
+
+                while (iterations < maxIterations) {
+                    iterations++;
+                    console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
+
+                    const result = await this.modelRouter.routeChat(messages);
+                    const aiMessage = result.response;
+                    levelUsed = result.level;
+                    providerUsed = result.providerUsed;
+
+                    messages.push({ role: 'assistant', content: aiMessage });
+                    console.log(`\n\n[Skill Execution] ========== AI RESPONSE START ==========\n${aiMessage}\n========== AI RESPONSE END ==========\n\n`);
+
+                    let requiresNextTurn = false;
+                    let nextUserMessage = '';
+
+                    // 1. Process <bash> tools
+                    const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
+                    let bashMatch;
+                    while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
+                        const command = bashMatch[1].trim();
+                        try {
+                            console.log(`[Skill Execution] Executing bash: ${command}`);
+                            // We execute from the app root or a safe dir
+                            const { stdout, stderr } = await execAsync(command, { cwd: this.fsManager.getRootDir() });
+                            const output = (stdout || '') + (stderr || '');
+                            nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Bash error:`, error.message);
+                            nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    // 2. Process <read_file> tools
+                    const readRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
+                    let readMatch;
+                    while ((readMatch = readRegex.exec(aiMessage)) !== null) {
+                        const filePath = readMatch[1].trim();
+                        try {
+                            console.log(`[Skill Execution] Reading file: ${filePath}`);
+                            // Safely resolve against root
+                            const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
+                            const content = require('fs').readFileSync(resolvedPath, 'utf8');
+                            nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Read file error:`, error.message);
+                            nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    // 3. Process <save_file> tools (We do this on every turn just in case they save intermediately)
+                    const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+                    let saveMatch;
+                    let finalResponseModified = aiMessage;
+                    while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
+                        const filePath = saveMatch[1];
+                        const content = saveMatch[2];
+                        const fullPath = `personal/${filePath}`;
+                        try {
+                            await this.fsManager.createFile(fullPath, content.trim());
+                            console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
+                            finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Save file error:`, error.message);
+                        }
+                    }
+
+                    if (requiresNextTurn) {
+                        messages.push({ role: 'user', content: nextUserMessage });
+                    } else {
+                        // Exit loop, task complete
+                        finalResponse = finalResponseModified;
+                        break;
+                    }
+                }
+
+                if (iterations >= maxIterations) {
+                    finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
                 }
 
                 res.json({
                     response: finalResponse,
-                    level: result.level,
-                    providerUsed: result.providerUsed
+                    level: levelUsed,
+                    providerUsed: providerUsed
                 });
             } catch (error: any) {
                 console.error('[Skill Execution] Error:', error);

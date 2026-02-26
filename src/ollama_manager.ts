@@ -8,7 +8,7 @@ import path from 'path';
 const execAsync = util.promisify(exec);
 
 export class OllamaManager {
-    private baseUrl: string = 'http://localhost:11434';
+    private baseUrl: string = 'http://127.0.0.1:11434';
 
     async checkStatus(): Promise<boolean> {
         try {

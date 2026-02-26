@@ -6,7 +6,7 @@ export class OllamaProvider implements ModelProvider {
     public id = 'ollama';
     private manager: OllamaManager;
     private defaultModel = 'llama3.1'; // Can be configured centrally later
-    private baseUrl = 'http://localhost:11434';
+    private baseUrl = 'http://127.0.0.1:11434';
 
     constructor(manager: OllamaManager) {
         this.manager = manager;
