@@ -6,6 +6,7 @@ export interface LLMMessage {
 export interface ProviderOptions {
     temperature?: number;
     max_tokens?: number;
+    signal?: AbortSignal;
     [key: string]: any;
 }
 

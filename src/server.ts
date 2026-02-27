@@ -24,7 +24,15 @@ import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
 import axios from 'axios';
 import * as lancedb from 'vectordb';
 import * as yauzl from 'yauzl';
+import * as util from 'util';
 import { AIFirewall } from './kernel/firewall';
+import { GameManager } from './game_manager';
+import { MailManager } from './mail_manager';
+import { google } from 'googleapis';
+
+export interface RequestManager {
+    [requestId: string]: AbortController;
+}
 
 // In-memory budget state (resets on restart — mock per spec)
 let currentBudget: BudgetConstraint = {
@@ -51,6 +59,9 @@ export class Server {
     private firewall: AIFirewall;
     private skillLoader: SkillLoader;
     private journal?: ExecutionJournal;
+    private gameManager: GameManager;
+    private mailManager: MailManager;
+    private activeRequests: RequestManager = {};
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
@@ -68,14 +79,20 @@ export class Server {
         this.firewall = firewall;
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
+        this.gameManager = new GameManager();
+
+        const systemDir = path.join(this.fsManager.getRootDir(), 'system');
+        this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
+
         this.configureRoutes();
     }
 
     private configureRoutes() {
         // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
         const appRoot = process.env.APP_ROOT || process.cwd();
+
         this.app.use(express.static(path.join(appRoot, 'public')));
-        this.app.use(express.json());
+        this.app.use(express.json({ limit: '50mb' }));
 
         // API Endpoint to proxy Ollama models
         this.app.get('/api/ollama/models', async (req, res) => {
@@ -84,6 +101,29 @@ export class Server {
                 res.json({ models });
             } catch (error) {
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // AI Job Management
+        this.app.get('/api/ai/jobs', (req, res) => {
+            // Strip out the non-serializable abortController
+            const activeJobs = this.modelRouter.getActiveJobs().map(job => {
+                const { abortController, ...safeJob } = job;
+                return safeJob;
+            });
+            res.json({ jobs: activeJobs });
+        });
+
+        this.app.post('/api/ai/stop', (req, res) => {
+            const { jobId } = req.body;
+            if (!jobId) {
+                return res.status(400).json({ error: 'jobId is required' });
+            }
+            const success = this.modelRouter.abortJob(jobId);
+            if (success) {
+                res.json({ success: true, message: `Job ${jobId} aborted.` });
+            } else {
+                res.status(404).json({ error: `Job ${jobId} not found.` });
             }
         });
 
@@ -163,6 +203,245 @@ export class Server {
         this.app.get('/api/system/firewall', (req, res) => {
             res.json({ enabled: this.firewall.enabled });
         });
+
+        // --- Game API Endpoints ---
+        this.app.get('/api/game/state', (req, res) => {
+            res.json(this.gameManager.getState());
+        });
+
+        this.app.post('/api/game/chat', async (req, res) => {
+            try {
+                const { action } = req.body;
+                if (!action) return res.status(400).json({ error: 'Action is required' });
+
+                const state = this.gameManager.getState();
+
+                // Format prompt via registry
+                const { prompt } = this.registry.format('agent_game', 'dungeon_master', {
+                    context: state.context,
+                    inventory: state.inventory,
+                    action: action
+                });
+
+                // Save user action to history
+                this.gameManager.appendUserAction(action);
+
+                // Re-fetch state for updated history length
+                const updatedState = this.gameManager.getState();
+
+                // Build context for the router from the full prompt configuration
+                // Router extracts <Register_SystemPrompt>
+
+                const responseObj = await this.modelRouter.routeChat(prompt, 'cloud');
+                let responseContent = responseObj.response;
+
+                let newContext = "";
+                let newInventory = "";
+
+                // Parse XML tags if the model returned them
+                const contextMatch = responseContent.match(/<Context>([\s\S]*?)<\/Context>/i);
+                if (contextMatch) {
+                    newContext = contextMatch[1].trim();
+                    responseContent = responseContent.replace(contextMatch[0], '');
+                }
+
+                const invMatch = responseContent.match(/<Inventory>([\s\S]*?)<\/Inventory>/i);
+                if (invMatch) {
+                    newInventory = invMatch[1].trim();
+                    responseContent = responseContent.replace(invMatch[0], '');
+                }
+
+                // Clean up string
+                responseContent = responseContent.trim();
+
+                // Append assistant message and potentially update context/inventory
+                this.gameManager.updateState(
+                    newContext,
+                    newInventory,
+                    { role: 'assistant', content: responseContent }
+                );
+
+                res.json({ state: this.gameManager.getState() });
+            } catch (error) {
+                console.error('[Server] Game chat error:', error);
+                res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // --- Mail API Endpoints ---
+        this.app.get('/api/mail/inbox', async (req, res) => {
+            try {
+                const folder = req.query.folder as string || 'inbox';
+                const sync = req.query.sync === 'true';
+                const emails = await this.mailManager.getInbox(folder, sync);
+                res.json({ emails });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/config', async (req, res) => {
+            try {
+                const { clientId, clientSecret, emailAddress, appPassword } = req.body;
+
+                if (emailAddress && appPassword) {
+                    await this.identityManager.addKey('gmail_address', emailAddress);
+                    await this.identityManager.addKey('gmail_app_password', appPassword.replace(/\s+/g, ''));
+                    return res.json({ success: true, message: 'App Password cached securely' });
+                }
+
+                if (clientId && clientSecret) {
+                    await this.identityManager.addKey('gmail_client_id', clientId);
+                    await this.identityManager.addKey('gmail_client_secret', clientSecret);
+                    return res.json({ success: true, message: 'Google Client Secret cached securely' });
+                }
+
+                return res.status(400).json({ error: 'Either Client Credentials or App Password/Email are required' });
+            } catch (err: any) {
+                console.error('[Mail] Config Error:', err);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.get('/api/mail/auth-url', async (req, res) => {
+            const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
+            const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
+            const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
+
+            const oauth2Client = new google.auth.OAuth2(
+                GOOGLE_CLIENT_ID,
+                GOOGLE_CLIENT_SECRET,
+                GOOGLE_REDIRECT_URI
+            );
+
+            const scopes = [
+                'https://mail.google.com/',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ];
+
+            const url = oauth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: scopes,
+                prompt: 'consent'
+            });
+
+            res.json({ url });
+        });
+
+        this.app.get('/api/mail/status', async (req, res) => {
+            try {
+                const address = await this.identityManager.getKey('gmail_address');
+                const refreshToken = await this.identityManager.getKey('gmail_refresh_token');
+
+                if (address && refreshToken) {
+                    res.json({ configured: true, address });
+                } else {
+                    res.json({ configured: false });
+                }
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/token', async (req, res) => {
+            try {
+                const { code } = req.body;
+                if (!code) return res.status(400).json({ error: 'Auth code is required' });
+
+                const GOOGLE_CLIENT_ID = await this.identityManager.getKey('gmail_client_id') || process.env.GOOGLE_CLIENT_ID || '';
+                const GOOGLE_CLIENT_SECRET = await this.identityManager.getKey('gmail_client_secret') || process.env.GOOGLE_CLIENT_SECRET || '';
+                const GOOGLE_REDIRECT_URI = 'http://127.0.0.1:3123/oauth-callback.html';
+
+                const oauth2Client = new google.auth.OAuth2(
+                    GOOGLE_CLIENT_ID,
+                    GOOGLE_CLIENT_SECRET,
+                    GOOGLE_REDIRECT_URI
+                );
+
+                const { tokens } = await oauth2Client.getToken(code);
+                oauth2Client.setCredentials(tokens);
+
+                let emailAddress = 'user@gmail.com';
+                try {
+                    const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+                    const userInfo = await oauth2.userinfo.get();
+                    if (userInfo.data.email) emailAddress = userInfo.data.email;
+                } catch (e) { console.warn('Could not fetch email address:', e); }
+
+                await this.identityManager.addKey('gmail_address', emailAddress);
+                if (tokens.refresh_token) {
+                    await this.identityManager.addKey('gmail_refresh_token', tokens.refresh_token);
+                }
+                if (tokens.access_token) {
+                    await this.identityManager.addKey('gmail_access_token', tokens.access_token);
+                }
+
+                res.json({ success: true, message: 'OAuth credentials securely cached.' });
+            } catch (err: any) {
+                console.error('[Mail] Token Error:', err);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/send', async (req, res) => {
+            try {
+                const { recipient, subject, body } = req.body;
+                if (!recipient || !subject) return res.status(400).json({ error: 'Recipient and subject required.' });
+                const result = await this.mailManager.sendEmail(recipient, subject, body);
+                res.json(result);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/delete', (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                const success = this.mailManager.deleteEmail(id);
+                if (!success) return res.status(404).json({ error: 'Email not found.' });
+                res.json({ success: true });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/read', (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                this.mailManager.markRead(id);
+                res.json({ success: true });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/summarize', async (req, res) => {
+            try {
+                const result = await this.mailManager.summarizeInbox();
+                res.json(result);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/mail/draft', async (req, res) => {
+            try {
+                const { id, instruction } = req.body;
+                if (!id) return res.status(400).json({ error: 'Email ID required.' });
+                const draft = await this.mailManager.draftReply(id, instruction);
+                res.json(draft);
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        this.app.post('/api/game/reset', (req, res) => {
+            const emptyState = this.gameManager.resetState();
+            res.json(emptyState);
+        });
+        // -----------------------
 
         // API Endpoint to update Firewall state
         this.app.post('/api/system/firewall', (req, res) => {
@@ -311,31 +590,131 @@ export class Server {
                     return res.status(400).json({ error: 'skillContext and userInput are required' });
                 }
 
-                // Construct a strict single-shot prompt mimicking the chat router format
-                const executionPrompt = `[Active OpenClaw Skills]:\n${skillContext}\n\nUser Input: ${userInput}`;
+                const systemInstruction = `<Register_SystemPrompt>
+You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
+You have been granted access to the following skills:
+${skillContext}
 
-                console.log(`[Skill Execution] Routing prompt with complexity evaluator...`);
-                // Let ModelRouter infer complexity and execute
-                const result = await this.modelRouter.routeChat(executionPrompt);
+To execute these skills, you have access to the following XML tools. You MUST use these exact formats. 
+Do NOT wrap the XML tags in markdown code blocks.
 
-                let finalResponse = result.response;
+1. Execute a shell command:
+<bash>
+your command here
+</bash>
 
-                // Simple interceptor for file saving skills
-                const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
-                let match;
-                while ((match = saveFileRegex.exec(result.response)) !== null) {
-                    const filePath = match[1];
-                    const content = match[2];
-                    const fullPath = `personal/${filePath}`;
-                    await this.fsManager.createFile(fullPath, content.trim());
-                    console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
-                    finalResponse = finalResponse.replace(match[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+2. Read a file from the file system:
+<read_file>
+/absolute/path/or/relative/path/to/file.txt
+</read_file>
+
+3. Save content to a file in the user's personal directory:
+<save_file path="output.txt">
+File content here
+</save_file>
+
+When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
+You can use tools multiple times in a row. Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+</Register_SystemPrompt>`;
+
+                let messages: any[] = [
+                    { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
+                ];
+
+                let finalResponse = '';
+                let iterations = 0;
+                const maxIterations = 10;
+                let levelUsed = '1';
+                let providerUsed = 'local';
+
+                const execAsync = util.promisify(require('child_process').exec);
+
+                while (iterations < maxIterations) {
+                    iterations++;
+                    console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
+
+                    const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\\n');
+                    const result = await this.modelRouter.routeChat(chatString);
+                    const aiMessage = result.response;
+                    levelUsed = result.level;
+                    providerUsed = result.providerUsed;
+
+                    messages.push({ role: 'assistant', content: aiMessage });
+                    console.log(`\n\n[Skill Execution] ========== AI RESPONSE START ==========\n${aiMessage}\n========== AI RESPONSE END ==========\n\n`);
+
+                    let requiresNextTurn = false;
+                    let nextUserMessage = '';
+
+                    // 1. Process <bash> tools
+                    const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
+                    let bashMatch;
+                    while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
+                        const command = bashMatch[1].trim();
+                        try {
+                            console.log(`[Skill Execution] Executing bash: ${command}`);
+                            // We execute from the app root or a safe dir
+                            const { stdout, stderr } = await execAsync(command, { cwd: this.fsManager.getRootDir() });
+                            const output = (stdout || '') + (stderr || '');
+                            nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Bash error:`, error.message);
+                            nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    // 2. Process <read_file> tools
+                    const readRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
+                    let readMatch;
+                    while ((readMatch = readRegex.exec(aiMessage)) !== null) {
+                        const filePath = readMatch[1].trim();
+                        try {
+                            console.log(`[Skill Execution] Reading file: ${filePath}`);
+                            // Safely resolve against root
+                            const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
+                            const content = require('fs').readFileSync(resolvedPath, 'utf8');
+                            nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Read file error:`, error.message);
+                            nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    // 3. Process <save_file> tools (We do this on every turn just in case they save intermediately)
+                    const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+                    let saveMatch;
+                    let finalResponseModified = aiMessage;
+                    while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
+                        const filePath = saveMatch[1];
+                        const content = saveMatch[2];
+                        const fullPath = `personal/${filePath}`;
+                        try {
+                            await this.fsManager.createFile(fullPath, content.trim());
+                            console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
+                            finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                        } catch (error: any) {
+                            console.error(`[Skill Execution] Save file error:`, error.message);
+                        }
+                    }
+
+                    if (requiresNextTurn) {
+                        messages.push({ role: 'user', content: nextUserMessage });
+                    } else {
+                        // Exit loop, task complete
+                        finalResponse = finalResponseModified;
+                        break;
+                    }
+                }
+
+                if (iterations >= maxIterations) {
+                    finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
                 }
 
                 res.json({
                     response: finalResponse,
-                    level: result.level,
-                    providerUsed: result.providerUsed
+                    level: levelUsed,
+                    providerUsed: providerUsed
                 });
             } catch (error: any) {
                 console.error('[Skill Execution] Error:', error);
@@ -811,6 +1190,18 @@ export class Server {
         this.app.get('/api/telemetry/stats', (req, res) => {
             if (!this.journal) return res.json({ total_runs: 0, total_cost_usd: 0, avg_latency_ms: 0, avg_rating: 0 });
             res.json(this.journal.getStats());
+        });
+
+        this.app.get('/api/telemetry/usage-per-hour', (req, res) => {
+            if (!this.journal) return res.json([]);
+            const limit = parseInt(req.query.limit as string) || 24;
+            res.json(this.journal.getApiUsagePerHour(limit));
+        });
+
+        this.app.get('/api/telemetry/provider-usage', (req, res) => {
+            if (!this.journal) return res.json([]);
+            const hours = parseInt(req.query.hours as string) || 24;
+            res.json(this.journal.getProviderUsage(hours));
         });
 
         this.app.get('/api/telemetry/runs', (req, res) => {

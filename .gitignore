@@ -5,10 +5,16 @@ release/
 .DS_Store
 *.log
 
-# Agent OS specific paths
+# Runtime data
 storage/system/.aos_state/
 storage/system/.aos_vectors/
+storage/system/.laomos_state/
 storage/personal/
 storage/Docs/
 storage/Rags/
 storage/system/keys.json
+storage/system/graph.json
+
+# Test/debug files
+test_openclaw.js
+test_payload.js

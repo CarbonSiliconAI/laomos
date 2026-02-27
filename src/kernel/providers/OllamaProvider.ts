@@ -6,16 +6,21 @@ export class OllamaProvider implements ModelProvider {
     public id = 'ollama';
     private manager: OllamaManager;
     private defaultModel = 'llama3.1'; // Can be configured centrally later
-    private baseUrl = 'http://localhost:11434';
+    private baseUrl = 'http://127.0.0.1:11434';
 
     constructor(manager: OllamaManager) {
         this.manager = manager;
     }
 
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
-        const isRunning = await this.manager.checkStatus();
+        let isRunning = await this.manager.checkStatus();
         if (!isRunning) {
-            throw new Error('Ollama service is not running.');
+            console.log('[OllamaProvider] Service is not running. Attempting to start...');
+            await this.manager.ensureService();
+            isRunning = await this.manager.checkStatus();
+            if (!isRunning) {
+                throw new Error('Ollama service failed to start automatically.');
+            }
         }
 
         try {
@@ -27,6 +32,8 @@ export class OllamaProvider implements ModelProvider {
                     temperature: options?.temperature,
                     num_predict: options?.max_tokens
                 }
+            }, {
+                signal: options?.signal
             });
             return response.data.message.content;
         } catch (error: any) {

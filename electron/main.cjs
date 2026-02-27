@@ -14,10 +14,11 @@ const PORT = parseInt(process.env.PORT || '3123', 10);
 let serverProcess = null;
 let mainWindow = null;
 
-const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
+let SETTINGS_PATH;
 const DEFAULT_CHANNEL = process.env.EP_UPDATE_CHANNEL || 'stable';
 
 function loadSettings() {
+  if (!SETTINGS_PATH) SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
   try {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
     const data = JSON.parse(raw);
@@ -117,40 +118,42 @@ function setupUpdater() {
 }
 
 // --- IPC handlers ---
-ipcMain.handle('updater:getAppVersion', () => app.getVersion());
-ipcMain.handle('updater:getChannel', () => getUpdateChannel());
-ipcMain.handle('updater:setChannel', (_e, channel) => {
-  if (channel === 'stable' || channel === 'beta') {
-    setUpdateChannel(channel);
-    return { ok: true };
-  }
-  return { ok: false };
-});
-ipcMain.handle('updater:checkForUpdates', async () => {
-  try {
-    if (!autoUpdater) return { ok: false };
-    await autoUpdater.checkForUpdates();
-    return { ok: true };
-  } catch (err) {
-    log.error('[updater] checkForUpdates', err);
-    sendToRenderer('update:error', err ? err.message : 'Check failed');
+function setupIpc() {
+  ipcMain.handle('updater:getAppVersion', () => app.getVersion());
+  ipcMain.handle('updater:getChannel', () => getUpdateChannel());
+  ipcMain.handle('updater:setChannel', (_e, channel) => {
+    if (channel === 'stable' || channel === 'beta') {
+      setUpdateChannel(channel);
+      return { ok: true };
+    }
     return { ok: false };
-  }
-});
-ipcMain.handle('updater:downloadUpdate', async () => {
-  try {
-    if (!autoUpdater) return { ok: false };
-    await autoUpdater.downloadUpdate();
-    return { ok: true };
-  } catch (err) {
-    log.error('[updater] downloadUpdate', err);
-    sendToRenderer('update:error', err ? err.message : 'Download failed');
-    return { ok: false };
-  }
-});
-ipcMain.handle('updater:quitAndInstall', () => {
-  if (autoUpdater) autoUpdater.quitAndInstall(false, true);
-});
+  });
+  ipcMain.handle('updater:checkForUpdates', async () => {
+    try {
+      if (!autoUpdater) return { ok: false };
+      await autoUpdater.checkForUpdates();
+      return { ok: true };
+    } catch (err) {
+      log.error('[updater] checkForUpdates', err);
+      sendToRenderer('update:error', err ? err.message : 'Check failed');
+      return { ok: false };
+    }
+  });
+  ipcMain.handle('updater:downloadUpdate', async () => {
+    try {
+      if (!autoUpdater) return { ok: false };
+      await autoUpdater.downloadUpdate();
+      return { ok: true };
+    } catch (err) {
+      log.error('[updater] downloadUpdate', err);
+      sendToRenderer('update:error', err ? err.message : 'Download failed');
+      return { ok: false };
+    }
+  });
+  ipcMain.handle('updater:quitAndInstall', () => {
+    if (autoUpdater) autoUpdater.quitAndInstall(false, true);
+  });
+}
 
 // --- Server ---
 function waitForServer(maxMs = 20000) {
@@ -226,6 +229,16 @@ function createWindow() {
   });
   mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
   mainWindow.setMenuBarVisibility(false);
+
+  // Force external links (like Google OAuth) to open in the native OS browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.includes('accounts.google.com') || url.includes('oauth2')) {
+      electron.shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

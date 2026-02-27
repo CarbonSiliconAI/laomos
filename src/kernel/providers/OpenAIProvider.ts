@@ -22,7 +22,8 @@ export class OpenAIProvider implements ModelProvider {
                 temperature: options?.temperature ?? 0.7,
                 max_tokens: options?.max_tokens,
             }, {
-                headers: { 'Authorization': `Bearer ${key}` }
+                headers: { 'Authorization': `Bearer ${key}` },
+                signal: options?.signal
             });
 
             return response.data.choices[0].message.content;

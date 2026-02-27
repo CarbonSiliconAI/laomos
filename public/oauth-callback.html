@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OAuth Callback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8fafc;
+            color: #111827;
+        }
+
+        .message {
+            padding: 20px;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="message">
+        <h3 id="status">Authenticating...</h3>
+        <p id="substatus">Please wait while we securely connect your account.</p>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+
+        async function processToken() {
+            if (error) {
+                document.getElementById('status').innerText = 'Authentication Failed';
+                document.getElementById('substatus').innerText = error;
+                return;
+            }
+
+            if (!code) {
+                document.getElementById('status').innerText = 'Invalid Request';
+                document.getElementById('substatus').innerText = 'No authorization code or error was returned.';
+                return;
+            }
+
+            try {
+                const res = await fetch('http://127.0.0.1:3123/api/mail/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to exchange token');
+
+                document.getElementById('status').innerText = 'Success!';
+                document.getElementById('substatus').innerText = 'Your Google Account is securely linked. You may close this tab and return to Agent OS.';
+
+            } catch (e) {
+                document.getElementById('status').innerText = 'Verification Failed';
+                document.getElementById('substatus').innerText = e.message;
+            }
+        }
+
+        processToken();
+    </script>
+</body>
+
+</html>

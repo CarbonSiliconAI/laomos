@@ -190,6 +190,51 @@ export class ExecutionJournal {
         }));
     }
 
+    getApiUsagePerHour(limit = 24): { hour: string; total_cost_usd: number; total_requests: number }[] {
+        return this.db.prepare(`
+            SELECT
+                strftime('%Y-%m-%d %H:00', timestamp / 1000, 'unixepoch', 'localtime') AS hour,
+                SUM(cost_usd) AS total_cost_usd,
+                COUNT(*) AS total_requests
+            FROM events
+            WHERE status = 'success' OR status = 'completed'
+            GROUP BY hour
+            ORDER BY hour DESC
+            LIMIT ?
+        `).all(limit) as any[];
+    }
+
+    getProviderUsage(hours = 24): { provider: string; total_cost_usd: number; total_requests: number; quota_usd: number }[] {
+        const rows = this.db.prepare(`
+            SELECT
+                CASE 
+                    WHEN model LIKE 'gpt%' OR model LIKE 'o1%' OR model LIKE 'dall-e%' THEN 'OpenAI'
+                    WHEN model LIKE 'claude%' THEN 'Anthropic'
+                    WHEN model LIKE 'gemini%' OR model LIKE 'imagen%' THEN 'Google'
+                    WHEN model LIKE 'llama%' OR model LIKE 'qwen%' OR model LIKE 'gemma%' THEN 'Local (Ollama)'
+                    WHEN model IS NULL OR model = '' THEN 'Unknown'
+                    ELSE 'Other'
+                END AS provider,
+                SUM(cost_usd) AS total_cost_usd,
+                COUNT(*) AS total_requests
+            FROM events
+            WHERE status = 'success' OR status = 'completed'
+            GROUP BY provider
+            ORDER BY total_cost_usd DESC
+        `).all() as any[];
+
+        // Append mock quota to the result
+        return rows.map(r => {
+            let quota = 5.00; // default for external
+            if (r.provider === 'Local (Ollama)') quota = 0.00; // Free
+
+            return {
+                ...r,
+                quota_usd: quota
+            };
+        });
+    }
+
     getStats(): { total_runs: number; total_cost_usd: number; avg_latency_ms: number; avg_rating: number } {
         const s = this.db.prepare(`
             SELECT
