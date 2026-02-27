@@ -15,10 +15,8 @@ export interface GameState {
 export class GameManager {
     private savePath: string;
 
-    constructor() {
-        // Find the root path (same approach as execution_journal or identity_manager)
-        const root = process.env.APP_ROOT || process.cwd();
-        this.savePath = path.join(root, 'storage', 'personal', 'game_save.json');
+    constructor(personalDir: string) {
+        this.savePath = path.join(personalDir, 'game_save.json');
 
         // Ensure directory exists
         fs.ensureDirSync(path.dirname(this.savePath));

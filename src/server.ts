@@ -79,7 +79,7 @@ export class Server {
         this.firewall = firewall;
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.journal = journal;
-        this.gameManager = new GameManager();
+        this.gameManager = new GameManager(this.fsManager.getPersonalDir());
 
         const systemDir = path.join(this.fsManager.getRootDir(), 'system');
         this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
