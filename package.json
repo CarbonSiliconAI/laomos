@@ -19,7 +19,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "repository": "github:CarbonSiliconAI/aios",
+  "repository": "github:CarbonSiliconAI/laomos",
   "type": "commonjs",
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
