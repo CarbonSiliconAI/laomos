@@ -89,8 +89,19 @@ async function main() {
     const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, firewall, port, journal);
     server.start();
 
+    // Keep the event loop alive (safety net)
+    setInterval(() => {}, 1 << 30);
+
     console.log('\n--- Agent OS Simulation Logic Complete (Server Running) ---');
 }
+
+// Keep process alive and log unexpected errors
+process.on('uncaughtException', (err) => {
+    console.error('[Process] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[Process] Unhandled rejection:', reason);
+});
 
 main().catch(error => {
     console.error('Fatal Error:', error);

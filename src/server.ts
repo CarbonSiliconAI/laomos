@@ -62,6 +62,7 @@ export class Server {
     private gameManager: GameManager;
     private mailManager: MailManager;
     private activeRequests: RequestManager = {};
+    private httpServer: any;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
         this.app = express();
@@ -91,13 +92,14 @@ export class Server {
         // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
         const appRoot = process.env.APP_ROOT || process.cwd();
 
+        this.app.use(express.json({ limit: '50mb' }));
+
         // Serve React app from dist-renderer/ (takes precedence for non-API routes)
         const rendererDist = path.join(appRoot, 'dist-renderer');
         this.app.use(express.static(rendererDist));
 
         // Legacy static files (public/) still served as fallback
         this.app.use(express.static(path.join(appRoot, 'public')));
-        this.app.use(express.json({ limit: '50mb' }));
 
         // API Endpoint to proxy Ollama models
         this.app.get('/api/ollama/models', async (req, res) => {
@@ -1305,8 +1307,11 @@ You can use tools multiple times in a row. Once you have fully completed the use
     }
 
     public start() {
-        this.app.listen(this.port, '127.0.0.1', () => {
+        this.httpServer = this.app.listen(this.port, '127.0.0.1', () => {
             console.log(`[Server] Web Interface running at http://127.0.0.1:${this.port}`);
+        });
+        this.httpServer.on('error', (err: any) => {
+            console.error('[Server] Error:', err.message);
         });
     }
 }
