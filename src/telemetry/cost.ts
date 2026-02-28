@@ -2,6 +2,10 @@ import crypto from 'crypto';
 
 // Per-token costs in USD (2025 pricing)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+    'gpt-5.2': { input: 0.0000025, output: 0.00001 },
+    'gpt-5.2-pro': { input: 0.0000050, output: 0.00002 },
+    'gpt-5-mini': { input: 0.00000015, output: 0.0000006 },
+    'gpt-5-nano': { input: 0.00000005, output: 0.0000002 },
     'o3-mini': { input: 0.0000011, output: 0.0000044 },
     'o1': { input: 0.000015, output: 0.00006 },
     'gpt-4o': { input: 0.0000025, output: 0.00001 },

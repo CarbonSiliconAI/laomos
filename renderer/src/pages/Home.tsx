@@ -90,7 +90,7 @@ const QUICK_ITEMS = [
         ),
     },
     {
-        label: 'Adventure',
+        label: 'Game',
         path: '/operations/game',
         color: 'rgba(168,85,247,0.85)',
         icon: (
@@ -101,12 +101,45 @@ const QUICK_ITEMS = [
         ),
     },
     {
+        label: 'News Hub',
+        path: '/operations/news',
+        color: 'rgba(56,189,248,0.85)',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 22h16A2 2 0 0 0 22 20V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                <path d="M18 14h-8" />
+                <path d="M15 18h-5" />
+                <path d="M10 6h8v4h-8V6Z" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Telegram',
+        path: '/operations/telegram',
+        color: 'rgba(56,189,248,0.85)',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2L2 12.5l6.5 2.5L20 4.5l-9.5 9 1 7.5 4.5-5 5.5 4 2-18Z" />
+            </svg>
+        ),
+    },
+    {
+        label: 'WhatsApp',
+        path: '/operations/whatsapp',
+        color: 'rgba(34,197,94,0.85)',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+        ),
+    },
+    {
         label: 'AI Draw',
         path: '/operations/draw',
         color: 'rgba(236,72,153,0.85)',
         icon: (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
             </svg>
         ),
     },
@@ -169,8 +202,8 @@ export default function HomePage() {
                             value={`${fmt((stats?.successRate ?? 0) * 100, 1)}%`}
                             color={
                                 (stats?.successRate ?? 0) > 0.8 ? 'var(--ok)'
-                                : (stats?.successRate ?? 0) > 0.5 ? 'var(--warn)'
-                                : 'var(--bad)'
+                                    : (stats?.successRate ?? 0) > 0.5 ? 'var(--warn)'
+                                        : 'var(--bad)'
                             }
                         />
                         <KpiCard

@@ -1,0 +1,31 @@
+.telegram-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.telegram-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.telegram-header__title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: var(--text-color);
+}
+
+.telegram-header__sub {
+    font-size: 14px;
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.telegram-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 24px;
+}

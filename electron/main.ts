@@ -57,6 +57,7 @@ function createWindow(): void {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
     },
   });
   win.loadURL(`http://127.0.0.1:${PORT}/`);

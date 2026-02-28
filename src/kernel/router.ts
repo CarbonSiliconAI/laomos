@@ -4,6 +4,7 @@ import { LLMMessage, ModelProvider } from './providers/base';
 import { OpenAIProvider } from './providers/OpenAIProvider';
 import { AnthropicProvider } from './providers/AnthropicProvider';
 import { OllamaProvider } from './providers/OllamaProvider';
+import { GeminiProvider } from './providers/GeminiProvider';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface AIJob {
@@ -24,6 +25,7 @@ export class ModelRouter {
         this.providers.set('local', this.localProvider);
         this.providers.set('openai', new OpenAIProvider(identityManager));
         this.providers.set('anthropic', new AnthropicProvider(identityManager));
+        this.providers.set('google', new GeminiProvider(identityManager));
     }
 
     getActiveJobs(): AIJob[] {
@@ -127,16 +129,21 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
 
         let pAnthropic = this.providers.get('anthropic');
         let pOpenAI = this.providers.get('openai');
+        let pGoogle = this.providers.get('google');
 
         // Use IdentityManager to see if user actually added a key before we blindly send requests
         let hasAnthropic = false;
         let hasOpenAI = false;
+        let hasGoogle = false;
 
         if (pAnthropic && (pAnthropic as any).identityManager) {
             hasAnthropic = !!await (pAnthropic as any).identityManager.getKey('anthropic');
         }
         if (pOpenAI && (pOpenAI as any).identityManager) {
             hasOpenAI = !!await (pOpenAI as any).identityManager.getKey('openai');
+        }
+        if (pGoogle && (pGoogle as any).identityManager) {
+            hasGoogle = !!await (pGoogle as any).identityManager.getKey('google');
         }
 
         if (preferredProvider === 'cloud') {
@@ -170,6 +177,22 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('OpenAI failed for cloud-preferred, falling back to Local...', e.message);
+                }
+            }
+            if (hasGoogle) {
+                try {
+                    trackJob('google');
+                    const response = await pGoogle!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
+                    return {
+                        response: response,
+                        level: 'cloud-preferred (fallback)',
+                        providerUsed: 'google'
+                    };
+                } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
+                    console.warn('Google failed for cloud-preferred, falling back to Local...', e.message);
                 }
             }
             console.warn('No valid cloud providers available or all failed. Falling back to Local...');
@@ -271,6 +294,22 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                     console.warn('OpenAI failed, falling back to Local...', e.message);
                 }
             }
+            if (hasGoogle) {
+                try {
+                    trackJob('google');
+                    const response = await pGoogle!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
+                    return {
+                        response: response,
+                        level: '2 (fallback)',
+                        providerUsed: 'google'
+                    };
+                } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
+                    console.warn('Google failed for level 2, falling back to Local...', e.message);
+                }
+            }
             // Ultimate fallback
             try {
                 trackJob('local');
@@ -317,6 +356,22 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
                     console.warn('Anthropic failed for level 3, falling back to Local...', e.message);
+                }
+            }
+            if (hasGoogle) {
+                try {
+                    trackJob('google');
+                    const response = await pGoogle!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
+                    return {
+                        response: response,
+                        level: '3 (fallback)',
+                        providerUsed: 'google'
+                    };
+                } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
+                    console.warn('Google failed for level 3, falling back to Local...', e.message);
                 }
             }
             // Ultimate fallback

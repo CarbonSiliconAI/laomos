@@ -247,6 +247,36 @@ Always maintain character and do not break the 4th wall, except for formatting t
                 params: {}
             }
         });
+        // 8. Store App: News Analyzer
+        this.register({
+            role: 'agent_app_news',
+            functionName: 'analysis',
+            template: `You are an expert news analyst and fact-checker.
+You will be provided with a topic and a list of recently retrieved news headlines/snippets.
+
+[Topic]: {{topic}}
+
+[Retrieved News]:
+{{newsData}}
+
+Analyze the provided news and generate exactly 3 sections in Markdown format:
+
+1. **Authenticity / Fact-Check**: State whether these news items appear to be true, validated, or if there is likely misinformation or exaggeration based on the sources and claims.
+2. **Key Learnings**: What are the most important takeaways from this news?
+3. **Future Expectations & Recommended Actions**: Based on this news, what do you expect to happen in the future, and how should we act or prepare?
+
+Do not include any other conversational filler. Only output these 3 specific sections.`,
+            params: ['topic', 'newsData'],
+            config: {
+                temperature: 0.3,
+                max_tokens: 1500
+            },
+            version: '1.0.0',
+            modelMetadata: {
+                adaptedTo: 'general_instruct',
+                params: {}
+            }
+        });
     }
 }
 

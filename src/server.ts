@@ -931,10 +931,121 @@ You can use tools multiple times in a row. Once you have fully completed the use
             }
         });
 
+        // Telegram Bot Endpoints (Proxied to avoid CORS on frontend)
+        this.app.get('/api/telegram/updates', async (req, res) => {
+            const token = req.query.token as string;
+            if (!token) return res.status(400).json({ error: 'Token is required' });
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+                const data = await response.json();
+
+                if (!data.ok) {
+                    throw new Error(data.description || 'Failed to fetch updates');
+                }
+
+                const messages = (data.result || []).map((update: any) => {
+                    if (update.message && update.message.text) {
+                        return {
+                            id: update.message.message_id,
+                            text: update.message.text,
+                            isSelf: false,
+                            date: update.message.date * 1000,
+                            sender: update.message.from?.username || update.message.from?.first_name || 'User',
+                            chatId: update.message.chat.id
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+
+                res.json({ results: messages });
+            } catch (error: any) {
+                console.error('[Server] Telegram Updates error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/telegram/send', async (req, res) => {
+            const { token, chatId, text } = req.body;
+            if (!token || !chatId || !text) return res.status(400).json({ error: 'Token, ChatId, and Text are required' });
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: text
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.ok) {
+                    throw new Error(data.description || 'Failed to send message');
+                }
+
+                res.json({ success: true, result: data.result });
+            } catch (error: any) {
+                console.error('[Server] Telegram Send error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // AI News Hub Endpoint
+        this.app.get('/api/news/search', async (req, res) => {
+            const rawTopic = req.query.topic as string || '';
+            const hours = req.query.hours as string || '24';
+
+            const topicLabel = rawTopic.trim() || 'Top 10 Global News';
+            const searchQuery = rawTopic.trim() ? encodeURIComponent(rawTopic.trim()) : 'World+News';
+
+            try {
+                // Fetch RSS using Google News
+                const rssUrl = `https://news.google.com/rss/search?q=${searchQuery}+when:${hours}h&hl=en-US&gl=US&ceid=US:en`;
+                const { default: axios } = await import('axios');
+                const response = await axios.get(rssUrl);
+                const xml = response.data;
+
+                // Simple regex parsing for RSS XML
+                const itemRegex = new RegExp('<item>[\\\\s\\\\S]*?<title>(.*?)</title>[\\\\s\\\\S]*?<link>(.*?)</link>[\\\\s\\\\S]*?<source.*?>(.*?)</source>[\\\\s\\\\S]*?</item>', 'g');
+                const headlines: { title: string, link: string, source: string }[] = [];
+                let match;
+
+                while ((match = itemRegex.exec(xml)) !== null && headlines.length < 15) {
+                    headlines.push({
+                        title: match[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim(),
+                        link: match[2].trim(),
+                        source: match[3].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim(),
+                    });
+                }
+
+                if (headlines.length === 0) {
+                    return res.json({ headlines: [], analysis: 'No recent news found for this topic to analyze.' });
+                }
+
+                // AI Analysis
+                const promptData = this.registry.format('agent_app_news', 'analysis', {
+                    topic: topicLabel,
+                    newsData: JSON.stringify(headlines, null, 2)
+                });
+
+                // Rely on the standard router fallback logic
+                const result = await this.modelRouter.routeChat(promptData.prompt);
+
+                res.json({
+                    headlines,
+                    analysis: result.response || '*Analysis failed to generate.*'
+                });
+            } catch (error: any) {
+                console.error('[Server] News Search error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // AI Generation Endpoints
         this.app.post('/api/ai/chat', async (req, res) => {
             try {
-                const { prompt, sessionId = 'default-os-session' } = req.body;
+                const { prompt, sessionId = 'default-os-session', preferredProvider, model } = req.body;
                 if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
                 // 1. Add user message
@@ -956,7 +1067,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 });
 
                 // 3. Route
-                const result = await this.modelRouter.routeChat(promptData.prompt);
+                // Pass preferredProvider and the selected model explicitly to the router
+                const result = await this.modelRouter.routeChat(promptData.prompt, preferredProvider, model);
 
                 // 4. Commit assistant reply
                 if (result.response) {
@@ -981,8 +1093,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type}\n`);
-                res.write(`data: ${JSON.stringify(data)}\n\n`);
+                res.write(`event: ${type} \n`);
+                res.write(`data: ${JSON.stringify(data)} \n\n`);
             };
 
             try {
@@ -1009,8 +1121,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type}\n`);
-                res.write(`data: ${JSON.stringify(data)}\n\n`);
+                res.write(`event: ${type} \n`);
+                res.write(`data: ${JSON.stringify(data)} \n\n`);
             };
 
             try {
@@ -1037,8 +1149,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type}\n`);
-                res.write(`data: ${JSON.stringify(data)}\n\n`);
+                res.write(`event: ${type} \n`);
+                res.write(`data: ${JSON.stringify(data)} \n\n`);
             };
 
             try {
@@ -1083,7 +1195,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
                 res.json({
                     results: [
-                        { title: `Search Result for: ${query}`, snippet: `This is a simulated search result containing information about ${query}.`, url: 'https://example.com' },
+                        { title: `Search Result for: ${query} `, snippet: `This is a simulated search result containing information about ${query}.`, url: 'https://example.com' },
                         { title: `Related info: ${query} architecture`, snippet: `Deep dive into the structural components of ${query}.`, url: 'https://example.com/arch' }
                     ]
                 });
@@ -1107,8 +1219,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 if (!googleKey) return res.status(401).send('Google API key required');
 
                 // Append key if not present (Veo returns uris without the key usually)
-                const fetchUrl = uri.includes('key=') ? uri : `${uri}&key=${googleKey}`;
-                console.log(`[Media Proxy] Requesting: ${uri.split('?')[0]}`);
+                const fetchUrl = uri.includes('key=') ? uri : `${uri}& key=${googleKey} `;
+                console.log(`[Media Proxy]Requesting: ${uri.split('?')[0]} `);
 
                 try {
                     // Fetch as arraybuffer to have full control over headers and sending
@@ -1122,11 +1234,11 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     });
 
                     const contentType = response.headers['content-type'] || 'video/mp4';
-                    console.log(`[Media Proxy] Response status: ${response.status}, Content-Type: ${contentType}, Content-Length: ${response.headers['content-length']}`);
+                    console.log(`[Media Proxy] Response status: ${response.status}, Content - Type: ${contentType}, Content - Length: ${response.headers['content-length']} `);
 
                     if (contentType.includes('text/html') || contentType.includes('application/json')) {
                         const textData = Buffer.from(response.data).toString('utf-8');
-                        console.error(`[Media Proxy] Expected video but got text:`, textData.substring(0, 500));
+                        console.error(`[Media Proxy] Expected video but got text: `, textData.substring(0, 500));
                         return res.status(500).send('Received non-video content from API');
                     }
 
@@ -1150,8 +1262,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 } catch (e: any) {
                     console.error('[Media Proxy] Axios Fetch Error:', e.message);
                     if (e.response) {
-                        console.error(`[Media Proxy] Status: ${e.response.status}`);
-                        console.error(`[Media Proxy] Body:`, Buffer.from(e.response.data || '').toString('utf-8').substring(0, 500));
+                        console.error(`[Media Proxy]Status: ${e.response.status} `);
+                        console.error(`[Media Proxy]Body: `, Buffer.from(e.response.data || '').toString('utf-8').substring(0, 500));
                     }
                     res.status(500).send('Failed to fetch media');
                 }
@@ -1177,7 +1289,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 const existing = this.journal.getRun(runId);
                 if (existing) {
                     for (const ev of (existing.events ?? [])) {
-                        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+                        res.write(`data: ${JSON.stringify(ev)} \n\n`);
                     }
                     if (existing.status !== 'running') {
                         res.end();
@@ -1188,7 +1300,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
             const handler = (ev: ExecutionEvent) => {
                 if (ev.run_id !== runId) return;
-                res.write(`data: ${JSON.stringify(ev)}\n\n`);
+                res.write(`data: ${JSON.stringify(ev)} \n\n`);
             };
 
             telemetryBus.subscribe(handler);

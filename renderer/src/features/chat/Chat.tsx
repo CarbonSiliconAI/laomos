@@ -1,23 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../lib/api';
+import { AVAILABLE_MODELS } from '../models/Models';
 import './Chat.css';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
 }
-
-const CLOUD_MODELS = [
-    { id: 'o3-mini', name: 'o3-mini' },
-    { id: 'o1', name: 'o1' },
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-    { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet' },
-    { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-    { id: 'grok-3', name: 'Grok 3' },
-];
 
 export default function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -28,13 +17,28 @@ export default function Chat() {
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+    const cloudModels = AVAILABLE_MODELS.filter(m => m.cloud);
+    const staticLocalModels = AVAILABLE_MODELS.filter(m => !m.cloud);
+
+    // Merge dynamic local models with static ones to ensure no duplicates
+    const allLocalModelIds = Array.from(new Set([
+        ...staticLocalModels.map(m => m.id),
+        ...localModels
+    ]));
+
     useEffect(() => {
         api.ollamaModels().then(r => {
             const locals = r.models ?? [];
             setLocalModels(locals);
-            if (locals.length) setModel(locals[0]);
-            else if (CLOUD_MODELS.length) setModel(CLOUD_MODELS[0].id);
-        }).catch(() => { });
+
+            // Set initial model
+            const mergedLocals = Array.from(new Set([...staticLocalModels.map(m => m.id), ...locals]));
+            if (mergedLocals.length) setModel(mergedLocals[0]);
+            else if (cloudModels.length) setModel(cloudModels[0].id);
+        }).catch(() => {
+            if (staticLocalModels.length) setModel(staticLocalModels[0].id);
+            else if (cloudModels.length) setModel(cloudModels[0].id);
+        });
     }, []);
 
     useEffect(() => {
@@ -66,12 +70,28 @@ export default function Chat() {
         setMessages(allMessages);
         setLoading(true);
         try {
-            const res = await api.ollamaChat({
-                model: model,
-                messages: allMessages.map(m => ({ role: m.role, content: m.content })),
-            });
-            const content = res.message?.content ?? res.response ?? 'No response.';
-            setMessages(prev => [...prev, { role: 'assistant', content }]);
+            // Determine if the selected model is cloud or local
+            const isCloud = cloudModels.some(m => m.id === model);
+
+            let res;
+            if (isCloud) {
+                // To support multi-cloud models natively on the backend router
+                // We extract the provider from the model ID
+                let provider = 'openai';
+                if (model.includes('claude')) provider = 'anthropic';
+                if (model.includes('gemini')) provider = 'google';
+
+                res = await api.aiChat({ prompt: text, preferredProvider: provider, model });
+                const content = res.response ?? 'No response.';
+                setMessages(prev => [...prev, { role: 'assistant', content }]);
+            } else {
+                res = await api.ollamaChat({
+                    model: model,
+                    messages: allMessages.map(m => ({ role: m.role, content: m.content })),
+                });
+                const content = res.message?.content ?? res.response ?? 'No response.';
+                setMessages(prev => [...prev, { role: 'assistant', content }]);
+            }
         } catch (e: any) {
             // Show errors as assistant messages in the chat flow
             const errMsg = e.message ?? 'Request failed';
@@ -95,24 +115,27 @@ export default function Chat() {
                     <h1 className="chat-header__title">AI Chat</h1>
                     <p className="chat-header__sub">Converse with local and cloud AI models</p>
                 </div>
-                {(localModels.length > 0 || CLOUD_MODELS.length > 0) && (
+                {(allLocalModelIds.length > 0 || cloudModels.length > 0) && (
                     <select
                         className="os-input chat-model-select"
                         value={model}
                         onChange={e => setModel(e.target.value)}
                     >
-                        {localModels.length > 0 && (
+                        {allLocalModelIds.length > 0 && (
                             <optgroup label="Local Models">
-                                {localModels.map(m => (
-                                    <option key={m} value={m}>{m}</option>
+                                {allLocalModelIds.map(id => {
+                                    const staticModel = staticLocalModels.find(m => m.id === id);
+                                    return <option key={id} value={id}>{staticModel ? staticModel.name : id}</option>;
+                                })}
+                            </optgroup>
+                        )}
+                        {cloudModels.length > 0 && (
+                            <optgroup label="Cloud Models">
+                                {cloudModels.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
                                 ))}
                             </optgroup>
                         )}
-                        <optgroup label="Cloud Models">
-                            {CLOUD_MODELS.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                            ))}
-                        </optgroup>
                     </select>
                 )}
             </div>

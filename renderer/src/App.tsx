@@ -11,6 +11,9 @@ import GovernancePage from './pages/Governance';
 import FlowPage from './features/flow/Flow';
 import MailPage from './features/mail/Mail';
 import GamePage from './features/game/Game';
+import TelegramPage from './features/telegram/Telegram';
+import WhatsAppPage from './features/whatsapp/WhatsApp';
+import NewsPage from './features/news/News';
 import DrawPage from './features/draw/Draw';
 import VideoPage from './features/video/Video';
 import ChatPage from './features/chat/Chat';
@@ -37,6 +40,9 @@ export default function App() {
                     <Route path="/operations/flow" element={<FlowPage />} />
                     <Route path="/operations/mail" element={<MailPage />} />
                     <Route path="/operations/game" element={<GamePage />} />
+                    <Route path="/operations/telegram" element={<TelegramPage />} />
+                    <Route path="/operations/whatsapp" element={<WhatsAppPage />} />
+                    <Route path="/operations/news" element={<NewsPage />} />
                     <Route path="/operations/draw" element={<DrawPage />} />
                     <Route path="/operations/video" element={<VideoPage />} />
 

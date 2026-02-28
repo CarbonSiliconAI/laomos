@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import './Models.css';
 
-const AVAILABLE_MODELS = [
+export const AVAILABLE_MODELS = [
     { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: "Meta's latest state-of-the-art model", cloud: false },
     { id: 'llama3.1:70b', name: 'Llama 3.1 (70B)', size: '40GB', desc: "Meta's powerful large model", cloud: false },
     { id: 'qwen2.5:0.5b', name: 'Qwen 2.5 (0.5B)', size: '350MB', desc: "Alibaba's latest nano model", cloud: false },
@@ -14,10 +14,13 @@ const AVAILABLE_MODELS = [
     { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model', cloud: false },
     { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: "Meta's previous open LLM", cloud: false },
     // Cloud models (require API keys)
+    { id: 'gpt-5.2', name: 'GPT-5.2', size: 'Cloud', desc: "OpenAI's latest flagship model", cloud: true },
+    { id: 'gpt-5.2-pro', name: 'GPT-5.2 Pro', size: 'Cloud', desc: "OpenAI's highest precision model", cloud: true },
+    { id: 'gpt-5-mini', name: 'GPT-5 Mini', size: 'Cloud', desc: "OpenAI's fast and efficient model", cloud: true },
+    { id: 'gpt-5-nano', name: 'GPT-5 Nano', size: 'Cloud', desc: "OpenAI's fastest and most cost-effective model", cloud: true },
     { id: 'o3-mini', name: 'o3-mini', size: 'Cloud', desc: "OpenAI's fast reasoning model", cloud: true },
     { id: 'o1', name: 'o1', size: 'Cloud', desc: "OpenAI's advanced reasoning model", cloud: true },
-    { id: 'gpt-4o', name: 'GPT-4o', size: 'Cloud', desc: "OpenAI's most capable multimodal model", cloud: true },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', size: 'Cloud', desc: "OpenAI's fast and affordable model", cloud: true },
+
     { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', size: 'Cloud', desc: "Anthropic's latest hybrid reasoning model", cloud: true },
     { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', size: 'Cloud', desc: "Anthropic's fastest model", cloud: true },
     { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', size: 'Cloud', desc: "Google's most capable model", cloud: true },
