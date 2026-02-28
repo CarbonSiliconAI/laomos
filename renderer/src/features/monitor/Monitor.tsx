@@ -16,7 +16,6 @@ export default function Monitor() {
     useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t); }, []);
 
     const maxCost = providers.reduce((m, p) => Math.max(m, p.cost_usd ?? 0), 0.001);
-    const fmtMem = (b: number) => `${(b / 1073741824).toFixed(1)} GB`;
 
     return (
         <div className="monitor-page">
@@ -73,11 +72,10 @@ export default function Monitor() {
                             <div className="monitor-section-title">System</div>
                             {[
                                 ['Platform', specs.platform],
-                                ['Architecture', specs.arch],
-                                ['CPUs', String(specs.cpus)],
-                                ['Memory', fmtMem(specs.memory)],
-                                ['Free Memory', fmtMem(specs.freeMemory)],
-                                ['Node', specs.nodeVersion],
+                                ['CPU Model', specs.cpuModel],
+                                ['CPU Cores', String(specs.cpuCores)],
+                                ['Total Memory', specs.totalMem],
+                                ['Free Memory', specs.freeMem],
                             ].map(([k, v]) => (
                                 <div key={k} className="monitor-spec-row">
                                     <span className="monitor-spec-key">{k}</span>

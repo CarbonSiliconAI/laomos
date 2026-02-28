@@ -41,6 +41,28 @@ const CARDS = [
             </svg>
         ),
     },
+    {
+        path: '/operations/draw',
+        title: 'AI Draw',
+        desc: 'Draw on canvas and generate AI images',
+        color: 'rgba(236,72,153,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+            </svg>
+        ),
+    },
+    {
+        path: '/operations/video',
+        title: 'AI Video',
+        desc: 'Generate videos from text prompts',
+        color: 'rgba(14,165,233,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
+            </svg>
+        ),
+    },
 ];
 
 export default function OperationsPage() {

@@ -2,6 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { api, BudgetConstraint, CacheStats, SystemSpecs } from '../../lib/api';
 import './Settings.css';
 
+declare global {
+    interface Window {
+        osUpdater?: {
+            version: () => Promise<string>;
+            channel: { get: () => Promise<string>; set: (ch: string) => Promise<void> };
+            updates: { check: () => Promise<void>; download: () => Promise<void>; install: () => Promise<void> };
+            onStatus: (cb: (ev: UpdateEvent) => void) => () => void;
+        };
+    }
+}
+
+interface UpdateEvent {
+    type: 'checking' | 'available' | 'not-available' | 'download-progress' | 'downloaded' | 'error';
+    version?: string;
+    percent?: number;
+    message?: string;
+}
+
+const DEFAULT_APPS = [
+    { id: 'chat', name: 'AI Chat' },
+    { id: 'flow', name: 'Flow Builder' },
+    { id: 'files', name: 'File Explorer' },
+    { id: 'mail', name: 'Mail' },
+    { id: 'game', name: 'Games' },
+];
+
+const TIER_LABELS: Record<string, string> = {
+    '1': 'Tier 1 — Read Only',
+    '2': 'Tier 2 — Read + Write',
+    '3': 'Tier 3 — Full Access',
+};
+
 export default function Settings() {
     const [budget, setBudget] = useState<BudgetConstraint | null>(null);
     const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
@@ -9,10 +41,45 @@ export default function Settings() {
     const [saving, setSaving] = useState(false);
     const [clearing, setClearing] = useState(false);
 
+    // Firewall
+    const [firewallEnabled, setFirewallEnabled] = useState<boolean | null>(null);
+    const [firewallToggling, setFirewallToggling] = useState(false);
+
+    // Updater
+    const [appVersion, setAppVersion] = useState('');
+    const [channel, setChannel] = useState('stable');
+    const [updateStatus, setUpdateStatus] = useState('');
+    const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+    const [updateReady, setUpdateReady] = useState(false);
+
+    // App Permissions
+    const [permissions, setPermissions] = useState<Record<string, string>>(() => {
+        try { return JSON.parse(localStorage.getItem('appPermissions') ?? '{}'); } catch { return {}; }
+    });
+
     useEffect(() => {
         api.budgetGet().then(setBudget).catch(() => {});
         api.cacheStats().then(setCacheStats).catch(() => {});
         api.systemSpecs().then(setSpecs).catch(() => {});
+        api.systemFirewall().then(r => setFirewallEnabled(r.enabled)).catch(() => {});
+
+        // Updater
+        const updater = window.osUpdater;
+        if (updater) {
+            updater.version().then(setAppVersion).catch(() => {});
+            updater.channel.get().then(setChannel).catch(() => {});
+            const unsub = updater.onStatus((ev) => {
+                switch (ev.type) {
+                    case 'checking': setUpdateStatus('Checking for updates…'); break;
+                    case 'available': setUpdateStatus(`Update available: v${ev.version}`); break;
+                    case 'not-available': setUpdateStatus('You are on the latest version.'); break;
+                    case 'download-progress': setDownloadPercent(ev.percent ?? 0); setUpdateStatus('Downloading…'); break;
+                    case 'downloaded': setUpdateReady(true); setDownloadPercent(null); setUpdateStatus('Update downloaded — restart to apply.'); break;
+                    case 'error': setUpdateStatus(`Error: ${ev.message ?? 'Update failed'}`); setDownloadPercent(null); break;
+                }
+            });
+            return unsub;
+        }
     }, []);
 
     async function saveBudget() {
@@ -28,6 +95,27 @@ export default function Settings() {
         finally { setClearing(false); }
     }
 
+    async function toggleFirewall() {
+        if (firewallEnabled === null) return;
+        setFirewallToggling(true);
+        try {
+            const res = await api.systemFirewallSet(!firewallEnabled);
+            setFirewallEnabled(res.enabled);
+        } catch {}
+        finally { setFirewallToggling(false); }
+    }
+
+    function setPermission(appId: string, tier: string) {
+        const next = { ...permissions, [appId]: tier };
+        setPermissions(next);
+        localStorage.setItem('appPermissions', JSON.stringify(next));
+    }
+
+    async function switchChannel(ch: string) {
+        setChannel(ch);
+        await window.osUpdater?.channel.set(ch).catch(() => {});
+    }
+
     return (
         <div className="settings-page">
             <div className="settings-header">
@@ -35,6 +123,77 @@ export default function Settings() {
                 <p className="settings-header__sub">Configure system behavior and preferences</p>
             </div>
             <div className="settings-body">
+                {/* AI Firewall */}
+                <div className="settings-section glass-card">
+                    <div className="settings-section__title">AI Firewall</div>
+                    <div className="settings-section__desc">Scan prompts and responses for unsafe content</div>
+                    <div className="settings-toggle-row">
+                        <span className="settings-toggle-label">
+                            {firewallEnabled === null ? 'Loading…' : firewallEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                        <button
+                            className={`settings-toggle ${firewallEnabled ? 'settings-toggle--on' : ''}`}
+                            onClick={toggleFirewall}
+                            disabled={firewallEnabled === null || firewallToggling}
+                        >
+                            <div className="settings-toggle__knob" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Auto-updater */}
+                {window.osUpdater && (
+                    <div className="settings-section glass-card">
+                        <div className="settings-section__title">Updates</div>
+                        <div className="settings-section__desc">
+                            {appVersion ? `Current version: v${appVersion}` : 'LaoMOS auto-updater'}
+                        </div>
+                        <div className="settings-field">
+                            <label>Update Channel</label>
+                            <select className="os-input" value={channel} onChange={e => switchChannel(e.target.value)}>
+                                <option value="stable">Stable</option>
+                                <option value="beta">Beta</option>
+                            </select>
+                        </div>
+                        {downloadPercent !== null && (
+                            <div className="settings-progress">
+                                <div className="settings-progress__bar" style={{ width: `${Math.round(downloadPercent)}%` }} />
+                            </div>
+                        )}
+                        {updateStatus && <p className="settings-update-status">{updateStatus}</p>}
+                        <div className="settings-btn-row">
+                            {!updateReady ? (
+                                <>
+                                    <button className="btn btn-ghost" onClick={() => window.osUpdater?.updates.check()}>Check for Updates</button>
+                                    <button className="btn btn-primary" onClick={() => window.osUpdater?.updates.download()} disabled={downloadPercent !== null}>Download</button>
+                                </>
+                            ) : (
+                                <button className="btn btn-primary" onClick={() => window.osUpdater?.updates.install()}>Restart &amp; Install</button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* App Permissions */}
+                <div className="settings-section glass-card">
+                    <div className="settings-section__title">App Permissions</div>
+                    <div className="settings-section__desc">Set access tiers for each app module</div>
+                    {DEFAULT_APPS.map(app => (
+                        <div key={app.id} className="settings-perm-row">
+                            <span className="settings-perm-label">{app.name}</span>
+                            <select
+                                className="os-input settings-perm-select"
+                                value={permissions[app.id] ?? '3'}
+                                onChange={e => setPermission(app.id, e.target.value)}
+                            >
+                                <option value="1">Tier 1 — Read Only</option>
+                                <option value="2">Tier 2 — Read + Write</option>
+                                <option value="3">Tier 3 — Full Access</option>
+                            </select>
+                        </div>
+                    ))}
+                </div>
+
                 {/* Budget */}
                 <div className="settings-section glass-card">
                     <div className="settings-section__title">Budget</div>
@@ -93,12 +252,24 @@ export default function Settings() {
                 {specs && (
                     <div className="settings-section glass-card">
                         <div className="settings-section__title">System Info</div>
-                        {[['Platform', specs.platform], ['Architecture', specs.arch], ['CPUs', String(specs.cpus)], ['Node', specs.nodeVersion]].map(([k, v]) => (
+                        {[
+                            ['Platform', specs.platform],
+                            ['CPU Model', specs.cpuModel],
+                            ['CPU Cores', String(specs.cpuCores)],
+                            ['Total Memory', specs.totalMem],
+                            ['Free Memory', specs.freeMem],
+                        ].map(([k, v]) => (
                             <div key={k} className="settings-info-row">
                                 <span>{k}</span>
                                 <span className="mono">{v}</span>
                             </div>
                         ))}
+                        {specs.recommendedModels?.length > 0 && (
+                            <div className="settings-info-row">
+                                <span>Recommended Models</span>
+                                <span className="mono">{specs.recommendedModels.join(', ')}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

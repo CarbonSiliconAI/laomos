@@ -1,0 +1,25 @@
+.draw-page { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.draw-header { padding:20px 24px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.draw-header__title { font-size:var(--fs-lg); font-weight:700; }
+.draw-header__sub { font-size:var(--fs-xs); color:var(--muted); margin-top:2px; }
+.draw-body { flex:1; display:grid; grid-template-columns:1fr 280px; gap:16px; padding:16px 24px; overflow:hidden; }
+
+.draw-canvas-area { display:flex; flex-direction:column; overflow:hidden; }
+.draw-toolbar { display:flex; gap:6px; padding:10px 12px; border-bottom:1px solid var(--line); }
+.draw-tool { display:flex; align-items:center; gap:4px; padding:5px 10px; font-size:var(--fs-xs); background:none; border:1px solid var(--line); border-radius:6px; cursor:pointer; color:var(--muted); transition:all .2s; }
+.draw-tool:hover { color:var(--text); border-color:var(--accent); }
+.draw-tool--active { color:var(--accent); border-color:var(--accent); background:var(--accent-glow); }
+.draw-canvas { flex:1; cursor:crosshair; border-radius:0 0 var(--radius-card) var(--radius-card); display:block; max-width:100%; }
+
+.draw-sidebar { display:flex; flex-direction:column; gap:12px; padding:16px; overflow-y:auto; }
+.draw-field { display:flex; flex-direction:column; gap:4px; }
+.draw-field label { font-size:var(--fs-xs); font-weight:500; color:var(--muted); }
+.draw-status { font-size:var(--fs-xs); color:var(--muted); font-family:'JetBrains Mono',monospace; }
+
+.draw-traces { display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; }
+.draw-trace { border-left:3px solid var(--muted); padding:6px 10px; border-radius:0 6px 6px 0; background:var(--glass-l2); }
+.draw-trace__header { display:flex; align-items:center; gap:6px; }
+.draw-trace__dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.draw-trace__step { font-size:11px; font-weight:500; color:var(--text); }
+.draw-trace__ms { font-size:10px; color:var(--muted); margin-left:auto; }
+.draw-trace__details { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; white-space:pre-wrap; margin-top:4px; }

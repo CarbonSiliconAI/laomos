@@ -177,22 +177,13 @@
             transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
         }
 
-        /* ── Body & Background (soft wallpaper gradient, Apple-like) ──────── */
+        /* ── Body & Background (desktop wallpaper) ────────────────────────── */
         body {
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
             color: var(--text);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            /* Subtle radial + light blue/purple tint */
-            background:
-                linear-gradient(160deg,
-                    #E4E8F5 0%,
-                    #E2E4F2 22%,
-                    #E8E6F0 45%,
-                    #EDE4EC 68%,
-                    #F2E6E8 85%,
-                    #F5E8E4 100%);
-            background-attachment: fixed;
+            background: url('wallpaper.png') center center / cover no-repeat fixed;
             color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
@@ -200,30 +191,27 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Soft radial highlight — top right (cool tint) */
+        /* Light overlay so UI stays readable over wallpaper */
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            right: 0;
-            width: 60vw;
-            height: 55vh;
-            background: radial-gradient(ellipse at top right, rgba(230, 228, 245, 0.5) 0%, transparent 55%);
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.12) 50%, rgba(0,0,0,0.08) 100%);
             pointer-events: none;
             z-index: 0;
         }
 
-        /* Warm glow bottom-right (design gradient accent) */
+        /* Keep noise texture layer */
         body::after {
             content: '';
             position: fixed;
-            bottom: 0;
-            right: 0;
-            width: 70vw;
-            height: 60vh;
-            background: radial-gradient(ellipse at bottom right, rgba(245, 232, 228, 0.35) 0%, transparent 60%);
+            inset: 0;
             pointer-events: none;
             z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            background-size: 200px 200px;
+            opacity: 0.03;
+            mix-blend-mode: overlay;
         }
 
         /* Subtle noise texture (via .bg-noise div in body) */

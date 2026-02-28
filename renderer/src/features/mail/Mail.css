@@ -250,3 +250,165 @@
     font-size: var(--fs-xs);
     color: var(--ok);
 }
+
+/* ── Mail Setup (not connected) ──────────────────── */
+.mail-setup {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.mail-setup__title {
+    font-size: var(--fs-md);
+    font-weight: 600;
+}
+
+.mail-setup__desc {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    max-width: 280px;
+    line-height: 1.5;
+}
+
+/* ── Config Modal ────────────────────────────────── */
+.mail-config-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.mail-config-modal {
+    width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.mail-config__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.mail-config__title {
+    font-size: var(--fs-md);
+    font-weight: 600;
+}
+
+.mail-config__close {
+    padding: 2px 8px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.mail-config__body {
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.mail-config__icon {
+    margin-bottom: 4px;
+}
+
+.mail-config__heading {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.mail-config__desc {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    max-width: 280px;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0 0 8px;
+}
+
+.mail-config-tabs {
+    display: flex;
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.mail-config-tab {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.mail-config-tab--active {
+    background: rgba(255,255,255,0.12);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.mail-config-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+}
+
+.mail-config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mail-config-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted-2);
+}
+
+.mail-config-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.mail-config-hint a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.mail-config-hint a:hover {
+    text-decoration: underline;
+}
+
+.mail-config-error {
+    font-size: var(--fs-xs);
+    color: var(--bad);
+    margin: 0;
+}
+
+.mail-config-submit {
+    width: 100%;
+    margin-top: 4px;
+}

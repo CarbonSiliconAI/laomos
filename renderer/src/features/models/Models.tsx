@@ -2,34 +2,70 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import './Models.css';
 
+const AVAILABLE_MODELS = [
+    { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: "Meta's latest state-of-the-art model", cloud: false },
+    { id: 'llama3.1:70b', name: 'Llama 3.1 (70B)', size: '40GB', desc: "Meta's powerful large model", cloud: false },
+    { id: 'qwen2.5:0.5b', name: 'Qwen 2.5 (0.5B)', size: '350MB', desc: "Alibaba's latest nano model", cloud: false },
+    { id: 'qwen2.5:1.5b', name: 'Qwen 2.5 (1.5B)', size: '900MB', desc: "Alibaba's latest micro model", cloud: false },
+    { id: 'qwen2.5:7b', name: 'Qwen 2.5 (7B)', size: '4.5GB', desc: "Alibaba's strong 7B model", cloud: false },
+    { id: 'gemma2', name: 'Gemma 2 (9B)', size: '5.5GB', desc: "Google's open model version 2", cloud: false },
+    { id: 'mistral-nemo', name: 'Mistral Nemo', size: '7.1GB', desc: "Mistral's 12B model", cloud: false },
+    { id: 'phi3.5', name: 'Phi-3.5', size: '2.4GB', desc: "Microsoft's latest small model", cloud: false },
+    { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model', cloud: false },
+    { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: "Meta's previous open LLM", cloud: false },
+    // Cloud models (require API keys)
+    { id: 'gpt-4o', name: 'GPT-4o', size: 'Cloud', desc: "OpenAI's most capable multimodal model", cloud: true },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', size: 'Cloud', desc: "OpenAI's fast and affordable model", cloud: true },
+    { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', size: 'Cloud', desc: "Anthropic's most intelligent model", cloud: true },
+    { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', size: 'Cloud', desc: "Anthropic's fastest model", cloud: true },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', size: 'Cloud', desc: "Google's advanced multimodal model", cloud: true },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', size: 'Cloud', desc: "Google's fast and efficient model", cloud: true },
+    { id: 'grok-2', name: 'Grok 2', size: 'Cloud', desc: "xAI's conversational model", cloud: true },
+];
+
 export default function Models() {
     const [models, setModels] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [pullName, setPullName] = useState('');
-    const [pulling, setPulling] = useState(false);
+    const [pulling, setPulling] = useState<string>(''); // model id being pulled
     const [pullStatus, setPullStatus] = useState('');
+    const [recommended, setRecommended] = useState<string[]>([]);
 
     function fetchModels() {
         setLoading(true);
         api.ollamaModels().then(r => setModels(r.models ?? [])).catch(() => setModels([])).finally(() => setLoading(false));
     }
 
-    useEffect(() => { fetchModels(); }, []);
+    useEffect(() => {
+        fetchModels();
+        api.systemSpecs().then(s => setRecommended(s.recommendedModels ?? [])).catch(() => {});
+    }, []);
 
-    async function pullModel() {
-        if (!pullName.trim()) return;
-        setPulling(true);
-        setPullStatus('Pulling...');
+    async function pullModel(modelId?: string) {
+        const name = modelId || pullName.trim();
+        if (!name) return;
+        setPulling(name);
+        if (!modelId) setPullStatus('Pulling...');
         try {
-            const res = await api.ollamaPull(pullName.trim());
-            setPullStatus(res.status ?? 'Done');
+            const res = await api.ollamaPull(name);
+            if (!modelId) setPullStatus(res.status ?? 'Done');
             fetchModels();
         } catch (e: any) {
-            setPullStatus('Error: ' + (e.message ?? 'failed'));
+            if (!modelId) setPullStatus('Error: ' + (e.message ?? 'failed'));
         } finally {
-            setPulling(false);
+            setPulling('');
         }
     }
+
+    const isRec = (id: string) => recommended.some(r => id.includes(r) || r.includes(id));
+    const isInstalled = (id: string) => models.some(m => m.startsWith(id) || id.startsWith(m.split(':')[0]));
+
+    // Sort: recommended first
+    const sortedCatalog = [...AVAILABLE_MODELS].sort((a, b) => {
+        const ar = isRec(a.id) ? 1 : 0;
+        const br = isRec(b.id) ? 1 : 0;
+        return br - ar;
+    });
 
     return (
         <div className="models-page">
@@ -45,17 +81,48 @@ export default function Models() {
             </div>
 
             <div className="models-body">
+                {/* Custom pull */}
                 <div className="models-pull glass-card">
                     <div className="models-pull__title">Pull a Model</div>
                     <div className="models-pull__row">
                         <input className="os-input" placeholder="e.g. llama3.2, mistral, phi3" value={pullName} onChange={e => setPullName(e.target.value)} onKeyDown={e => e.key === 'Enter' && pullModel()} />
-                        <button className="btn btn-primary" onClick={pullModel} disabled={pulling || !pullName.trim()}>
-                            {pulling ? <><div className="spinner"/> Pulling…</> : 'Pull'}
+                        <button className="btn btn-primary" onClick={() => pullModel()} disabled={!!pulling || !pullName.trim()}>
+                            {pulling === pullName.trim() ? <><div className="spinner"/> Pulling...</> : 'Pull'}
                         </button>
                     </div>
                     {pullStatus && <p className="models-pull__status">{pullStatus}</p>}
                 </div>
 
+                {/* Model Catalog */}
+                <div className="models-list-wrap">
+                    <div className="section-title">Available Models</div>
+                    <div className="models-catalog">
+                        {sortedCatalog.map(m => (
+                            <div key={m.id} className="model-catalog-item glass-card">
+                                <div className="model-catalog-item__info">
+                                    <div className="model-catalog-item__name">
+                                        {m.name}
+                                        <span className="model-catalog-item__size">({m.size})</span>
+                                        {isRec(m.id) && <span className="badge badge-accent" style={{marginLeft:6,fontSize:10}}>Recommended</span>}
+                                        {m.cloud && <span className="badge" style={{marginLeft:6,fontSize:10,background:'rgba(99,102,241,0.12)',color:'var(--accent)'}}>Cloud</span>}
+                                    </div>
+                                    <div className="model-catalog-item__desc">{m.desc}</div>
+                                </div>
+                                {m.cloud ? (
+                                    <span className="badge" style={{background:'rgba(99,102,241,0.08)',color:'var(--muted)',fontSize:11}}>Cloud Model</span>
+                                ) : isInstalled(m.id) ? (
+                                    <span className="badge badge-ok">Installed</span>
+                                ) : (
+                                    <button className="btn btn-primary" style={{padding:'4px 12px',fontSize:12}} onClick={() => pullModel(m.id)} disabled={!!pulling}>
+                                        {pulling === m.id ? <><div className="spinner"/> Pulling...</> : 'Pull'}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Installed Models */}
                 <div className="models-list-wrap">
                     <div className="section-title">Installed Models ({models.length})</div>
                     {loading ? (

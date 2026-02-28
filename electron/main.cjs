@@ -10,6 +10,12 @@ const http = require('http');
 const log = require('electron-log/main');
 // AutoUpdater is initialized when app is ready
 
+// Prevent EPIPE crashes when electron-log writes to a broken pipe
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE') return;
+  log.error('[main] uncaughtException', err);
+});
+
 const PORT = parseInt(process.env.PORT || '3123', 10);
 let serverProcess = null;
 let mainWindow = null;
@@ -252,6 +258,7 @@ function killServer() {
 }
 
 app.whenReady().then(async () => {
+  setupIpc();
   setupUpdater();
   await startServer();
   try {

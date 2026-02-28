@@ -5,6 +5,7 @@ import './Files.css';
 const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
 const getExt = (n: string) => { const i = n.lastIndexOf('.'); return i >= 0 ? n.slice(i).toLowerCase() : ''; };
 const isImage = (n: string) => IMAGE_EXTS.includes(getExt(n));
+const isPdf = (n: string) => getExt(n) === '.pdf';
 const fmtSize = (b?: number) => !b ? '' : b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`;
 
 export default function Files() {
@@ -42,7 +43,8 @@ export default function Files() {
     async function saveFile() {
         if (!modal.name.trim()) { setModal(m => ({ ...m, error: 'Name required' })); return; }
         setModal(m => ({ ...m, saving: true, error: '' }));
-        try { await api.filesCreate(modal.name.trim(), modal.body); setModal({ open: false, name: '', body: '', saving: false, error: '' }); loadDir(path); }
+        const fullPath = path ? `${path}/${modal.name.trim()}` : modal.name.trim();
+        try { await api.filesCreate(fullPath, modal.body); setModal({ open: false, name: '', body: '', saving: false, error: '' }); loadDir(path); }
         catch (e: any) { setModal(m => ({ ...m, saving: false, error: e.message ?? 'Failed' })); }
     }
 
@@ -97,6 +99,8 @@ export default function Files() {
                                 {fileLoading ? <div className="empty-state"><div className="spinner"/></div>
                                  : isImage(selected.name)
                                     ? <div className="files-img-wrap"><img src={`/api/files/raw?path=${encodeURIComponent(selected.path)}`} alt={selected.name} className="files-img"/></div>
+                                 : isPdf(selected.name)
+                                    ? <iframe src={`/api/files/raw?path=${encodeURIComponent(selected.path)}`} className="files-pdf" title={selected.name} />
                                     : <pre className="files-code">{content ?? ''}</pre>}
                             </div>
                         </>

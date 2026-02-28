@@ -5,7 +5,8 @@ import './ApiKeys.css';
 const PROVIDERS = [
     { id: 'openai', label: 'OpenAI', color: '#10a37f', placeholder: 'sk-...' },
     { id: 'anthropic', label: 'Anthropic', color: '#d97706', placeholder: 'sk-ant-...' },
-    { id: 'ollama', label: 'Ollama (URL)', color: '#6366f1', placeholder: 'http://localhost:11434' },
+    { id: 'google', label: 'Google AI', color: '#4285f4', placeholder: 'AIza...' },
+    { id: 'xai', label: 'xAI', color: '#1d1d1f', placeholder: 'xai-...' },
 ];
 
 export default function ApiKeys() {

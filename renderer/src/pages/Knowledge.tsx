@@ -16,8 +16,8 @@ const CARDS = [
     },
     {
         path: '/knowledge/rag',
-        title: 'RAG Search',
-        desc: 'Semantic search over your documents',
+        title: 'RAG',
+        desc: 'Convert documents and search knowledge base',
         color: 'rgba(16,185,129,0.85)',
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -25,6 +25,30 @@ const CARDS = [
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 <line x1="8" y1="11" x2="14" y2="11" />
                 <line x1="11" y1="8" x2="11" y2="14" />
+            </svg>
+        ),
+    },
+    {
+        path: '/knowledge/search',
+        title: 'Smart Search',
+        desc: 'AI-powered search across local knowledge and web',
+        color: 'rgba(99,102,241,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+        ),
+    },
+    {
+        path: '/knowledge/graph',
+        title: 'System Graph',
+        desc: 'Visualize system component relationships',
+        color: 'rgba(139,92,246,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" />
+                <path d="M13 6h3a2 2 0 0 1 2 2v7" /><line x1="6" y1="9" x2="6" y2="21" />
             </svg>
         ),
     },

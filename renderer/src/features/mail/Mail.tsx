@@ -5,6 +5,8 @@ import './Mail.css';
 
 interface ComposeForm { to: string; subject: string; body: string; }
 
+type ConfigTab = 'oauth' | 'apppass';
+
 export default function Mail() {
     const [status, setStatus] = useState<MailStatus | null>(null);
     const [emails, setEmails] = useState<Email[]>([]);
@@ -16,14 +18,19 @@ export default function Mail() {
     const [compose, setCompose] = useState<ComposeForm>({ to: '', subject: '', body: '' });
     const [sending, setSending] = useState(false);
     const [sendMsg, setSendMsg] = useState('');
-    const [configForm, setConfigForm] = useState({ provider: 'gmail', email: '', password: '' });
+
+    // Config modal state
+    const [showConfig, setShowConfig] = useState(false);
+    const [configTab, setConfigTab] = useState<ConfigTab>('apppass');
+    const [oauthForm, setOauthForm] = useState({ clientId: '', clientSecret: '' });
+    const [appPassForm, setAppPassForm] = useState({ email: '', password: '' });
     const [configuring, setConfiguring] = useState(false);
     const [configError, setConfigError] = useState('');
 
     useEffect(() => {
         api.mailStatus().then(s => {
             setStatus(s);
-            if (s.connected) fetchInbox();
+            if (s.configured) fetchInbox();
         }).catch(() => {});
     }, []);
 
@@ -69,19 +76,137 @@ export default function Mail() {
         finally { setSending(false); }
     }
 
-    async function saveConfig() {
+    // ── Config: App Password ────────────────────────────────────────────
+    async function saveAppPassword() {
+        const emailAddress = appPassForm.email.trim();
+        const appPassword = appPassForm.password.trim();
+        if (!emailAddress || !appPassword) { setConfigError('Please provide both Email and App Password'); return; }
         setConfiguring(true);
         setConfigError('');
         try {
-            await api.mailConfig(configForm);
+            await api.mailConfig({ emailAddress, appPassword });
             const s = await api.mailStatus();
             setStatus(s);
-            if (s.connected) fetchInbox();
-        } catch (e: any) { setConfigError(e.message ?? 'Failed to connect'); }
+            setShowConfig(false);
+            fetchInbox();
+        } catch (e: any) { setConfigError(e.message ?? 'Failed to save'); }
         finally { setConfiguring(false); }
     }
 
-    if (!status?.connected) {
+    // ── Config: OAuth ───────────────────────────────────────────────────
+    async function startOAuth() {
+        const clientId = oauthForm.clientId.trim();
+        const clientSecret = oauthForm.clientSecret.trim();
+        if (!clientId || !clientSecret) { setConfigError('Please provide both Client ID and Client Secret'); return; }
+        setConfiguring(true);
+        setConfigError('');
+        try {
+            await api.mailConfig({ clientId, clientSecret });
+            const authRes = await fetch('/api/mail/auth-url');
+            const { url } = await authRes.json();
+            if (!url) throw new Error('Failed to retrieve authentication URL.');
+
+            window.open(url, 'Google OAuth', `width=500,height=600,left=${window.screenX + 200},top=${window.screenY + 100}`);
+
+            // Poll for completion
+            let polls = 0;
+            const timer = setInterval(async () => {
+                polls++;
+                try {
+                    const s = await api.mailStatus();
+                    if (s.configured) {
+                        clearInterval(timer);
+                        setStatus(s);
+                        setShowConfig(false);
+                        setConfiguring(false);
+                        fetchInbox();
+                    }
+                } catch { /* keep polling */ }
+                if (polls >= 120) { clearInterval(timer); setConfiguring(false); setConfigError('OAuth timed out. Please try again.'); }
+            }, 1500);
+        } catch (e: any) {
+            setConfigError(e.message ?? 'OAuth failed');
+            setConfiguring(false);
+        }
+    }
+
+    // ── Config Modal ────────────────────────────────────────────────────
+    function renderConfigModal() {
+        return (
+            <div className="mail-config-overlay" onClick={() => !configuring && setShowConfig(false)}>
+                <div className="mail-config-modal glass-card" onClick={e => e.stopPropagation()}>
+                    <div className="mail-config__header">
+                        <span className="mail-config__title">Gmail Sync</span>
+                        <button className="btn btn-ghost mail-config__close" onClick={() => setShowConfig(false)}>&times;</button>
+                    </div>
+
+                    <div className="mail-config__body">
+                        <svg className="mail-config__icon" viewBox="0 0 48 48" width="48" height="48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        </svg>
+                        <h3 className="mail-config__heading">Sign in to Sync</h3>
+                        <p className="mail-config__desc">Securely grant Agent OS native IMAP and SMTP access to your real Gmail inbox.</p>
+
+                        {/* Tabs */}
+                        <div className="mail-config-tabs">
+                            <button className={`mail-config-tab${configTab === 'oauth' ? ' mail-config-tab--active' : ''}`}
+                                onClick={() => { setConfigTab('oauth'); setConfigError(''); }}>OAuth</button>
+                            <button className={`mail-config-tab${configTab === 'apppass' ? ' mail-config-tab--active' : ''}`}
+                                onClick={() => { setConfigTab('apppass'); setConfigError(''); }}>App Password</button>
+                        </div>
+
+                        {configTab === 'oauth' ? (
+                            <div className="mail-config-form">
+                                <div className="mail-config-field">
+                                    <label>Google Client ID</label>
+                                    <input className="os-input" type="password" placeholder="...apps.googleusercontent.com"
+                                        value={oauthForm.clientId} onChange={e => setOauthForm(f => ({ ...f, clientId: e.target.value }))} />
+                                    <span className="mail-config-hint">
+                                        Create OAuth credentials in <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">Google Cloud Console</a>
+                                    </span>
+                                </div>
+                                <div className="mail-config-field">
+                                    <label>Google Client Secret</label>
+                                    <input className="os-input" type="password" placeholder="GOCSPX-..."
+                                        value={oauthForm.clientSecret} onChange={e => setOauthForm(f => ({ ...f, clientSecret: e.target.value }))} />
+                                </div>
+                                {configError && <p className="mail-config-error">{configError}</p>}
+                                <button className="btn btn-primary mail-config-submit" onClick={startOAuth} disabled={configuring}>
+                                    {configuring ? <><div className="spinner" /> Connecting...</> : 'Continue with Google'}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="mail-config-form">
+                                <div className="mail-config-field">
+                                    <label>Gmail Address</label>
+                                    <input className="os-input" type="email" placeholder="you@gmail.com"
+                                        value={appPassForm.email} onChange={e => setAppPassForm(f => ({ ...f, email: e.target.value }))} />
+                                </div>
+                                <div className="mail-config-field">
+                                    <label>16-Character App Password</label>
+                                    <input className="os-input" type="password" placeholder="xxxx xxxx xxxx xxxx"
+                                        value={appPassForm.password} onChange={e => setAppPassForm(f => ({ ...f, password: e.target.value }))} />
+                                    <span className="mail-config-hint">
+                                        Create one in your <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">Google Account Security</a> settings
+                                    </span>
+                                </div>
+                                {configError && <p className="mail-config-error">{configError}</p>}
+                                <button className="btn btn-primary mail-config-submit" onClick={saveAppPassword} disabled={configuring}>
+                                    {configuring ? <><div className="spinner" /> Saving...</> : 'Connect'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Not configured: show setup prompt ───────────────────────────────
+    if (!status?.configured) {
         return (
             <div className="mail-page">
                 <div className="mail-header">
@@ -89,43 +214,29 @@ export default function Mail() {
                     <p className="mail-header__sub">Connect your email account to get started</p>
                 </div>
                 <div className="mail-setup glass-card">
-                    <h2 className="mail-setup__title">Connect Mail Account</h2>
-                    <div className="mail-setup__field">
-                        <label>Provider</label>
-                        <select className="os-input" value={configForm.provider}
-                            onChange={e => setConfigForm(f => ({ ...f, provider: e.target.value }))}>
-                            <option value="gmail">Gmail</option>
-                            <option value="imap">IMAP</option>
-                        </select>
-                    </div>
-                    <div className="mail-setup__field">
-                        <label>Email</label>
-                        <input className="os-input" type="email" placeholder="you@example.com"
-                            value={configForm.email}
-                            onChange={e => setConfigForm(f => ({ ...f, email: e.target.value }))} />
-                    </div>
-                    <div className="mail-setup__field">
-                        <label>Password / App Password</label>
-                        <input className="os-input" type="password" placeholder="••••••••"
-                            value={configForm.password}
-                            onChange={e => setConfigForm(f => ({ ...f, password: e.target.value }))} />
-                    </div>
-                    {configError && <p className="mail-setup__error">{configError}</p>}
-                    <button className="btn btn-primary" onClick={saveConfig} disabled={configuring}>
-                        {configuring ? <><div className="spinner" /> Connecting…</> : 'Connect'}
-                    </button>
+                    <svg className="mail-config__icon" viewBox="0 0 48 48" width="48" height="48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                    </svg>
+                    <h2 className="mail-setup__title">Gmail Sync</h2>
+                    <p className="mail-setup__desc">Securely connect your Gmail account to Agent OS</p>
+                    <button className="btn btn-primary" onClick={() => setShowConfig(true)}>Set Up Mail</button>
                 </div>
+                {showConfig && renderConfigModal()}
             </div>
         );
     }
 
+    // ── Connected: show inbox ───────────────────────────────────────────
     return (
         <div className="mail-page">
             <div className="mail-header">
                 <div>
                     <h1 className="mail-header__title">Mail</h1>
                     <p className="mail-header__sub">
-                        {status.email ?? 'Connected'}&nbsp;
+                        {status.address ?? 'Connected'}&nbsp;
                         <span className="badge badge-ok">Connected</span>
                     </p>
                 </div>
@@ -133,6 +244,9 @@ export default function Mail() {
                     <button className="btn btn-ghost" onClick={fetchInbox} disabled={loading}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
                         Refresh
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setShowConfig(true)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                     </button>
                     <button className="btn btn-primary" onClick={() => setComposing(true)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -178,7 +292,7 @@ export default function Mail() {
                                 </div>
                                 <div className="mail-detail__actions">
                                     <button className="btn btn-ghost" onClick={summarize} disabled={summarizing}>
-                                        {summarizing ? <><div className="spinner" /> Summarizing…</> : 'AI Summarize'}
+                                        {summarizing ? <><div className="spinner" /> Summarizing...</> : 'AI Summarize'}
                                     </button>
                                     <button className="btn btn-ghost" onClick={() => {
                                         api.mailDraft({ to: selected.from, subject: `Re: ${selected.subject}`, context: selected.body })
@@ -205,6 +319,8 @@ export default function Mail() {
                 </div>
             </div>
 
+            {showConfig && renderConfigModal()}
+
             {composing && (
                 <div className="mail-compose-overlay" onClick={() => setComposing(false)}>
                     <div className="mail-compose glass-card" onClick={e => e.stopPropagation()}>
@@ -216,7 +332,7 @@ export default function Mail() {
                         </div>
                         <input className="os-input" placeholder="To" value={compose.to} onChange={e => setCompose(f => ({ ...f, to: e.target.value }))} />
                         <input className="os-input" placeholder="Subject" value={compose.subject} onChange={e => setCompose(f => ({ ...f, subject: e.target.value }))} />
-                        <textarea className="os-input mail-compose__body" placeholder="Message…" rows={8}
+                        <textarea className="os-input mail-compose__body" placeholder="Message..." rows={8}
                             value={compose.body} onChange={e => setCompose(f => ({ ...f, body: e.target.value }))} />
                         {sendMsg && <p className={sendMsg.startsWith('Error') ? 'mail-setup__error' : 'mail-send-ok'}>{sendMsg}</p>}
                         <div className="mail-compose__footer">
@@ -224,7 +340,7 @@ export default function Mail() {
                                 api.mailDraft({ to: compose.to, subject: compose.subject, context: compose.body }).then(r => setCompose(f => ({ ...f, body: r.draft }))).catch(() => {});
                             }}>AI Draft</button>
                             <button className="btn btn-primary" onClick={sendMail} disabled={sending}>
-                                {sending ? <><div className="spinner" /> Sending…</> : 'Send'}
+                                {sending ? <><div className="spinner" /> Sending...</> : 'Send'}
                             </button>
                         </div>
                     </div>

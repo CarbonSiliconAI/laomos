@@ -11,11 +11,15 @@ import GovernancePage from './pages/Governance';
 import FlowPage from './features/flow/Flow';
 import MailPage from './features/mail/Mail';
 import GamePage from './features/game/Game';
+import DrawPage from './features/draw/Draw';
+import VideoPage from './features/video/Video';
 import ChatPage from './features/chat/Chat';
 import FilesPage from './features/files/Files';
 import ModelsPage from './features/models/Models';
 import ApiKeysPage from './features/api-keys/ApiKeys';
 import RagPage from './features/rag/Rag';
+import SearchPage from './features/search/Search';
+import GraphPage from './features/graph/Graph';
 import OpenClawPage from './features/openclaw/OpenClaw';
 import MonitorPage from './features/monitor/Monitor';
 import HistoryPage from './features/history/History';
@@ -33,6 +37,8 @@ export default function App() {
                     <Route path="/operations/flow" element={<FlowPage />} />
                     <Route path="/operations/mail" element={<MailPage />} />
                     <Route path="/operations/game" element={<GamePage />} />
+                    <Route path="/operations/draw" element={<DrawPage />} />
+                    <Route path="/operations/video" element={<VideoPage />} />
 
                     <Route path="/workforce" element={<WorkforcePage />} />
                     <Route path="/workforce/chat" element={<ChatPage />} />
@@ -42,6 +48,8 @@ export default function App() {
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/knowledge/files" element={<FilesPage />} />
                     <Route path="/knowledge/rag" element={<RagPage />} />
+                    <Route path="/knowledge/search" element={<SearchPage />} />
+                    <Route path="/knowledge/graph" element={<GraphPage />} />
 
                     <Route path="/governance" element={<GovernancePage />} />
                     <Route path="/governance/monitor" element={<MonitorPage />} />

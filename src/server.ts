@@ -337,8 +337,9 @@ export class Server {
             try {
                 const address = await this.identityManager.getKey('gmail_address');
                 const refreshToken = await this.identityManager.getKey('gmail_refresh_token');
+                const appPassword = await this.identityManager.getKey('gmail_app_password');
 
-                if (address && refreshToken) {
+                if (address && (refreshToken || appPassword)) {
                     res.json({ configured: true, address });
                 } else {
                     res.json({ configured: false });

@@ -15,11 +15,11 @@ export async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
 export const api = {
     // ── Ollama ──────────────────────────────
     ollamaModels: () => apiFetch<{ models: string[] }>('/api/ollama/models'),
-    ollamaChat: (body: object) => apiFetch<{ response: string }>('/api/ollama/chat', {
+    ollamaChat: (body: object) => apiFetch<{ message?: { role: string; content: string }; response?: string }>('/api/ollama/chat', {
         method: 'POST', body: JSON.stringify(body),
     }),
     ollamaPull: (name: string) => apiFetch<{ status: string }>('/api/ollama/pull', {
-        method: 'POST', body: JSON.stringify({ name }),
+        method: 'POST', body: JSON.stringify({ model: name }),
     }),
 
     // ── AI ──────────────────────────────────
@@ -45,8 +45,8 @@ export const api = {
     // ── Files ───────────────────────────────
     filesList: (p?: string) => apiFetch<{ files: FileEntry[] }>(`/api/files/list${p ? `?path=${encodeURIComponent(p)}` : ''}`),
     filesRead: (p: string) => apiFetch<{ content: string }>(`/api/files/read?path=${encodeURIComponent(p)}`),
-    filesCreate: (name: string, content: string) => apiFetch('/api/files/create', {
-        method: 'POST', body: JSON.stringify({ name, content }),
+    filesCreate: (path: string, content: string) => apiFetch('/api/files/create', {
+        method: 'POST', body: JSON.stringify({ path, content }),
     }),
 
     // ── Keys ────────────────────────────────
@@ -83,14 +83,17 @@ export const api = {
 
     // ── Game ────────────────────────────────
     gameState: () => apiFetch<GameState>('/api/game/state'),
-    gameChat: (message: string, model?: string) => apiFetch<GameResponse>('/api/game/chat', {
-        method: 'POST', body: JSON.stringify({ message, model }),
+    gameChat: (action: string, model?: string) => apiFetch<{ state: GameState }>('/api/game/chat', {
+        method: 'POST', body: JSON.stringify({ action, model }),
     }),
     gameReset: () => apiFetch('/api/game/reset', { method: 'POST' }),
 
     // ── System ──────────────────────────────
     systemSpecs: () => apiFetch<SystemSpecs>('/api/system/specs'),
     systemFirewall: () => apiFetch<{ enabled: boolean; rules: object[] }>('/api/system/firewall'),
+    systemFirewallSet: (enabled: boolean) => apiFetch<{ success: boolean; enabled: boolean }>('/api/system/firewall', {
+        method: 'POST', body: JSON.stringify({ enabled }),
+    }),
 
     // ── Telemetry ───────────────────────────
     telemetryStats: () => apiFetch<TelemetryStats>('/api/telemetry/stats'),
@@ -160,10 +163,8 @@ export interface Email {
 }
 
 export interface MailStatus {
-    connected: boolean;
-    provider?: string;
-    email?: string;
-    totalEmails?: number;
+    configured: boolean;
+    address?: string;
 }
 
 export interface GameState {
@@ -180,11 +181,11 @@ export interface GameResponse {
 
 export interface SystemSpecs {
     platform: string;
-    arch: string;
-    cpus: number;
-    memory: number;
-    freeMemory: number;
-    nodeVersion: string;
+    cpuModel: string;
+    cpuCores: number;
+    totalMem: string;
+    freeMem: string;
+    recommendedModels: string[];
 }
 
 export interface TelemetryStats {
