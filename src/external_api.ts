@@ -259,6 +259,16 @@ export class ExternalAPIManager {
                     headers: { 'Authorization': `Bearer ${key}` }
                 });
                 return true;
+            } else if (provider === 'anthropic') {
+                // Anthropic: List Models
+                // https://api.anthropic.com/v1/models
+                await axios.get('https://api.anthropic.com/v1/models', {
+                    headers: {
+                        'x-api-key': key,
+                        'anthropic-version': '2023-06-01'
+                    }
+                });
+                return true;
             }
         } catch (error: any) {
             console.error(`Verification failed for ${provider}:`, error.response?.data || error.message);

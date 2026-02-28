@@ -3343,9 +3343,12 @@
                         AI Flow Builder</h3>
                     <span style="font-size:12px; color:var(--text-muted);">Standard AI Agent Protocol Linker</span>
                 </div>
-                <button id="flow-run-btn" class="osbtn primary" style="display:flex; align-items:center; gap:5px;">
-                    Run Graph
-                </button>
+                <div style="display:flex; gap:10px;">
+
+                    <button id="flow-run-btn" class="osbtn primary" style="display:flex; align-items:center; gap:5px;">
+                        Run Graph
+                    </button>
+                </div>
             </div>
 
             <div style="display:flex; flex:1; overflow:hidden;">
@@ -4014,6 +4017,20 @@
                 type: 'app',
                 action: () => openApiManager()
             },
+            'clock': {
+                id: 'clock',
+                name: 'Clock',
+                icon: '⏰',
+                type: 'app',
+                action: () => openClockApp()
+            },
+            'calendar': {
+                id: 'calendar',
+                name: 'Calendar',
+                icon: '📅',
+                type: 'app',
+                action: () => openCalendarApp()
+            },
             'draw': {
                 id: 'draw',
                 name: 'AI Draw',
@@ -4113,26 +4130,22 @@
             },
         };
 
-        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'rag', 'search', 'history', 'eval', 'settings'];
+        const defaultDesktopApps = ['computer', 'network', 'terminal', 'chat', 'model-manager', 'api-manager', 'draw', 'video', 'flow', 'store', 'rag', 'search', 'history', 'eval', 'settings', 'clock', 'calendar'];
 
         const availableModels = [
-            { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: 'Meta\'s latest state-of-the-art model' },
-            { id: 'llama3.1:70b', name: 'Llama 3.1 (70B)', size: '40GB', desc: 'Meta\'s powerful large model' },
-            { id: 'qwen2.5:0.5b', name: 'Qwen 2.5 (0.5B)', size: '350MB', desc: 'Alibaba\'s latest nano model' },
-            { id: 'qwen2.5:1.5b', name: 'Qwen 2.5 (1.5B)', size: '900MB', desc: 'Alibaba\'s latest micro model' },
+            { id: 'llama3.3', name: 'Llama 3.3 (70B)', size: '40GB', desc: 'Meta\'s latest open generalist model' },
+            { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: 'Meta\'s fast 8B model' },
+            { id: 'qwen2.5-max', name: 'Qwen 2.5 Max', size: 'Cloud', desc: 'Alibaba\'s flagship Qwen model' },
             { id: 'qwen2.5:7b', name: 'Qwen 2.5 (7B)', size: '4.5GB', desc: 'Alibaba\'s strong 7B model' },
             { id: 'gemma2', name: 'Gemma 2 (9B)', size: '5.5GB', desc: 'Google\'s open model version 2' },
-            { id: 'mistral-nemo', name: 'Mistral Nemo', size: '7.1GB', desc: 'Mistral\'s 12B model' },
-            { id: 'phi3.5', name: 'Phi-3.5', size: '2.4GB', desc: 'Microsoft\'s latest small model' },
-            { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model' },
-            { id: 'llama3:8b', name: 'Llama 3 (8B)', size: '4.7GB', desc: 'Meta\'s previous open LLM' },
-            { id: 'gpt-4o', name: 'GPT-4o', size: 'Cloud', desc: 'OpenAI\'s flagship multi-modal model' },
-            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', size: 'Cloud', desc: 'OpenAI\'s fast, cost-effective model' },
-            { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', size: 'Cloud', desc: 'Anthropic\'s most intelligent model' },
-            { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', size: 'Cloud', desc: 'Anthropic\'s fastest model' },
-            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', size: 'Cloud', desc: 'Google\'s powerhouse model' },
-            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', size: 'Cloud', desc: 'Google\'s lightweight model' },
-            { id: 'grok-2', name: 'Grok 2', size: 'Cloud', desc: 'xAI\'s latest grok model' }
+            { id: 'deepseek-v3', name: 'DeepSeek-V3', size: 'Cloud', desc: 'DeepSeek\'s powerful generalist model' },
+            { id: 'deepseek-r1:14b', name: 'DeepSeek-R1 (14B)', size: '9GB', desc: 'DeepSeek\'s reasoning-first model' },
+            { id: 'gpt-5.2', name: 'GPT-5.2', size: 'Cloud', desc: 'OpenAI\'s flagship latest model' },
+            { id: 'gpt-5-mini', name: 'GPT-5 Mini', size: 'Cloud', desc: 'OpenAI\'s fast, cost-effective model' },
+            { id: 'claude-4.6-sonnet', name: 'Claude 4.6 Sonnet', size: 'Cloud', desc: 'Anthropic\'s most capable model' },
+            { id: 'claude-4.5-haiku', name: 'Claude 4.5 Haiku', size: 'Cloud', desc: 'Anthropic\'s fastest model' },
+            { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', size: 'Cloud', desc: 'Google\'s latest powerhouse model' },
+            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', size: 'Cloud', desc: 'Google\'s lightweight model' }
         ];
 
         // --- Shell Functions ---
@@ -4693,6 +4706,8 @@
 
         // Outline SVG icon set for the dock
         const DOCK_SVG = {
+            'clock': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+            'calendar': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
             'chat': `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
             'openclaw': `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
             'flow': `<svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>`,
@@ -4735,6 +4750,7 @@
             { id: 'chat', label: 'Chat', icon: DOCK_SVG.chat, appId: 'chat' },
             { id: 'openclaw', label: 'OpenClaw', icon: DOCK_SVG.openclaw, appId: 'openclaw' },
             { id: 'projects', label: 'Projects', icon: DOCK_SVG.flow, appId: 'flow' },
+            { id: 'calendar', label: 'Calendar', icon: DOCK_SVG.calendar, appId: 'calendar' },
             { id: 'memory', label: 'Memory', icon: DOCK_SVG.history, appId: 'history' },
             { id: 'agents', label: 'Agents', icon: DOCK_SVG.eval, appId: 'eval' },
             { id: 'files', label: 'Files', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>', appId: 'rag' },
@@ -5268,7 +5284,7 @@
 
                     <!-- Main Chat Area -->
                     <div style="flex: 1; display: flex; flex-direction: column; background: #ffffff;">
-                         <div id="dnd-chat-history" style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.6;">
+                         <div id="dnd-chat-history" style="flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.6; user-select: text; -webkit-user-select: text;">
                             <div style="color: #9ca3af; text-align: center; margin-top: 40px; font-style: italic;">Welcome to AI Dungeon Master. Awaiting your first action...</div>
                          </div>
                          <div style="padding: 16px; border-top: 1px solid rgba(0,0,0,0.08); background: #fdfdfd; display: flex; gap: 12px; align-items: center;">
@@ -5332,6 +5348,8 @@
                     border: 1px solid ${isUser ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.05)'};
                     font-family: 'Inter', sans-serif;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    user-select: text;
+                    -webkit-user-select: text;
                 `;
 
                 // Allow simple markdown newlines
@@ -5707,6 +5725,313 @@
         }
 
         // --- App: Model Manager ---
+        function openClockApp() {
+            const body = createWindow('Clock & Timer', 'clock', 400, 250);
+            if (!body) return;
+            body.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:var(--glass-strong); color:var(--text); font-family:var(--font-system);">
+                    <div id="clock-display" style="font-size:48px; font-weight:700; margin-bottom:10px; letter-spacing:2px; font-variant-numeric:tabular-nums;"></div>
+                    <div id="date-display" style="font-size:16px; color:var(--muted); margin-bottom: 20px;"></div>
+                    <div style="display:flex; gap:20px; text-align:center;">
+                        <div>
+                           <div style="font-size:12px; color:var(--muted);">Timezone</div>
+                           <div id="tz-display" style="font-weight:500;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const clockEl = body.querySelector('#clock-display');
+            const dateEl = body.querySelector('#date-display');
+            const tzEl = body.querySelector('#tz-display');
+            tzEl.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            function updateClock() {
+                if (!document.getElementById('window-clock')) return;
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString([], { hour12: false });
+                dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                requestAnimationFrame(updateClock);
+            }
+            updateClock();
+        }
+
+        async function openCalendarApp() {
+            const body = createWindow('Calendar & Scheduled Jobs', 'calendar', 750, 550);
+            if (!body) return;
+            body.innerHTML = `
+                <div style="display:flex; height:100%; font-family:var(--font-system); color:var(--text); background:var(--glass-strong);">
+                    <!-- Left Panel: Job List / Week View -->
+                    <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid rgba(0,0,0,0.1); padding:20px; box-sizing:border-box;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2 style="margin:0; font-weight:600; font-size:16px;">Upcoming Jobs</h2>
+                            
+                            <!-- View Switcher Toggle -->
+                            <div style="display:flex; background:rgba(0,0,0,0.05); border-radius:6px; padding:2px; user-select:none;">
+                                <button id="view-list-btn" style="border:none; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-radius:4px; padding:4px 12px; font-size:12px; cursor:pointer; color:#1D1D1F; font-weight:500; transition:all 0.2s;">List</button>
+                                <button id="view-week-btn" style="border:none; background:transparent; border-radius:4px; padding:4px 12px; font-size:12px; cursor:pointer; color:var(--muted); font-weight:500; transition:all 0.2s;">Week</button>
+                            </div>
+                            
+                            <button id="refresh-jobs-btn" class="osbtn window-control" style="padding:4px 8px; font-size:11px;">Od Refresh</button>
+                        </div>
+                        
+                        <!-- List View Container -->
+                        <div id="jobs-list" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; padding-right:5px;">
+                            <div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">Loading...</div>
+                        </div>
+
+                        <!-- Week View Container (Hidden by default) -->
+                        <div id="jobs-week" style="display:none; flex-direction:column; gap:8px; overflow-y:auto; flex:1; padding-right:5px;">
+                        </div>
+                    </div>
+                    
+                    <!-- Right Panel: Schedule Form -->
+                    <div style="width:260px; padding:20px; display:flex; flex-direction:column; background:rgba(255,255,255,0.03); box-sizing:border-box;">
+                        <h2 style="margin:0 0 15px 0; font-weight:600; font-size:16px;">Schedule Task</h2>
+                        
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            <div>
+                                <label style="display:block; font-size:11px; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">Job Name</label>
+                                <input id="new-job-name" type="text" placeholder="e.g. Morning Briefing" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.8); font-size:13px; box-sizing:border-box;">
+                            </div>
+                            
+                            <div>
+                                <label style="display:block; font-size:11px; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">AI Instruction</label>
+                                <textarea id="new-job-instruction" placeholder="What should the AI do?" style="width:100%; height:80px; padding:8px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.8); font-size:13px; resize:none; font-family:inherit; box-sizing:border-box;"></textarea>
+                            </div>
+
+                            <div>
+                                <label style="display:block; font-size:11px; font-weight:600; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">Run Interval</label>
+                                <select id="new-job-interval" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.8); font-size:13px; box-sizing:border-box;">
+                                    <option value="minute">Every Minute (Testing)</option>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <button id="create-job-btn" class="osbtn primary" style="margin-top:10px; padding:10px; text-align:center; font-weight:500;">Create Job</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const listEl = body.querySelector('#jobs-list');
+            const weekEl = body.querySelector('#jobs-week');
+            const refreshBtn = body.querySelector('#refresh-jobs-btn');
+            const createBtn = body.querySelector('#create-job-btn');
+
+            const btnListView = body.querySelector('#view-list-btn');
+            const btnWeekView = body.querySelector('#view-week-btn');
+
+            let currentView = 'list';
+            let allJobs = [];
+
+            // View Switcher logic
+            btnListView.onclick = () => {
+                currentView = 'list';
+                btnListView.style.background = '#fff';
+                btnListView.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                btnListView.style.color = '#1D1D1F';
+
+                btnWeekView.style.background = 'transparent';
+                btnWeekView.style.boxShadow = 'none';
+                btnWeekView.style.color = 'var(--muted)';
+
+                renderJobs();
+            };
+
+            btnWeekView.onclick = () => {
+                currentView = 'week';
+                btnWeekView.style.background = '#fff';
+                btnWeekView.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                btnWeekView.style.color = '#1D1D1F';
+
+                btnListView.style.background = 'transparent';
+                btnListView.style.boxShadow = 'none';
+                btnListView.style.color = 'var(--muted)';
+
+                renderJobs();
+            };
+
+            function renderJobs() {
+                if (!Array.isArray(allJobs) || allJobs.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">No scheduled jobs yet.<br><br>Use the panel to create one.</div>';
+                    weekEl.innerHTML = listEl.innerHTML;
+                    return;
+                }
+
+                if (currentView === 'list') {
+                    listEl.style.display = 'flex';
+                    weekEl.style.display = 'none';
+                    listEl.innerHTML = '';
+
+                    allJobs.forEach(job => {
+                        const nextRunStr = (job.intervalValue === 'minute' ? 'Every Minute' : (job.intervalValue ? job.intervalValue.charAt(0).toUpperCase() + job.intervalValue.slice(1) : 'Unknown'));
+
+                        const item = document.createElement('div');
+                        item.style.cssText = 'background:rgba(255,255,255,0.4); border:1px solid rgba(0,0,0,0.06); padding:12px; border-radius:8px; margin-bottom:8px; position:relative; overflow:hidden;';
+                        item.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="flex:1; min-width:0; padding-right:10px;">
+                                    <h4 style="margin:0 0 4px 0; font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${job.name || 'Unnamed Job'}</h4>
+                                    <div style="font-size:11px; color:var(--muted); display:flex; gap:10px;">
+                                        <span><b style="font-weight:600;">Run:</b> ${nextRunStr}</span>
+                                        <span title="${new Date(job.lastRunDate).toLocaleString()}"><b style="font-weight:600;">Last:</b> ${new Date(job.lastRunDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    ${job.nodes && job.nodes.length > 0 && job.nodes[0].manualInput ? `<div style="margin-top:6px; font-size:11px; color:var(--muted); padding-left:8px; border-left:2px solid rgba(0,0,0,0.1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">"${job.nodes[0].manualInput}"</div>` : ''}
+                                </div>
+                                <button class="osbtn del-job-btn" data-id="${job.id}" style="color:#d32f2f; background:transparent; border:none; padding:4px; font-size:16px; cursor:pointer; line-height:1; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" title="Delete Job">×</button>
+                            </div>
+                        `;
+                        listEl.appendChild(item);
+                    });
+                } else {
+                    // Week Matrix View
+                    listEl.style.display = 'none';
+                    weekEl.style.display = 'flex';
+
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+                    weekEl.innerHTML = `
+                        <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; flex:1; height:100%;">
+                            ${days.map(d => `
+                                <div style="display:flex; flex-direction:column; background:rgba(255,255,255,0.3); border:1px solid rgba(0,0,0,0.04); border-radius:6px; overflow:hidden;">
+                                    <div style="text-align:center; font-size:11px; font-weight:600; padding:6px 0; background:rgba(0,0,0,0.04); border-bottom:1px solid rgba(0,0,0,0.04); color:var(--muted); text-transform:uppercase;">${d}</div>
+                                    <div class="day-col" data-day="${d}" style="flex:1; padding:6px; display:flex; flex-direction:column; gap:6px; overflow-y:auto; min-height:0;"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+
+                    const dayCols = {
+                        'Sun': weekEl.querySelector('.day-col[data-day="Sun"]'),
+                        'Mon': weekEl.querySelector('.day-col[data-day="Mon"]'),
+                        'Tue': weekEl.querySelector('.day-col[data-day="Tue"]'),
+                        'Wed': weekEl.querySelector('.day-col[data-day="Wed"]'),
+                        'Thu': weekEl.querySelector('.day-col[data-day="Thu"]'),
+                        'Fri': weekEl.querySelector('.day-col[data-day="Fri"]'),
+                        'Sat': weekEl.querySelector('.day-col[data-day="Sat"]')
+                    };
+
+                    allJobs.forEach(job => {
+                        let activeDays = [];
+                        if (job.intervalValue === 'daily' || job.intervalValue === 'minute') {
+                            activeDays = days; // All days
+                        } else if (job.intervalValue === 'weekly' || job.intervalValue === 'monthly') {
+                            // Find the day of the week it was created/scheduled to run
+                            const dayOfWeek = new Date(job.lastRunDate).getDay(); // 0 is Sunday
+                            if (!isNaN(dayOfWeek) && dayOfWeek >= 0 && dayOfWeek <= 6) {
+                                activeDays = [days[dayOfWeek]];
+                            } else {
+                                // Fallback just in case lastRunDate is invalid
+                                activeDays = [days[new Date().getDay()]];
+                            }
+                        }
+
+                        activeDays.forEach(d => {
+                            const card = document.createElement('div');
+                            card.style.cssText = 'background:rgba(255,255,255,0.7); box-shadow:0 1px 2px rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.08); padding:6px; border-radius:4px; font-size:11px; position:relative; display:flex; flex-direction:column; gap:4px;';
+                            card.innerHTML = `
+                                <div style="font-weight:600; color:var(--text); line-height:1.2; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${job.name || 'Unnamed Job'}</div>
+                                <div style="font-size:10px; color:var(--accent); font-weight:500;">${job.intervalValue}</div>
+                            `;
+
+                            // Delete button wrapper (hover to show)
+                            const delBtnWrap = document.createElement('div');
+                            delBtnWrap.style.cssText = 'position:absolute; top:2px; right:2px; background:white; border-radius:4px; padding:2px; display:none; border:1px solid rgba(0,0,0,0.1); cursor:pointer; color:#d32f2f; line-height:1; font-size:14px;';
+                            delBtnWrap.innerHTML = '×';
+                            delBtnWrap.onclick = async (e) => {
+                                e.stopPropagation();
+                                if (!confirm("Delete this scheduled job?")) return;
+                                await fetch('/api/cron/' + job.id, { method: 'DELETE' });
+                                loadJobs();
+                            };
+
+                            card.onmouseenter = () => delBtnWrap.style.display = 'block';
+                            card.onmouseleave = () => delBtnWrap.style.display = 'none';
+
+                            card.appendChild(delBtnWrap);
+                            dayCols[d].appendChild(card);
+                        });
+                    });
+                }
+
+                // Bind delete buttons for list view if active
+                if (currentView === 'list') {
+                    listEl.querySelectorAll('.del-job-btn').forEach(btn => {
+                        btn.onclick = async (e) => {
+                            if (!confirm("Delete this scheduled job?")) return;
+                            await fetch('/api/cron/' + e.target.dataset.id, { method: 'DELETE' });
+                            loadJobs();
+                        };
+                    });
+                }
+            }
+
+            async function loadJobs() {
+                try {
+                    const res = await fetch('/api/cron');
+                    allJobs = await res.json();
+
+                    if (!Array.isArray(allJobs)) {
+                        listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#ff3b30; font-size:13px;">Error loading jobs.</div>';
+                        weekEl.innerHTML = listEl.innerHTML;
+                        return;
+                    }
+
+                    renderJobs();
+                } catch (e) {
+                    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#ff3b30; font-size:13px;">Failed to load scheduled jobs.</div>';
+                    weekEl.innerHTML = listEl.innerHTML;
+                }
+            }
+
+            createBtn.onclick = async () => {
+                const name = body.querySelector('#new-job-name').value.trim();
+                const instruction = body.querySelector('#new-job-instruction').value.trim();
+                const interval = body.querySelector('#new-job-interval').value;
+
+                if (!name) return alert('Please provide a job name.');
+                if (!instruction) return alert('Please provide an instruction for the AI.');
+
+                // Construct a basic "Chat/Task" Flow graph dynamically
+                const nodes = [
+                    {
+                        id: 'n1',
+                        type: 'chat',
+                        label: 'Scheduled Task',
+                        cat: 'Conversational',
+                        domain: 'General',
+                        manualInput: instruction,
+                        x: 50, y: 50
+                    }
+                ];
+                const edges = [];
+
+                try {
+                    const res = await fetch('/api/cron', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, nodes, edges, intervalValue: interval })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        // Reset form
+                        body.querySelector('#new-job-name').value = '';
+                        body.querySelector('#new-job-instruction').value = '';
+                        loadJobs(); // Refresh the list
+                    } else {
+                        alert("Failed to schedule job: " + data.error);
+                    }
+                } catch (e) {
+                    alert("Error scheduling job.");
+                }
+            };
+
+            refreshBtn.onclick = loadJobs;
+            loadJobs();
+        }
+
         async function openModelManager() {
             const body = createWindow('Model Manager', 'model-manager', 500, 600);
             if (!body) return;
@@ -5725,10 +6050,10 @@
                 const res = await fetch('/api/system/specs');
                 const specs = await res.json();
                 sysSpecsDiv.innerHTML = `
-                    <strong>Platform:</strong> ${specs.platform}<br>
-                    <strong>CPU:</strong> ${specs.cpuModel} (${specs.cpuCores} cores)<br>
-                    <strong>RAM:</strong> ${specs.freeMem} free / ${specs.totalMem} total
-                `;
+                            <strong>Platform:</strong> ${specs.platform} <br>
+                                <strong>CPU:</strong> ${specs.cpuModel} (${specs.cpuCores} cores)<br>
+                                    <strong>RAM:</strong> ${specs.freeMem} free / ${specs.totalMem} total
+                                    `;
 
                 recModelsDiv.innerHTML = 'Based on your hardware, we recommend models from the list below marked with <span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px;">Recommended</span>';
 
@@ -5759,15 +6084,15 @@
                         : `<button class="pull-btn" style="padding:4px 10px; cursor:pointer; background:#1D1D1F; color:#FFFFFF; border:none; border-radius:6px; font-size:12px;">Pull</button>`;
 
                     item.innerHTML = `
-                        <div style="flex-grow:1;">
-                            <div style="font-weight:600; font-size:13px; color:#1D1D1F;">
-                                ${m.name} <span style="font-weight:normal; color:rgba(0,0,0,0.5); font-size:11px;">(${m.size})</span>
-                                ${isRec ? '<span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
-                            </div>
-                            <div style="font-size:11px; color:rgba(0,0,0,0.5);">${m.desc}</div>
-                        </div>
-                        ${pullButtonHTML}
-                    `;
+                                    <div style="flex-grow:1;">
+                                        <div style="font-weight:600; font-size:13px; color:#1D1D1F;">
+                                            ${m.name} <span style="font-weight:normal; color:rgba(0,0,0,0.5); font-size:11px;">(${m.size})</span>
+                                            ${isRec ? '<span style="background:#1D1D1F; color:#FFFFFF; padding:1px 4px; border-radius:6px; font-size:10px; margin-left:5px;">Recommended</span>' : ''}
+                                        </div>
+                                        <div style="font-size:11px; color:rgba(0,0,0,0.5);">${m.desc}</div>
+                                    </div>
+                                    ${pullButtonHTML}
+                                    `;
 
 
                     downloadList.appendChild(item);
@@ -5874,16 +6199,16 @@
                         const masked = keyVal.length > 8 ? keyVal.substring(0, 4) + '...' + keyVal.substring(keyVal.length - 4) : '****';
 
                         row.innerHTML = `
-                            <div style="flex-grow:1">
-                                <div style="font-weight:600; font-size:13px; color:#1D1D1F;">${provider}</div>
-                                <div style="font-size:11px; color:rgba(0,0,0,0.5); font-family:monospace;">${masked}</div>
-                            </div>
-                            <div style="display:flex; gap:5px; align-items:center;">
-                                <span class="verify-status" style="font-size:14px;"></span>
-                                <button class="verify-btn" style="padding:2px 8px; font-size:11px; color:#1D1D1F; background:rgba(0,0,0,0.07); border:1px solid rgba(0,0,0,0.1); border-radius:6px; cursor:pointer;">Verify</button>
-                                <button class="del-btn" style="padding:2px 8px; font-size:11px; color:#CC2200; background:rgba(255,60,60,0.12); border:1px solid rgba(255,60,60,0.2); border-radius:6px; cursor:pointer;">Delete</button>
-                            </div>
-                        `;
+                                    <div style="flex-grow:1">
+                                        <div style="font-weight:600; font-size:13px; color:#1D1D1F;">${provider}</div>
+                                        <div style="font-size:11px; color:rgba(0,0,0,0.5); font-family:monospace;">${masked}</div>
+                                    </div>
+                                    <div style="display:flex; gap:5px; align-items:center;">
+                                        <span class="verify-status" style="font-size:14px;"></span>
+                                        <button class="verify-btn" style="padding:2px 8px; font-size:11px; color:#1D1D1F; background:rgba(0,0,0,0.07); border:1px solid rgba(0,0,0,0.1); border-radius:6px; cursor:pointer;">Verify</button>
+                                        <button class="del-btn" style="padding:2px 8px; font-size:11px; color:#CC2200; background:rgba(255,60,60,0.12); border:1px solid rgba(255,60,60,0.2); border-radius:6px; cursor:pointer;">Delete</button>
+                                    </div>
+                                    `;
 
                         // Delete Logic
                         row.querySelector('.del-btn').onclick = async () => {

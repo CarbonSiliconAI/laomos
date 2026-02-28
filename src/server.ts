@@ -15,6 +15,7 @@ import { AgentScheduler } from './kernel/scheduler';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import { SkillLoader } from './kernel/skill_loader';
+import { CronManager } from './kernel/cron_manager';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
@@ -61,6 +62,7 @@ export class Server {
     private journal?: ExecutionJournal;
     private gameManager: GameManager;
     private mailManager: MailManager;
+    private cronManager: CronManager;
     private activeRequests: RequestManager = {};
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -83,6 +85,7 @@ export class Server {
 
         const systemDir = path.join(this.fsManager.getRootDir(), 'system');
         this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
+        this.cronManager = new CronManager(systemDir, this.scheduler);
 
         this.configureRoutes();
     }
@@ -1044,6 +1047,38 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 const jobId = await this.scheduler.submitJob(nodes, edges);
                 const runId = this.scheduler.getRunId(jobId);
                 res.json({ jobId, runId });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Cron Endpoints
+        this.app.get('/api/cron', (req, res) => {
+            try {
+                const jobs = this.cronManager.getJobs();
+                res.json(jobs);
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/cron', (req, res) => {
+            try {
+                const { name, nodes, edges, intervalValue } = req.body;
+                if (!name || !nodes || !edges || !intervalValue) {
+                    return res.status(400).json({ error: 'Name, nodes, edges, and intervalValue are required' });
+                }
+                const jobId = this.cronManager.addJob(name, nodes, edges, intervalValue);
+                res.json({ success: true, jobId });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.delete('/api/cron/:id', (req, res) => {
+            try {
+                this.cronManager.deleteJob(req.params.id);
+                res.json({ success: true });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }
