@@ -33,8 +33,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build server
-        run: npm run build:server
+      - name: Build server and renderer
+        run: npm run build
 
       - name: Build and publish (mac)
         if: matrix.platform == 'mac'
