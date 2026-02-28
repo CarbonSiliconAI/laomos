@@ -90,34 +90,40 @@ export default function Dock() {
 
     return (
         <nav className="dock">
-            <div className="dock__logo">
-                <span className="dock__logo-mark">L</span>
-            </div>
+            <div className="dock__panel">
+                <div className="dock__logo">
+                    <span className="dock__logo-mark">L</span>
+                </div>
 
-            <div className="dock__items">
-                {MAIN_ITEMS.map((item) => (
+                <div className="dock__status" title="AI Core active">
+                    <span className="status-led status-led--ok" />
+                </div>
+
+                <div className="dock__items">
+                    {MAIN_ITEMS.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={`dock__item ${isActive(item.path) ? 'dock__item--active' : ''}`}
+                            title={item.label}
+                        >
+                            <span className="dock__item-icon">{item.icon}</span>
+                            <span className="dock__item-label">{item.label}</span>
+                            {isActive(item.path) && <span className="dock__item-indicator" />}
+                        </NavLink>
+                    ))}
+                </div>
+
+                <div className="dock__bottom">
                     <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={`dock__item ${isActive(item.path) ? 'dock__item--active' : ''}`}
-                        title={item.label}
+                        to={SETTINGS_ITEM.path}
+                        className={`dock__item ${location.pathname === SETTINGS_ITEM.path ? 'dock__item--active' : ''}`}
+                        title={SETTINGS_ITEM.label}
                     >
-                        <span className="dock__item-icon">{item.icon}</span>
-                        <span className="dock__item-label">{item.label}</span>
-                        {isActive(item.path) && <span className="dock__item-indicator" />}
+                        <span className="dock__item-icon">{SETTINGS_ITEM.icon}</span>
+                        <span className="dock__item-label">{SETTINGS_ITEM.label}</span>
                     </NavLink>
-                ))}
-            </div>
-
-            <div className="dock__bottom">
-                <NavLink
-                    to={SETTINGS_ITEM.path}
-                    className={`dock__item ${location.pathname === SETTINGS_ITEM.path ? 'dock__item--active' : ''}`}
-                    title={SETTINGS_ITEM.label}
-                >
-                    <span className="dock__item-icon">{SETTINGS_ITEM.icon}</span>
-                    <span className="dock__item-label">{SETTINGS_ITEM.label}</span>
-                </NavLink>
+                </div>
             </div>
         </nav>
     );

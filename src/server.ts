@@ -1290,13 +1290,13 @@ You can use tools multiple times in a row. Once you have fully completed the use
         });
 
         // SPA fallback — serve React index.html for any non-API route
+        // Express 5 requires named wildcard: /{*path} instead of *
         const appRoot2 = process.env.APP_ROOT || process.cwd();
-        this.app.get('*', (req, res, next) => {
+        this.app.get('/{*path}', (req, res, next) => {
             if (req.path.startsWith('/api/')) return next();
             const indexPath = path.join(appRoot2, 'dist-renderer', 'index.html');
             res.sendFile(indexPath, (err) => {
                 if (err) {
-                    // Fallback to legacy public/index.html
                     res.sendFile(path.join(appRoot2, 'public', 'index.html'));
                 }
             });

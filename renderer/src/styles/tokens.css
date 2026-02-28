@@ -1,81 +1,72 @@
 :root {
-    --bg: #eef2ff;
-    --glass: rgba(255, 255, 255, 0.62);
-    --glass-strong: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.50);
-    --glass-border-soft: rgba(255, 255, 255, 0.35);
-    --text: #111827;
-    --muted: rgba(17, 24, 39, 0.55);
-    --muted-2: rgba(17, 24, 39, 0.35);
-    --shadow-1: 0 10px 30px rgba(0, 0, 0, 0.08);
-    --shadow-2: 0 20px 60px rgba(0, 0, 0, 0.12);
-    --shadow-3: 0 40px 100px rgba(0, 0, 0, 0.18);
-    --inset: inset 0 1px 0 rgba(255, 255, 255, 0.80);
-    --blur-weak: blur(14px);
-    --blur-strong: blur(30px);
-    --radius-window: 24px;
-    --radius-card: 18px;
-    --radius-pill: 999px;
-    --pad-window: 14px;
-    --pad-card: 16px;
-    --line: rgba(17, 24, 39, 0.08);
-    --accent: rgba(99, 102, 241, 0.95);
-    --accent-glow: rgba(99, 102, 241, 0.18);
-    --ok: #10b981;
-    --warn: #f59e0b;
-    --bad: #ef4444;
+    /* ── Light Liquid Glass tiers ────────────────── */
+    --glass:             rgba(255,255,255,0.60);
+    --glass-strong:      rgba(255,255,255,0.76);
+    --glass-border:      rgba(255,255,255,0.45);
+    --glass-border-soft: rgba(255,255,255,0.28);
 
-    /* Aliases */
-    --text-primary: var(--text);
-    --text-secondary: var(--muted);
-    --text-muted: var(--muted-2);
-    --success: var(--ok);
-    --warning: var(--warn);
-    --error: var(--bad);
-    --glass-bg: var(--glass);
+    --glass-l1: rgba(255,255,255,0.72);   /* Dock / Sidebar chrome */
+    --glass-l2: rgba(255,255,255,0.55);   /* Primary panels */
+    --glass-l3: rgba(255,255,255,0.38);   /* Cards / secondary */
 
-    /* Component radii */
-    --r-window: var(--radius-window);
-    --r-card: var(--radius-card);
-    --r-btn: 10px;
-    --r-dock-item: 14px;
-    --r-dock: 26px;
-    --r-panel: 18px;
-    --r-pill: 999px;
+    /* ── Blur tiers ──────────────────────────────── */
+    --blur-l1:    blur(36px) saturate(150%);
+    --blur-l2:    blur(26px) saturate(140%);
+    --blur-l3:    blur(18px) saturate(120%);
+    --blur-weak:  blur(14px);
+    --blur-strong: blur(36px) saturate(150%);
 
-    /* Layout */
+    /* ── Colour — dark text on light glass ────────── */
+    --text:    #111827;
+    --muted:   rgba(17,24,39,0.54);
+    --muted-2: rgba(17,24,39,0.32);
+    --line:    rgba(17,24,39,0.07);
+
+    --accent:      rgba(99,102,241,0.95);
+    --accent-glow: rgba(99,102,241,0.14);
+    --ok:    #10b981;
+    --warn:  #f59e0b;
+    --bad:   #ef4444;
+
+    /* ── Shadows — soft, no stacking ────────────── */
+    --shadow-1:     0 4px 18px rgba(0,0,0,0.08);
+    --shadow-2:     0 10px 30px rgba(0,0,0,0.12);
+    --shadow-3:     0 20px 48px rgba(0,0,0,0.16);
+    --shadow-hover: 0 8px 28px rgba(0,0,0,0.14);
+    --inset: inset 0 1px 0 rgba(255,255,255,0.80);
+
+    /* ── Radii ───────────────────────────────────── */
+    --radius-window: 24px;  --radius-card: 18px;  --radius-pill: 999px;
+    --r-window:  24px;  --r-card:  18px;  --r-btn:       10px;
+    --r-dock-item: 12px; --r-dock: 22px;  --r-panel:     18px;
+    --r-pill:    999px;
+
+    /* ── Layout ──────────────────────────────────── */
     --top-bar-h: 48px;
-    --dock-w: 72px;
+    --dock-w:    82px;
     --sidebar-w: 200px;
+    --pad-window: 14px;
+    --pad-card:   16px;
 
-    /* Spacing scale */
-    --sp-1: 4px;
-    --sp-2: 8px;
-    --sp-3: 12px;
-    --sp-4: 16px;
-    --sp-5: 20px;
-    --sp-6: 24px;
-    --sp-8: 32px;
+    /* ── Spacing ─────────────────────────────────── */
+    --sp-1: 4px;  --sp-2: 8px;   --sp-3: 12px;
+    --sp-4: 16px; --sp-5: 20px;  --sp-6: 24px;  --sp-8: 32px;
 
-    /* Type scale */
-    --fs-2xs: 10px;
-    --fs-xs: 11px;
-    --fs-sm: 12px;
-    --fs-base: 13px;
-    --fs-md: 15px;
-    --fs-lg: 18px;
-    --fs-xl: 22px;
+    /* ── Type ────────────────────────────────────── */
+    --fs-2xs: 10px; --fs-xs: 11px;  --fs-sm: 12px;
+    --fs-base: 13px; --fs-md: 15px; --fs-lg: 18px; --fs-xl: 22px;
 
-    /* Z-index scale */
-    --z-base: 1;
-    --z-dock: 200;
-    --z-topbar: 300;
-    --z-modal: 800;
-    --z-toast: 900;
+    /* ── Z-index ─────────────────────────────────── */
+    --z-base: 1; --z-dock: 200; --z-topbar: 300; --z-modal: 800; --z-toast: 900;
 
-    /* Motion */
+    /* ── Motion ──────────────────────────────────── */
     --dur-fast: 150ms;
-    --dur-base: 180ms;
+    --dur-base: 200ms;
     --dur-slow: 280ms;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* ── Aliases ─────────────────────────────────── */
+    --text-primary: var(--text);  --text-secondary: var(--muted);  --text-muted: var(--muted-2);
+    --success: var(--ok);  --warning: var(--warn);  --error: var(--bad);
+    --glass-bg: var(--glass);
 }
