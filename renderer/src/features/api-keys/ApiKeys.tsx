@@ -15,7 +15,7 @@ export default function ApiKeys() {
     const [statuses, setStatuses] = useState<Record<string, 'idle' | 'saving' | 'verifying' | 'valid' | 'invalid'>>({});
 
     useEffect(() => {
-        api.keysGet().then(k => setKeys(k ?? {})).catch(() => {});
+        api.keysGet().then(k => setKeys(k ?? {})).catch(() => { });
     }, []);
 
     async function save(provider: string) {
@@ -30,16 +30,29 @@ export default function ApiKeys() {
         } catch { setStatuses(s => ({ ...s, [provider]: 'idle' })); }
     }
 
+    function maskKey(key: string): string {
+        if (!key || key.length < 8) return '••••••••';
+        const start = key.slice(0, 4);
+        const end = key.slice(-4);
+        return `${start}••••••••${end}`;
+    }
+
     async function verify(provider: string) {
         setStatuses(s => ({ ...s, [provider]: 'verifying' }));
         try {
-            const res = await api.keysVerify(provider, inputs[provider] ?? '');
+            // Verify the key from the input field if it's not empty, otherwise verify the saved key
+            const keyToVerify = inputs[provider]?.trim() || keys[provider];
+            if (!keyToVerify) {
+                setStatuses(s => ({ ...s, [provider]: 'invalid' }));
+                return;
+            }
+            const res = await api.keysVerify(provider, keyToVerify);
             setStatuses(s => ({ ...s, [provider]: res.valid ? 'valid' : 'invalid' }));
         } catch { setStatuses(s => ({ ...s, [provider]: 'invalid' })); }
     }
 
     async function del(provider: string) {
-        await api.keysDelete(provider).catch(() => {});
+        await api.keysDelete(provider).catch(() => { });
         setKeys(k => { const next = { ...k }; delete next[provider]; return next; });
     }
 
@@ -63,7 +76,9 @@ export default function ApiKeys() {
                             </div>
                             {hasKey && (
                                 <div className="apikey-card__current">
-                                    <span className="mono" style={{ color: 'var(--muted)' }}>{keys[p.id]}</span>
+                                    <span className="mono" style={{ color: 'var(--text)' }}>
+                                        {keys[p.id] === '••••••••' ? '••••••••' : maskKey(keys[p.id])}
+                                    </span>
                                     <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 'var(--fs-xs)' }} onClick={() => del(p.id)}>Remove</button>
                                 </div>
                             )}
@@ -75,7 +90,7 @@ export default function ApiKeys() {
                                     value={inputs[p.id] ?? ''}
                                     onChange={e => setInputs(i => ({ ...i, [p.id]: e.target.value }))}
                                 />
-                                <button className="btn btn-ghost" onClick={() => verify(p.id)} disabled={status === 'verifying' || !inputs[p.id]?.trim()}>
+                                <button className="btn btn-ghost" onClick={() => verify(p.id)} disabled={status === 'verifying' || (!inputs[p.id]?.trim() && !keys[p.id])}>
                                     {status === 'verifying' ? <><div className="spinner" /> Checking…</> : 'Verify'}
                                 </button>
                                 <button className="btn btn-primary" onClick={() => save(p.id)} disabled={status === 'saving' || !inputs[p.id]?.trim()}>

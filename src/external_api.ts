@@ -235,8 +235,8 @@ export class ExternalAPIManager {
         throw new Error(`Provider ${provider} not supported for graph generation.`);
     }
 
-    async verifyKey(provider: string): Promise<boolean> {
-        const key = await this.identityManager.getKey(provider);
+    async verifyKey(provider: string, providedKey?: string): Promise<boolean> {
+        const key = providedKey || await this.identityManager.getKey(provider);
         if (!key) throw new Error(`API Key for ${provider} not found.`);
 
         try {
@@ -252,11 +252,17 @@ export class ExternalAPIManager {
                 // https://generativelanguage.googleapis.com/v1beta/models?key=API_KEY
                 await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
                 return true;
-            } else if (provider === 'grok') {
+            } else if (provider === 'grok' || provider === 'xai') {
                 // Grok (xAI): Compatible with OpenAI SDK/Endpoints usually
                 // https://api.x.ai/v1/models
                 await axios.get('https://api.x.ai/v1/models', {
                     headers: { 'Authorization': `Bearer ${key}` }
+                });
+                return true;
+            } else if (provider === 'anthropic') {
+                // Anthropic List Models
+                await axios.get('https://api.anthropic.com/v1/models', {
+                    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
                 });
                 return true;
             }

@@ -8,13 +8,15 @@ interface Message {
 }
 
 const CLOUD_MODELS = [
+    { id: 'o3-mini', name: 'o3-mini' },
+    { id: 'o1', name: 'o1' },
     { id: 'gpt-4o', name: 'GPT-4o' },
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-    { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+    { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet' },
     { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-    { id: 'grok-2', name: 'Grok 2' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+    { id: 'grok-3', name: 'Grok 3' },
 ];
 
 export default function Chat() {
@@ -32,7 +34,7 @@ export default function Chat() {
             setLocalModels(locals);
             if (locals.length) setModel(locals[0]);
             else if (CLOUD_MODELS.length) setModel(CLOUD_MODELS[0].id);
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     useEffect(() => {

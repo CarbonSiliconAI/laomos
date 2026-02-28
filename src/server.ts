@@ -1282,10 +1282,10 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
         this.app.post('/api/keys/verify', async (req, res) => {
             try {
-                const { provider } = req.body;
+                const { provider, key } = req.body;
                 if (!provider) return res.status(400).json({ error: 'Provider required' });
 
-                const isValid = await this.externalApiManager.verifyKey(provider);
+                const isValid = await this.externalApiManager.verifyKey(provider, key);
                 res.json({ valid: isValid });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
