@@ -91,6 +91,11 @@ export class Server {
         // middleware — use APP_ROOT when running inside packaged Electron (cwd is Resources, not app dir)
         const appRoot = process.env.APP_ROOT || process.cwd();
 
+        // Serve React app from dist-renderer/ (takes precedence for non-API routes)
+        const rendererDist = path.join(appRoot, 'dist-renderer');
+        this.app.use(express.static(rendererDist));
+
+        // Legacy static files (public/) still served as fallback
         this.app.use(express.static(path.join(appRoot, 'public')));
         this.app.use(express.json({ limit: '50mb' }));
 
@@ -1280,13 +1285,21 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 const isValid = await this.externalApiManager.verifyKey(provider);
                 res.json({ valid: isValid });
             } catch (error: any) {
-                // If the key is missing or provider unsupported, it throws.
-                // If axios fails, verifyKey returns false (caught internally), unless it throws for unsupported provider.
-                // We'll return success: false and the error message if it was a "system" error, 
-                // but verifyKey currently returns boolean for "api" check.
-                // Let's wrap verifyKey's throw for "unsupported" vs "invalid".
                 res.status(500).json({ error: error.message });
             }
+        });
+
+        // SPA fallback — serve React index.html for any non-API route
+        const appRoot2 = process.env.APP_ROOT || process.cwd();
+        this.app.get('*', (req, res, next) => {
+            if (req.path.startsWith('/api/')) return next();
+            const indexPath = path.join(appRoot2, 'dist-renderer', 'index.html');
+            res.sendFile(indexPath, (err) => {
+                if (err) {
+                    // Fallback to legacy public/index.html
+                    res.sendFile(path.join(appRoot2, 'public', 'index.html'));
+                }
+            });
         });
     }
 

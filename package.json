@@ -6,12 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:server": "tsc -p tsconfig.json",
-    "dev:electron": "npm run build:server && env ELECTRON_RUN_AS_NODE= electron .",
-    "dist": "npm run build:server && electron-builder --publish never",
-    "dist:mac": "npm run build:server && electron-builder --mac --publish never",
-    "dist:win": "npm run build:server && electron-builder --win --publish never",
-    "dist:beta": "npm run build:server && electron-builder --publish always",
-    "dist:stable": "npm run build:server && electron-builder --publish always"
+    "build:renderer": "vite build --config vite.config.ts",
+    "build": "npm run build:server && npm run build:renderer",
+    "dev:renderer": "vite --config vite.config.ts",
+    "dev:electron": "npm run build && env ELECTRON_RUN_AS_NODE= electron .",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:beta": "npm run build && electron-builder --publish always",
+    "dist:stable": "npm run build && electron-builder --publish always"
   },
   "keywords": [],
   "author": "",
@@ -37,6 +40,9 @@
     "imap-simple": "^5.1.0",
     "mailparser": "^3.9.3",
     "nodemailer": "^8.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
@@ -48,10 +54,14 @@
     "@types/imap-simple": "^4.2.10",
     "@types/mailparser": "^3.4.6",
     "@types/nodemailer": "^7.0.11",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
     "@types/uuid": "^10.0.0",
     "@types/yauzl": "^2.10.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "electron": "^40.6.1",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.1",
+    "vite": "^6.4.1"
   },
   "build": {
     "appId": "com.laomos.desktop",
@@ -61,6 +71,7 @@
     },
     "files": [
       "dist{,/**/*}",
+      "dist-renderer{,/**/*}",
       "public{,/**/*}",
       "electron{,/**/*}",
       "package.json"

@@ -1,0 +1,18 @@
+.history-page { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.history-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.history-header__title { font-size:var(--fs-lg); font-weight:700; }
+.history-header__sub { font-size:var(--fs-xs); color:var(--muted); margin-top:2px; }
+.history-filters { display:flex; gap:6px; }
+.history-filter-btn { padding:5px 12px; font-size:var(--fs-xs); }
+.history-body { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:16px; padding:16px 24px; }
+.history-table { flex:1; overflow:auto; }
+.history-tbl { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
+.history-tbl th { padding:10px 14px; text-align:left; font-size:var(--fs-xs); font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-2); border-bottom:1px solid var(--line); }
+.history-tbl td { padding:9px 14px; border-bottom:1px solid var(--line); }
+.history-tbl tr:last-child td { border-bottom:none; }
+.history-tbl__row { cursor:pointer; }
+.history-tbl__row:hover td { background:rgba(255,255,255,0.3); }
+.history-tbl__row--selected td { background:rgba(99,102,241,0.06); }
+.history-detail { padding:16px; overflow:auto; max-height:280px; flex-shrink:0; }
+.history-detail__header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.history-detail__json { font-family:'JetBrains Mono',monospace; font-size:10px; line-height:1.5; white-space:pre-wrap; word-break:break-all; color:var(--text); }
