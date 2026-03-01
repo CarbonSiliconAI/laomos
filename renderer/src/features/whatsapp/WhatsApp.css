@@ -35,9 +35,7 @@
 .whatsapp-webview-container {
     flex: 1;
     min-height: 0;
-    /* Critical for flex children — allows shrinking below content height */
     position: relative;
-    /* Establishes positioning context for absolute webview */
     background: #111b21;
 }
 

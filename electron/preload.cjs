@@ -7,10 +7,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     chrome: process.versions.chrome,
     electron: process.versions.electron,
   },
+  clearWhatsAppSession: () => ipcRenderer.invoke('clear-whatsapp-session'),
 });
 
 contextBridge.exposeInMainWorld('osUpdater', (function () {
-  const noop = () => {};
+  const noop = () => { };
   return {
     version: () => ipcRenderer.invoke('updater:getAppVersion'),
     channel: {

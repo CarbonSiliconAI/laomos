@@ -231,10 +231,17 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
     },
   });
   mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
   mainWindow.setMenuBarVisibility(false);
+
+  mainWindow.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    delete webPreferences.preload;
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+  });
 
   // Force external links (like Google OAuth) to open in the native OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -257,7 +264,17 @@ function killServer() {
   }
 }
 
+// --- WhatsApp Window IPC ---
+ipcMain.handle('clear-whatsapp-session', async () => {
+  const whatsappSession = electron.session.fromPartition('persist:whatsapp');
+  await whatsappSession.clearStorageData();
+  return { cleared: true };
+});
+
 app.whenReady().then(async () => {
+  // Ensure the WhatsApp webview partition has permissions (camera, mic, notifications)
+  electron.session.fromPartition('persist:whatsapp').setPermissionRequestHandler((_wc, _perm, cb) => cb(true));
+
   setupIpc();
   setupUpdater();
   await startServer();

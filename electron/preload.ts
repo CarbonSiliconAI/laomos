@@ -1,4 +1,4 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     chrome: process.versions.chrome,
     electron: process.versions.electron,
   },
+  openWhatsApp: () => ipcRenderer.invoke('open-whatsapp'),
+  clearWhatsAppSession: () => ipcRenderer.invoke('clear-whatsapp-session'),
 });
