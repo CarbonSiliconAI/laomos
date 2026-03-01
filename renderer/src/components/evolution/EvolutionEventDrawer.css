@@ -1,0 +1,315 @@
+/* ══════════════════════════════════════════════════════
+   Evolution Event Drawer — Slide-over detail panel
+══════════════════════════════════════════════════════ */
+
+/* ── Backdrop ─────────────────────────────────────── */
+.evo-drawer__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+    z-index: calc(var(--z-modal) - 1);
+    animation: evo-fade-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes evo-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Drawer panel ─────────────────────────────────── */
+.evo-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 90vw;
+    z-index: var(--z-modal);
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg,
+        rgba(255,255,255,0.82),
+        rgba(255,255,255,0.60)
+    );
+    backdrop-filter: var(--blur-l1);
+    -webkit-backdrop-filter: var(--blur-l1);
+    border-left: 1px solid rgba(255,255,255,0.45);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.12);
+    animation: evo-slide-in var(--dur-slow) var(--ease-out);
+    outline: none;
+}
+
+@keyframes evo-slide-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .evo-drawer { animation: none; }
+    .evo-drawer__backdrop { animation: none; }
+}
+
+/* ── Header ───────────────────────────────────────── */
+.evo-drawer__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+}
+
+.evo-drawer__title {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--text);
+}
+
+.evo-drawer__subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: var(--fs-sm);
+}
+
+.evo-drawer__close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur-fast), color var(--dur-fast);
+    flex-shrink: 0;
+}
+
+.evo-drawer__close:hover {
+    background: rgba(0,0,0,0.06);
+    color: var(--text);
+}
+
+/* ── Body ─────────────────────────────────────────── */
+.evo-drawer__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 24px 32px;
+}
+
+/* ── Sections ─────────────────────────────────────── */
+.evo-drawer__section {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.evo-drawer__section:last-child {
+    border-bottom: none;
+}
+
+.evo-drawer__section-title {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted-2);
+    margin-bottom: 12px;
+}
+
+/* ── PCEC Phase Bar ───────────────────────────────── */
+.evo-pcec__bar {
+    display: flex;
+    height: 28px;
+    border-radius: 8px;
+    overflow: hidden;
+    gap: 1px;
+    background: var(--line);
+}
+
+.evo-pcec__segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 4px;
+    transition: opacity var(--dur-fast);
+}
+
+.evo-pcec__segment:hover {
+    opacity: 0.85;
+}
+
+.evo-pcec__letter {
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.evo-pcec__legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.evo-pcec__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--fs-xs);
+    color: var(--text);
+}
+
+.evo-pcec__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Candidate Cards ──────────────────────────────── */
+.evo-candidate {
+    background: linear-gradient(145deg,
+        rgba(255,255,255,0.22),
+        rgba(255,255,255,0.08)
+    );
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    transition: border-color var(--dur-fast);
+}
+
+.evo-candidate--winner {
+    border-left: 3px solid var(--accent);
+    background: linear-gradient(145deg,
+        rgba(99,102,241,0.06),
+        rgba(255,255,255,0.08)
+    );
+}
+
+.evo-candidate__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.evo-candidate__index {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--muted-2);
+    min-width: 20px;
+}
+
+.evo-candidate__strategy {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.evo-candidate__score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.evo-candidate__score-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(0,0,0,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.evo-candidate__score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width var(--dur-base) var(--ease-out);
+}
+
+.evo-candidate__diff-toggle {
+    margin-top: 10px;
+    font-size: var(--fs-xs);
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-weight: 500;
+}
+
+.evo-candidate__diff-toggle:hover {
+    text-decoration: underline;
+}
+
+/* ── Code blocks ──────────────────────────────────── */
+.evo-code-block {
+    background: rgba(0,0,0,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    overflow-x: auto;
+}
+
+.evo-json-block {
+    max-height: 400px;
+    overflow: auto;
+    margin-top: 8px;
+}
+
+/* ── Metadata grid ────────────────────────────────── */
+.evo-drawer__meta-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    font-size: var(--fs-sm);
+    align-items: baseline;
+}
+
+/* ── Copy button ──────────────────────────────────── */
+.evo-drawer__copy {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur-fast), color var(--dur-fast);
+}
+
+.evo-drawer__copy:hover {
+    background: rgba(0,0,0,0.06);
+    color: var(--accent);
+}
+
+/* ── JSON toggle ──────────────────────────────────── */
+.evo-drawer__json-toggle {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-weight: 500;
+}
+
+.evo-drawer__json-toggle:hover {
+    color: var(--text);
+}

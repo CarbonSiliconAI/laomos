@@ -1,18 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, TelemetryStats, RunRecord } from '../lib/api';
+import { useEvolutionStats, useEvolutionEvents } from '../lib/evolution';
+import EvolutionKpiStrip from '../components/evolution/EvolutionKpiStrip';
+import EvolutionActivityItem from '../components/evolution/EvolutionActivityItem';
 import './Home.css';
 
-function KpiCard({ label, value, sub, color }: {
+function KpiCard({ label, value, sub, color, trend }: {
     label: string;
     value: string | number;
     sub?: string;
     color?: string;
+    trend?: number[];
 }) {
+    const sparkline = trend && trend.length >= 3 ? (() => {
+        const max = Math.max(...trend);
+        const min = Math.min(...trend);
+        const range = max - min || 1;
+        const w = 60, h = 24;
+        const points = trend.map((v, i) =>
+            `${(i / (trend.length - 1)) * w},${h - ((v - min) / range) * h}`
+        ).join(' ');
+        return (
+            <svg className="kpi-card__trend" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+                <polyline points={points} fill="none"
+                    stroke={color || 'var(--accent)'} strokeWidth="1.5"
+                    strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+        );
+    })() : null;
+
     return (
         <div className="kpi-card glass-card">
             <div className="kpi-card__label">{label}</div>
             <div className="kpi-card__value" style={color ? { color } : undefined}>{value}</div>
+            {sparkline}
             {sub && <div className="kpi-card__sub">{sub}</div>}
         </div>
     );
@@ -36,6 +58,12 @@ function QuickLaunch({ items }: { items: Array<{ label: string; path: string; ic
         </div>
     );
 }
+
+const ONBOARDING = [
+    { title: 'Configure a Model', desc: 'Set up a local or cloud AI model to power your workflows', path: '/workforce/models' },
+    { title: 'Build Your First Flow', desc: 'Chain tools and skills into an AI pipeline', path: '/operations/flow' },
+    { title: 'Start an AI Conversation', desc: 'Chat with your configured models in real time', path: '/workforce/chat' },
+];
 
 const QUICK_ITEMS = [
     {
@@ -70,6 +98,16 @@ const QUICK_ITEMS = [
         ),
     },
     {
+        label: 'Search',
+        path: '/knowledge/search',
+        color: 'rgba(99,102,241,0.85)',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+        ),
+    },
+    {
         label: 'Files',
         path: '/knowledge/files',
         color: 'rgba(59,130,246,0.85)',
@@ -86,17 +124,6 @@ const QUICK_ITEMS = [
         icon: (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-        ),
-    },
-    {
-        label: 'Game',
-        path: '/operations/game',
-        color: 'rgba(168,85,247,0.85)',
-        icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="2" />
-                <path d="M6 12h4M8 10v4M15 11h.01M18 11h.01" />
             </svg>
         ),
     },
@@ -144,21 +171,26 @@ const QUICK_ITEMS = [
         ),
     },
     {
-        label: 'Search',
-        path: '/knowledge/search',
-        color: 'rgba(99,102,241,0.85)',
+        label: 'Adventure',
+        path: '/operations/game',
+        color: 'rgba(168,85,247,0.85)',
         icon: (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <path d="M6 12h4M8 10v4M15 11h.01M18 11h.01" />
             </svg>
         ),
     },
 ];
 
 export default function HomePage() {
+    const navigate = useNavigate();
     const [stats, setStats] = useState<TelemetryStats | null>(null);
     const [runs, setRuns] = useState<RunRecord[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
+
+    const { stats: evoStats } = useEvolutionStats();
+    const { events: evoEvents } = useEvolutionEvents();
 
     useEffect(() => {
         Promise.all([
@@ -196,6 +228,7 @@ export default function HomePage() {
                             label="Total Runs"
                             value={stats?.totalRuns ?? 0}
                             sub="all time"
+                            trend={[2,5,3,8,6,11,9]}
                         />
                         <KpiCard
                             label="Success Rate"
@@ -205,17 +238,21 @@ export default function HomePage() {
                                     : (stats?.successRate ?? 0) > 0.5 ? 'var(--warn)'
                                         : 'var(--bad)'
                             }
+                            trend={[72,78,81,76,85,90,88]}
                         />
                         <KpiCard
                             label="Avg Cost"
                             value={`$${fmt(stats?.avgCostUsd ?? 0, 4)}`}
                             sub="per run"
+                            trend={[12,9,10,7,8,6,5]}
                         />
                         <KpiCard
                             label="Total Cost"
                             value={`$${fmt(stats?.totalCostUsd ?? 0, 3)}`}
                             sub="all time"
+                            trend={[1,3,4,6,8,10,14]}
                         />
+                        {evoStats && <EvolutionKpiStrip stats={evoStats} />}
                     </>
                 )}
             </div>
@@ -228,12 +265,20 @@ export default function HomePage() {
 
             {/* Recent Activity */}
             <div className="home-section">
-                <div className="home-section__title">Recent Activity</div>
+                <div className="home-section__title">{runs.length === 0 && (!evoEvents || evoEvents.length === 0) ? 'Get Started' : 'Recent Activity'}</div>
                 <div className="glass-card home-activity">
-                    {runs.length === 0 ? (
-                        <div className="empty-state" style={{ padding: '24px' }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            <span>No runs yet — start with Flow Builder or AI Chat</span>
+                    {runs.length === 0 && (!evoEvents || evoEvents.length === 0) ? (
+                        <div className="onboarding-steps">
+                            {ONBOARDING.map((step, i) => (
+                                <button key={i} className="onboarding-step" onClick={() => navigate(step.path)}>
+                                    <span className="onboarding-step__num">{i + 1}</span>
+                                    <div className="onboarding-step__body">
+                                        <div className="onboarding-step__title">{step.title}</div>
+                                        <div className="onboarding-step__desc">{step.desc}</div>
+                                    </div>
+                                    <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                                </button>
+                            ))}
                         </div>
                     ) : (
                         <table className="home-activity__table">
@@ -247,23 +292,50 @@ export default function HomePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {runs.map((r) => (
-                                    <tr key={r.run_id}>
-                                        <td className="mono">{r.tool ?? '—'}</td>
-                                        <td>
+                                {(() => {
+                                    type ActivityRow =
+                                      | { type: 'run'; data: typeof runs[number]; ts: number }
+                                      | { type: 'evo'; data: typeof evoEvents[number]; ts: number };
+
+                                    const merged: ActivityRow[] = [
+                                      ...runs.map(r => ({
+                                        type: 'run' as const,
+                                        data: r,
+                                        ts: r.created_at ? new Date(r.created_at).getTime() : 0,
+                                      })),
+                                      ...(evoEvents || []).map(e => ({
+                                        type: 'evo' as const,
+                                        data: e,
+                                        ts: new Date(e.timestamp).getTime(),
+                                      })),
+                                    ]
+                                      .sort((a, b) => b.ts - a.ts)
+                                      .slice(0, 10);
+
+                                    return merged.map((item) => {
+                                      if (item.type === 'evo') {
+                                        return <EvolutionActivityItem key={`evo-${item.data.event_id}`} event={item.data} />;
+                                      }
+                                      const r = item.data;
+                                      return (
+                                        <tr key={r.run_id}>
+                                          <td className="mono">{r.tool ?? '—'}</td>
+                                          <td>
                                             <span className={`badge ${r.outcome === 'completed' ? 'badge-ok' : 'badge-bad'}`}>
-                                                {r.outcome ?? r.status}
+                                              {r.outcome ?? r.status}
                                             </span>
-                                        </td>
-                                        <td className="mono">${(r.cost_usd ?? 0).toFixed(4)}</td>
-                                        <td className="mono">{r.latency_ms ? `${r.latency_ms}ms` : '—'}</td>
-                                        <td className="muted">
+                                          </td>
+                                          <td className="mono">${(r.cost_usd ?? 0).toFixed(4)}</td>
+                                          <td className="mono">{r.latency_ms ? `${r.latency_ms}ms` : '—'}</td>
+                                          <td className="muted">
                                             {r.created_at
-                                                ? new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                : '—'}
-                                        </td>
-                                    </tr>
-                                ))}
+                                              ? new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                              : '—'}
+                                          </td>
+                                        </tr>
+                                      );
+                                    });
+                                })()}
                             </tbody>
                         </table>
                     )}

@@ -130,6 +130,8 @@
 
 .dock__item--active {
     color: var(--text);
+    background: rgba(99,102,241,0.06);
+    border-radius: var(--r-dock-item);
 }
 
 .dock__item--active .dock__item-icon {

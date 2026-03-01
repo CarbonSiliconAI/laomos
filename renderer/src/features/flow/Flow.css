@@ -153,8 +153,8 @@
 }
 
 .flow-port:hover { transform: scale(1.3); }
-.flow-port--in  { left: -18px; top: 0; background: #007AFF; }
-.flow-port--out { right: -18px; top: 0; background: #34C759; }
+.flow-port--in  { left: -18px; top: 0; background: #007AFF; box-shadow: 0 0 0 2px rgba(0,122,255,0.25); }
+.flow-port--out { right: -18px; top: 0; background: #34C759; box-shadow: 0 0 0 2px rgba(52,199,89,0.25); }
 
 /* ── Right: AI Task Flow ──────────────────────────── */
 .flow-taskflow {

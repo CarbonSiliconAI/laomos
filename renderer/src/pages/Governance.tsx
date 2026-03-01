@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SectionPage.css';
 
-const CARDS = [
+const OBSERVABILITY = [
     {
         path: '/governance/monitor',
         title: 'Activity Monitor',
@@ -25,6 +25,25 @@ const CARDS = [
             </svg>
         ),
     },
+    {
+        path: '/governance/history?tab=evolution',
+        title: 'Evolution Log',
+        desc: 'Audit trail of self-healing evolution events',
+        color: 'rgba(139,92,246,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 15c6.667-6 13.333 0 20-6" />
+                <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+                <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+                <path d="M17 6l-2.5 2.5" />
+                <path d="M14 8l-1.5 1.5" />
+                <path d="M7 18l2.5-2.5" />
+            </svg>
+        ),
+    },
+];
+
+const CONFIGURATION = [
     {
         path: '/governance/api-keys',
         title: 'API Keys',
@@ -50,6 +69,23 @@ const CARDS = [
     },
 ];
 
+function CardList({ cards, navigate }: { cards: typeof OBSERVABILITY; navigate: (path: string) => void }) {
+    return (
+        <div className="section-cards">
+            {cards.map((c) => (
+                <button key={c.path} className="section-card glass-card" onClick={() => navigate(c.path)}>
+                    <div className="section-card__icon" style={{ background: c.color }}>{c.icon}</div>
+                    <div className="section-card__body">
+                        <div className="section-card__title">{c.title}</div>
+                        <div className="section-card__desc">{c.desc}</div>
+                    </div>
+                    <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+            ))}
+        </div>
+    );
+}
+
 export default function GovernancePage() {
     const navigate = useNavigate();
     return (
@@ -58,18 +94,12 @@ export default function GovernancePage() {
                 <h2 className="section-header__title">Governance</h2>
                 <p className="section-header__sub">Monitor AI activity, manage keys, and configure the system</p>
             </div>
-            <div className="section-cards">
-                {CARDS.map((c) => (
-                    <button key={c.path} className="section-card glass-card" onClick={() => navigate(c.path)}>
-                        <div className="section-card__icon" style={{ background: c.color }}>{c.icon}</div>
-                        <div className="section-card__body">
-                            <div className="section-card__title">{c.title}</div>
-                            <div className="section-card__desc">{c.desc}</div>
-                        </div>
-                        <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                    </button>
-                ))}
-            </div>
+
+            <span className="section-group__label">Observability</span>
+            <CardList cards={OBSERVABILITY} navigate={navigate} />
+
+            <span className="section-group__label">Configuration</span>
+            <CardList cards={CONFIGURATION} navigate={navigate} />
         </div>
     );
 }

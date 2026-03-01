@@ -2,9 +2,16 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
+interface SidebarItem {
+    path: string;
+    label: string;
+    icon?: React.ReactNode;
+    divider?: boolean;
+}
+
 interface SidebarSection {
     title: string;
-    items: Array<{ path: string; label: string; icon?: React.ReactNode }>;
+    items: SidebarItem[];
 }
 
 const SECTIONS: Record<string, SidebarSection> = {
@@ -37,7 +44,7 @@ const SECTIONS: Record<string, SidebarSection> = {
             },
             {
                 path: '/operations/game',
-                label: 'Game',
+                label: 'Adventure',
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 12h4M8 10v4M15 11h.01M18 11h.01" /></svg>,
             },
             {
@@ -107,8 +114,8 @@ const SECTIONS: Record<string, SidebarSection> = {
             },
             {
                 path: '/knowledge/rag',
-                label: 'RAG',
-                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /><line x1="11" y1="8" x2="11" y2="14" /></svg>,
+                label: 'Knowledge Base',
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>,
             },
             {
                 path: '/knowledge/search',
@@ -117,7 +124,7 @@ const SECTIONS: Record<string, SidebarSection> = {
             },
             {
                 path: '/knowledge/graph',
-                label: 'System Graph',
+                label: 'Knowledge Graph',
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M13 6h3a2 2 0 0 1 2 2v7" /><line x1="6" y1="9" x2="6" y2="21" /></svg>,
             },
         ],
@@ -141,8 +148,19 @@ const SECTIONS: Record<string, SidebarSection> = {
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
             },
             {
+                path: '/governance/history?tab=evolution',
+                label: 'Evolution Log',
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6" /><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" /><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" /></svg>,
+            },
+            {
+                path: '/governance/evolution-tree',
+                label: 'Evolution Tree',
+                icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="3" /><line x1="12" y1="8" x2="12" y2="14" /><line x1="12" y1="14" x2="6" y2="20" /><line x1="12" y1="14" x2="18" y2="20" /></svg>,
+            },
+            {
                 path: '/governance/api-keys',
                 label: 'API Keys',
+                divider: true,
                 icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg>,
             },
             {
@@ -176,19 +194,24 @@ export default function Sidebar() {
             </div>
             <nav className="sidebar__nav">
                 {section.items.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.path === `/${sectionKey}`}
-                        className={({ isActive }) =>
-                            `sidebar__item ${isActive ? 'sidebar__item--active' : ''}`
-                        }
-                    >
-                        {item.icon && (
-                            <span className="sidebar__item-icon">{item.icon}</span>
-                        )}
-                        <span className="sidebar__item-label">{item.label}</span>
-                    </NavLink>
+                    <React.Fragment key={item.path}>
+                        {item.divider && <div className="sidebar__divider" />}
+                        <NavLink
+                            to={item.path}
+                            end={item.path === `/${sectionKey}` || item.path.includes('?')}
+                            className={({ isActive }) => {
+                                const isQueryMatch = item.path.includes('?tab=') &&
+                                    location.pathname === item.path.split('?')[0] &&
+                                    location.search.includes(item.path.split('?')[1]);
+                                return `sidebar__item ${(isActive && !item.path.includes('?')) || isQueryMatch ? 'sidebar__item--active' : ''}`;
+                            }}
+                        >
+                            {item.icon && (
+                                <span className="sidebar__item-icon">{item.icon}</span>
+                            )}
+                            <span className="sidebar__item-label">{item.label}</span>
+                        </NavLink>
+                    </React.Fragment>
                 ))}
             </nav>
         </aside>
