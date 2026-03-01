@@ -46,14 +46,14 @@ export default function News() {
     async function handleSummarize(url: string, title: string, index: number) {
         setSummaries(prev => ({ ...prev, [index]: { loading: true, text: '', error: '' } }));
         try {
-            const res = await fetch('/api/news/summary', {
+            const res = await fetch('http://127.0.0.1:3123/api/apps/browser-search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, title })
+                body: JSON.stringify({ query: title, engines: ['Google', 'DuckDuckGo'] })
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-            setSummaries(prev => ({ ...prev, [index]: { loading: false, text: data.summary, error: '' } }));
+            setSummaries(prev => ({ ...prev, [index]: { loading: false, text: data.result, error: '' } }));
         } catch (e: any) {
             setSummaries(prev => ({ ...prev, [index]: { loading: false, text: '', error: e.message || 'Failed to summarize' } }));
         }

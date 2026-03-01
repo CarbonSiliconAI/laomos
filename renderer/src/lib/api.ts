@@ -97,13 +97,15 @@ export const api = {
     systemFirewallSet: (enabled: boolean) => apiFetch<{ success: boolean; enabled: boolean }>('/api/system/firewall', {
         method: 'POST', body: JSON.stringify({ enabled }),
     }),
-
-    // ── Telemetry ───────────────────────────
+    // ── Activity Monitor & Telemetry ───────────────────────────
     telemetryStats: () => apiFetch<TelemetryStats>('/api/telemetry/stats'),
     telemetryRuns: () => apiFetch<{ runs: RunRecord[] }>('/api/telemetry/runs'),
     telemetryRun: (runId: string) => apiFetch<RunRecord>(`/api/telemetry/runs/${runId}`),
     telemetryUsagePerHour: () => apiFetch<{ data: UsageHour[] }>('/api/telemetry/usage-per-hour'),
     telemetryProviderUsage: () => apiFetch<{ data: ProviderUsage[] }>('/api/telemetry/provider-usage'),
+    aiJobs: () => apiFetch<{ jobs: AIJob[] }>('/api/ai/jobs'),
+    aiStop: (jobId: string) => apiFetch<{ success: boolean; message?: string }>('/api/ai/stop', { method: 'POST', body: JSON.stringify({ jobId }) }),
+    systemMetrics: () => apiFetch<HardwareMetrics>('/api/system/metrics'),
 
     // ── OpenClaw ────────────────────────────
     clawSearch: (q: string) => apiFetch<{ apps: ClawApp[] }>(`/api/clawhub/search?q=${encodeURIComponent(q)}`),
@@ -244,4 +246,17 @@ export interface CacheStats {
     total_entries: number;
     total_hits: number;
     hit_rate_pct: number;
+}
+
+export interface AIJob {
+    id: string;
+    description: string;
+    provider: string;
+    startTime: number;
+}
+
+export interface HardwareMetrics {
+    cpu: number;
+    ram: number;
+    disk: number;
 }

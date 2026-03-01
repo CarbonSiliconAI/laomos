@@ -116,25 +116,48 @@ export class Server {
 
         // AI Job Management
         this.app.get('/api/ai/jobs', (req, res) => {
-            // Strip out the non-serializable abortController
+            // Strip out the non-serializable abortController from ModelRouter jobs
             const activeJobs = this.modelRouter.getActiveJobs().map(job => {
                 const { abortController, ...safeJob } = job;
                 return safeJob;
             });
-            res.json({ jobs: activeJobs });
+
+            // Map AgentScheduler jobs to the same AIJob frontend format
+            const schedulerJobs = this.scheduler.getActiveJobs()
+                .filter((job: any) => job.status === 'RUNNING')
+                .map((job: any) => {
+                    const timestamp = parseInt(job.jobId.split('-')[1]) || Date.now();
+                    const activeTask = Object.values(job.tasks).find((t: any) => t.status === 'RUNNING' || t.status === 'WAITING') || Object.values(job.tasks)[0];
+                    return {
+                        id: job.jobId,
+                        description: `Agent Flow: ${activeTask ? (activeTask as any).type : 'Background Task'}`,
+                        provider: 'scheduler',
+                        startTime: timestamp
+                    };
+                });
+
+            res.json({ jobs: [...activeJobs, ...schedulerJobs] });
         });
 
-        this.app.post('/api/ai/stop', (req, res) => {
+        this.app.post('/api/ai/stop', async (req, res) => {
             const { jobId } = req.body;
             if (!jobId) {
                 return res.status(400).json({ error: 'jobId is required' });
             }
-            const success = this.modelRouter.abortJob(jobId);
-            if (success) {
-                res.json({ success: true, message: `Job ${jobId} aborted.` });
-            } else {
-                res.status(404).json({ error: `Job ${jobId} not found.` });
+
+            // Try stopping as a ModelRouter thread first
+            const routerSuccess = this.modelRouter.abortJob(jobId);
+            if (routerSuccess) {
+                return res.json({ success: true, message: `Job ${jobId} aborted.` });
             }
+
+            // Fallback to stopping as an AgentScheduler flow
+            const schedulerSuccess = await this.scheduler.abortJob(jobId);
+            if (schedulerSuccess) {
+                return res.json({ success: true, message: `Flow ${jobId} aborted.` });
+            }
+
+            res.status(404).json({ error: `Job ${jobId} not found in any active queue.` });
         });
 
         // API Endpoint to proxy chat
@@ -490,6 +513,42 @@ export class Server {
                 res.json(specs);
             } catch (error) {
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        // API Endpoint for real-time hardware performance metrics
+        this.app.get('/api/system/metrics', async (req, res) => {
+            try {
+                const os = require('os');
+                const { exec } = require('child_process');
+
+                // CPU Load Avg (1 minute) scaled to percentage roughly
+                const cpuLoadAvg = os.loadavg()[0];
+                const cpuCount = os.cpus().length;
+                const cpuPercent = Math.min((cpuLoadAvg / cpuCount) * 100, 100);
+
+                // RAM
+                const totalMem = os.totalmem();
+                const freeMem = os.freemem();
+                const usedMem = totalMem - freeMem;
+                const ramPercent = (usedMem / totalMem) * 100;
+
+                // Disk (Root vol)
+                exec('df -k / | tail -1 | awk \'{print $5}\'', (error: any, stdout: string) => {
+                    let diskPercent = 0;
+                    if (!error && stdout) {
+                        const parsed = parseInt(stdout.replace('%', '').trim());
+                        if (!isNaN(parsed)) diskPercent = parsed;
+                    }
+
+                    res.json({
+                        cpu: cpuPercent,
+                        ram: ramPercent,
+                        disk: diskPercent
+                    });
+                });
+            } catch (error) {
+                res.status(500).json({ error: 'Failed to retrieve metrics' });
             }
         });
 

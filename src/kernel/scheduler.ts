@@ -370,6 +370,20 @@ export class AgentScheduler {
         return this.activeJobs.get(jobId) || null;
     }
 
+    public getActiveJobs(): JobState[] {
+        return Array.from(this.activeJobs.values());
+    }
+
+    public async abortJob(jobId: string): Promise<boolean> {
+        const state = this.activeJobs.get(jobId);
+        if (state && state.status === 'RUNNING') {
+            state.status = 'FAILED';
+            await this.saveCheckpoint(jobId);
+            return true;
+        }
+        return false;
+    }
+
     private async saveImageToDisk(base64String: string): Promise<string> {
         try {
             if (base64String.startsWith('http')) return base64String;
