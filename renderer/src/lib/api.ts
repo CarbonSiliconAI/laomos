@@ -15,8 +15,8 @@ export async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
 export const api = {
     // ── Ollama ──────────────────────────────
     ollamaModels: () => apiFetch<{ models: string[] }>('/api/ollama/models'),
-    ollamaChat: (body: object) => apiFetch<{ message?: { role: string; content: string }; response?: string }>('/api/ollama/chat', {
-        method: 'POST', body: JSON.stringify(body),
+    ollamaChat: (body: object, opts?: RequestInit) => apiFetch<{ message?: { role: string; content: string }; response?: string }>('/api/ollama/chat', {
+        method: 'POST', body: JSON.stringify(body), ...opts
     }),
     ollamaPull: (name: string) => apiFetch<{ status: string }>('/api/ollama/pull', {
         method: 'POST', body: JSON.stringify({ model: name }),
@@ -27,8 +27,8 @@ export const api = {
     aiStop: (jobId: string) => apiFetch('/api/ai/stop', {
         method: 'POST', body: JSON.stringify({ jobId }),
     }),
-    aiChat: (body: object) => apiFetch<{ response: string; jobId: string }>('/api/ai/chat', {
-        method: 'POST', body: JSON.stringify(body),
+    aiChat: (body: object, opts?: RequestInit) => apiFetch<{ response: string; jobId: string }>('/api/ai/chat', {
+        method: 'POST', body: JSON.stringify(body), ...opts
     }),
 
     // ── Skills / Flow ────────────────────────

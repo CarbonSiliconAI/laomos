@@ -11,6 +11,11 @@ export class GeminiProvider implements ModelProvider {
         this.identityManager = identityManager;
     }
 
+    async isAvailable(): Promise<boolean> {
+        const key = await this.identityManager.getKey('google');
+        return !!key;
+    }
+
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
         const key = await this.identityManager.getKey('google');
         if (!key) throw new Error(`API Key for Google Gemini not found.`);

@@ -23,4 +23,9 @@ export interface ModelProvider {
      * @param options Generation config (temperature, tokens, etc.)
      */
     chat(messages: LLMMessage[], model?: string, options?: ProviderOptions): Promise<string>;
+
+    /**
+     * Checks whether the provider is configured and available for routing.
+     */
+    isAvailable(): Promise<boolean>;
 }

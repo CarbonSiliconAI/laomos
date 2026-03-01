@@ -82,7 +82,7 @@ export class OllamaManager {
         }
     }
 
-    async chat(model: string, messages: any[]): Promise<any> {
+    async chat(model: string, messages: any[], signal?: AbortSignal): Promise<any> {
         let isRunning = await this.checkStatus();
         if (!isRunning) {
             console.log('[Ollama] Service is not running. Attempting to start...');
@@ -98,7 +98,7 @@ export class OllamaManager {
                 model: model,
                 messages: messages,
                 stream: false
-            });
+            }, { signal });
             return response.data;
         } catch (error) {
             console.error('[Ollama] Error during chat:', error);

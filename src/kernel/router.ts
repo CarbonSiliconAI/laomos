@@ -20,8 +20,11 @@ export class ModelRouter {
     private localProvider: OllamaProvider;
     private activeJobs: Map<string, AIJob> = new Map();
 
-    constructor(identityManager: IdentityManager, ollamaManager: OllamaManager) {
+    private getFallbackPref: () => string;
+
+    constructor(identityManager: IdentityManager, ollamaManager: OllamaManager, getFallbackPref: () => string = () => 'local') {
         this.localProvider = new OllamaProvider(ollamaManager);
+        this.getFallbackPref = getFallbackPref;
         this.providers.set('local', this.localProvider);
         this.providers.set('openai', new OpenAIProvider(identityManager));
         this.providers.set('anthropic', new AnthropicProvider(identityManager));
@@ -40,6 +43,50 @@ export class ModelRouter {
             return true;
         }
         return false;
+    }
+
+    private async executeUltimateFallback(messages: LLMMessage[], levelStr: string, abortSignal: AbortSignal, trackJob: (provider: string) => void, cleanupJob: () => void): Promise<{ response: string, level: string, providerUsed: string }> {
+        const pref = this.getFallbackPref();
+        if (pref === 'online') {
+            const hasAnthropic = await this.providers.get('anthropic')!.isAvailable();
+            const hasOpenAI = await this.providers.get('openai')!.isAvailable();
+            const hasGoogle = await this.providers.get('google')!.isAvailable();
+            if (hasAnthropic) {
+                try {
+                    trackJob('anthropic');
+                    const res = await this.providers.get('anthropic')!.chat(messages, undefined, { signal: abortSignal });
+                    cleanupJob();
+                    return { response: res, level: `${levelStr} (online fallback)`, providerUsed: 'anthropic' };
+                } catch (e: any) { cleanupJob(); if (e.name === 'AbortError' || e.message === 'canceled') throw e; }
+            }
+            if (hasOpenAI) {
+                try {
+                    trackJob('openai');
+                    const res = await this.providers.get('openai')!.chat(messages, undefined, { signal: abortSignal });
+                    cleanupJob();
+                    return { response: res, level: `${levelStr} (online fallback)`, providerUsed: 'openai' };
+                } catch (e: any) { cleanupJob(); if (e.name === 'AbortError' || e.message === 'canceled') throw e; }
+            }
+            if (hasGoogle) {
+                try {
+                    trackJob('google');
+                    const res = await this.providers.get('google')!.chat(messages, undefined, { signal: abortSignal });
+                    cleanupJob();
+                    return { response: res, level: `${levelStr} (online fallback)`, providerUsed: 'google' };
+                } catch (e: any) { cleanupJob(); if (e.name === 'AbortError' || e.message === 'canceled') throw e; }
+            }
+            // If online fails or no keys exist, safely cascade to local
+        }
+
+        try {
+            trackJob('local');
+            const res = await this.localProvider.chat(messages, undefined, { signal: abortSignal });
+            cleanupJob();
+            return { response: res, level: `${levelStr} (local fallback)`, providerUsed: 'local' };
+        } catch (e: any) {
+            cleanupJob();
+            throw e;
+        }
     }
 
     /**
@@ -75,10 +122,15 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
     /**
      * Routes the chat request to the optimal provider based on complexity or explicit model provider.
      */
-    async routeChat(prompt: string, preferredProvider?: string, jobDescription?: string): Promise<{ response: string, level: string, providerUsed: string }> {
+    async routeChat(prompt: string, preferredProvider?: string, jobDescription?: string, externalSignal?: AbortSignal): Promise<{ response: string, level: string, providerUsed: string }> {
         const messages: LLMMessage[] = [];
         const jobId = uuidv4();
         const abortController = new AbortController();
+
+        // Listen for external aborts and propagate to internal controller
+        if (externalSignal) {
+            externalSignal.addEventListener('abort', () => abortController.abort());
+        }
 
         const trackJob = (provider: string) => {
             this.activeJobs.set(jobId, {
@@ -195,20 +247,8 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                     console.warn('Google failed for cloud-preferred, falling back to Local...', e.message);
                 }
             }
-            console.warn('No valid cloud providers available or all failed. Falling back to Local...');
-            try {
-                trackJob('local');
-                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
-                cleanupJob();
-                return {
-                    response: response,
-                    level: 'cloud-preferred (local fallback)',
-                    providerUsed: 'local'
-                };
-            } catch (e: any) {
-                cleanupJob();
-                throw e;
-            }
+            console.warn('No valid cloud providers available or all failed. Executing ultimate fallback...');
+            return this.executeUltimateFallback(messages, 'cloud-preferred', abortController.signal, trackJob, cleanupJob);
         }
 
         if (preferredProvider && this.providers.has(preferredProvider)) {
@@ -225,20 +265,8 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
             } catch (err: any) {
                 cleanupJob();
                 if (err.name === 'AbortError' || err.message === 'canceled') throw err;
-                console.warn(`${preferredProvider} failed explicitly, falling back to local...`, err.message);
-                try {
-                    trackJob('local');
-                    const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
-                    cleanupJob();
-                    return {
-                        response: response,
-                        level: 'explicit (local fallback)',
-                        providerUsed: 'local'
-                    };
-                } catch (e: any) {
-                    cleanupJob();
-                    throw e;
-                }
+                console.warn(`${preferredProvider} failed explicitly, executing ultimate fallback...`, err.message);
+                return this.executeUltimateFallback(messages, 'explicit', abortController.signal, trackJob, cleanupJob);
             }
         }
 
@@ -248,19 +276,29 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
 
 
         if (level === '1') {
-            try {
-                trackJob('local');
-                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
-                cleanupJob();
-                return {
-                    response: response,
-                    level: '1',
-                    providerUsed: 'local'
-                };
-            } catch (e: any) {
-                cleanupJob();
-                throw e;
+            if (hasGoogle || hasOpenAI || hasAnthropic) {
+                try {
+                    let cloudProv = pGoogle;
+                    let pUsed = 'google';
+                    if (!hasGoogle && hasOpenAI) { cloudProv = pOpenAI; pUsed = 'openai'; }
+                    else if (!hasGoogle && hasAnthropic) { cloudProv = pAnthropic; pUsed = 'anthropic'; }
+
+                    trackJob(pUsed);
+                    const response = await cloudProv!.chat(messages, undefined, { signal: abortController.signal });
+                    cleanupJob();
+                    return {
+                        response: response,
+                        level: '1',
+                        providerUsed: pUsed
+                    };
+                } catch (e: any) {
+                    cleanupJob();
+                    if (e.name === 'AbortError' || e.message === 'canceled') throw e;
+                    console.warn('Cloud failed for level 1, executing ultimate fallback...', e.message);
+                }
             }
+            // Ultimate fallback
+            return this.executeUltimateFallback(messages, '1', abortController.signal, trackJob, cleanupJob);
         } else if (level === '2') {
             if (hasAnthropic) {
                 try {
@@ -275,7 +313,7 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
-                    console.warn('Anthropic failed, falling back to OpenAI...', e.message);
+                    console.warn('Anthropic failed for level 2, falling back to OpenAI...', e.message);
                 }
             }
             if (hasOpenAI) {
@@ -291,7 +329,7 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
-                    console.warn('OpenAI failed, falling back to Local...', e.message);
+                    console.warn('OpenAI failed for level 2, falling back to Google...', e.message);
                 }
             }
             if (hasGoogle) {
@@ -307,23 +345,11 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
-                    console.warn('Google failed for level 2, falling back to Local...', e.message);
+                    console.warn('Google failed for level 2, executing ultimate fallback...', e.message);
                 }
             }
             // Ultimate fallback
-            try {
-                trackJob('local');
-                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
-                cleanupJob();
-                return {
-                    response: response,
-                    level: '2 (local fallback)',
-                    providerUsed: 'local'
-                };
-            } catch (e: any) {
-                cleanupJob();
-                throw e;
-            }
+            return this.executeUltimateFallback(messages, '2', abortController.signal, trackJob, cleanupJob);
         } else {
             // Level 3
             if (hasOpenAI) {
@@ -355,7 +381,7 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
-                    console.warn('Anthropic failed for level 3, falling back to Local...', e.message);
+                    console.warn('Anthropic failed for level 3, falling back to Google...', e.message);
                 }
             }
             if (hasGoogle) {
@@ -371,23 +397,11 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
-                    console.warn('Google failed for level 3, falling back to Local...', e.message);
+                    console.warn('Google failed for level 3, executing ultimate fallback...', e.message);
                 }
             }
             // Ultimate fallback
-            try {
-                trackJob('local');
-                const response = await this.localProvider.chat(messages, undefined, { signal: abortController.signal });
-                cleanupJob();
-                return {
-                    response: response,
-                    level: '3 (local fallback)',
-                    providerUsed: 'local'
-                };
-            } catch (e: any) {
-                cleanupJob();
-                throw e;
-            }
+            return this.executeUltimateFallback(messages, '3', abortController.signal, trackJob, cleanupJob);
         }
     }
 }

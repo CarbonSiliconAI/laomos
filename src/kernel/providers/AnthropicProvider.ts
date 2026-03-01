@@ -11,6 +11,11 @@ export class AnthropicProvider implements ModelProvider {
         this.identityManager = identityManager;
     }
 
+    async isAvailable(): Promise<boolean> {
+        const key = await this.identityManager.getKey('anthropic');
+        return !!key;
+    }
+
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
         const key = await this.identityManager.getKey('anthropic');
         if (!key) throw new Error(`API Key for Anthropic not found.`);

@@ -12,6 +12,10 @@ export class OllamaProvider implements ModelProvider {
         this.manager = manager;
     }
 
+    async isAvailable(): Promise<boolean> {
+        return await this.manager.checkStatus();
+    }
+
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
         let isRunning = await this.manager.checkStatus();
         if (!isRunning) {

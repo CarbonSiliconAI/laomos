@@ -58,16 +58,16 @@ export default function Settings() {
     });
 
     useEffect(() => {
-        api.budgetGet().then(setBudget).catch(() => {});
-        api.cacheStats().then(setCacheStats).catch(() => {});
-        api.systemSpecs().then(setSpecs).catch(() => {});
-        api.systemFirewall().then(r => setFirewallEnabled(r.enabled)).catch(() => {});
+        api.budgetGet().then(setBudget).catch(() => { });
+        api.cacheStats().then(setCacheStats).catch(() => { });
+        api.systemSpecs().then(setSpecs).catch(() => { });
+        api.systemFirewall().then(r => setFirewallEnabled(r.enabled)).catch(() => { });
 
         // Updater
         const updater = window.osUpdater;
         if (updater) {
-            updater.version().then(setAppVersion).catch(() => {});
-            updater.channel.get().then(setChannel).catch(() => {});
+            updater.version().then(setAppVersion).catch(() => { });
+            updater.channel.get().then(setChannel).catch(() => { });
             const unsub = updater.onStatus((ev) => {
                 switch (ev.type) {
                     case 'checking': setUpdateStatus('Checking for updates…'); break;
@@ -85,13 +85,13 @@ export default function Settings() {
     async function saveBudget() {
         if (!budget) return;
         setSaving(true);
-        try { await api.budgetSet(budget); } catch {}
+        try { await api.budgetSet(budget); } catch { }
         finally { setSaving(false); }
     }
 
     async function clearCache() {
         setClearing(true);
-        try { await api.cacheClear(); const s = await api.cacheStats(); setCacheStats(s); } catch {}
+        try { await api.cacheClear(); const s = await api.cacheStats(); setCacheStats(s); } catch { }
         finally { setClearing(false); }
     }
 
@@ -101,7 +101,7 @@ export default function Settings() {
         try {
             const res = await api.systemFirewallSet(!firewallEnabled);
             setFirewallEnabled(res.enabled);
-        } catch {}
+        } catch { }
         finally { setFirewallToggling(false); }
     }
 
@@ -113,7 +113,7 @@ export default function Settings() {
 
     async function switchChannel(ch: string) {
         setChannel(ch);
-        await window.osUpdater?.channel.set(ch).catch(() => {});
+        await window.osUpdater?.channel.set(ch).catch(() => { });
     }
 
     return (
@@ -225,8 +225,16 @@ export default function Settings() {
                                     <option value="anthropic">Anthropic</option>
                                 </select>
                             </div>
+                            <div className="settings-field">
+                                <label>Fallback Provider (Last Resort)</label>
+                                <select className="os-input" value={budget.fallbackModels?.[0] ?? 'local'}
+                                    onChange={e => setBudget(b => b ? { ...b, fallbackModels: e.target.value ? [e.target.value] : [] } : b)}>
+                                    <option value="local">Local (Ollama)</option>
+                                    <option value="online">Online (OpenAI / Anthropic / Gemini)</option>
+                                </select>
+                            </div>
                             <button className="btn btn-primary" onClick={saveBudget} disabled={saving}>
-                                {saving ? <><div className="spinner"/> Saving…</> : 'Save Budget'}
+                                {saving ? <><div className="spinner" /> Saving…</> : 'Save Budget'}
                             </button>
                         </>
                     )}
@@ -244,7 +252,7 @@ export default function Settings() {
                         </div>
                     ) : null}
                     <button className="btn btn-ghost" onClick={clearCache} disabled={clearing}>
-                        {clearing ? <><div className="spinner"/> Clearing…</> : 'Clear Cache'}
+                        {clearing ? <><div className="spinner" /> Clearing…</> : 'Clear Cache'}
                     </button>
                 </div>
 

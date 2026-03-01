@@ -35,13 +35,15 @@ export interface RequestManager {
 }
 
 // In-memory budget state (resets on restart — mock per spec)
-let currentBudget: BudgetConstraint = {
+export let currentBudget: BudgetConstraint = {
     maxCostUsdPerRun: 0.50,
     maxLatencyMs: 30_000,
     qualityFloor: 0.6,
     preferredModels: [],
     fallbackModels: ['local'],
 };
+
+export const getFallbackPreference = () => currentBudget.fallbackModels[0] || 'local';
 
 export class Server {
     private app: express.Application;
@@ -136,6 +138,11 @@ export class Server {
 
         // API Endpoint to proxy chat
         this.app.post('/api/ollama/chat', async (req, res) => {
+            const abortController = new AbortController();
+            req.on('close', () => {
+                abortController.abort();
+            });
+
             try {
                 const { model, messages } = req.body;
                 if (!model || !messages) {
@@ -158,16 +165,16 @@ export class Server {
 
                 if (model.startsWith('gpt')) {
                     const provider = new OpenAIProvider(this.identityManager);
-                    responseContent = await provider.chat(messages, model);
+                    responseContent = await provider.chat(messages, model, { signal: abortController.signal });
                     finalResponseObj = { message: { role: 'assistant', content: responseContent } };
                 } else if (model.startsWith('claude')) {
                     const provider = new AnthropicProvider(this.identityManager);
-                    responseContent = await provider.chat(messages, model);
+                    responseContent = await provider.chat(messages, model, { signal: abortController.signal });
                     finalResponseObj = { message: { role: 'assistant', content: responseContent } };
                 } else if (model.startsWith('gemini') || model.startsWith('grok')) {
                     return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
                 } else {
-                    const response = await this.ollamaManager.chat(model, messages);
+                    const response = await this.ollamaManager.chat(model, messages, abortController.signal);
                     responseContent = response?.message?.content || '';
                     finalResponseObj = response;
                 }
@@ -1048,6 +1055,11 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
         // AI Generation Endpoints
         this.app.post('/api/ai/chat', async (req, res) => {
+            const abortController = new AbortController();
+            req.on('close', () => {
+                abortController.abort();
+            });
+
             try {
                 const { prompt, sessionId = 'default-os-session', preferredProvider, model } = req.body;
                 if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
@@ -1072,7 +1084,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
                 // 3. Route
                 // Pass preferredProvider and the selected model explicitly to the router
-                const result = await this.modelRouter.routeChat(promptData.prompt, preferredProvider, model);
+                const result = await this.modelRouter.routeChat(promptData.prompt, preferredProvider, model, abortController.signal);
 
                 // 4. Commit assistant reply
                 if (result.response) {

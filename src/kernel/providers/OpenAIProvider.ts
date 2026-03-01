@@ -11,6 +11,11 @@ export class OpenAIProvider implements ModelProvider {
         this.identityManager = identityManager;
     }
 
+    async isAvailable(): Promise<boolean> {
+        const key = await this.identityManager.getKey('openai');
+        return !!key;
+    }
+
     async chat(messages: LLMMessage[], model: string = this.defaultModel, options?: ProviderOptions): Promise<string> {
         const key = await this.identityManager.getKey('openai');
         if (!key) throw new Error(`API Key for OpenAI not found.`);

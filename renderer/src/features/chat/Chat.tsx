@@ -9,11 +9,20 @@ interface Message {
 }
 
 export default function Chat() {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<Message[]>(() => {
+        try {
+            const saved = localStorage.getItem('aos_chat_messages');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.warn('Failed to parse saved chat messages.', e);
+            return [];
+        }
+    });
     const [input, setInput] = useState('');
     const [model, setModel] = useState('');
     const [localModels, setLocalModels] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
+    const [abortController, setAbortController] = useState<AbortController | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,6 +54,15 @@ export default function Chat() {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, loading]);
 
+    // Save messages to localStorage whenever they change
+    useEffect(() => {
+        try {
+            localStorage.setItem('aos_chat_messages', JSON.stringify(messages));
+        } catch (e) {
+            console.error('Failed to save chat messages to local storage.', e);
+        }
+    }, [messages]);
+
     // Auto-resize textarea
     useEffect(() => {
         const el = textareaRef.current;
@@ -69,6 +87,10 @@ export default function Chat() {
         const allMessages = [...messages, userMsg];
         setMessages(allMessages);
         setLoading(true);
+
+        const controller = new AbortController();
+        setAbortController(controller);
+
         try {
             // Determine if the selected model is cloud or local
             const isCloud = cloudModels.some(m => m.id === model);
@@ -81,23 +103,34 @@ export default function Chat() {
                 if (model.includes('claude')) provider = 'anthropic';
                 if (model.includes('gemini')) provider = 'google';
 
-                res = await api.aiChat({ prompt: text, preferredProvider: provider, model });
+                res = await api.aiChat({ prompt: text, preferredProvider: provider, model }, { signal: controller.signal });
                 const content = res.response ?? 'No response.';
                 setMessages(prev => [...prev, { role: 'assistant', content }]);
             } else {
                 res = await api.ollamaChat({
                     model: model,
                     messages: allMessages.map(m => ({ role: m.role, content: m.content })),
-                });
+                }, { signal: controller.signal });
                 const content = res.message?.content ?? res.response ?? 'No response.';
                 setMessages(prev => [...prev, { role: 'assistant', content }]);
             }
         } catch (e: any) {
-            // Show errors as assistant messages in the chat flow
-            const errMsg = e.message ?? 'Request failed';
-            setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${errMsg}` }]);
+            if (e.name === 'AbortError') {
+                setMessages(prev => [...prev, { role: 'assistant', content: 'Generation stopped by user.' }]);
+            } else {
+                // Show errors as assistant messages in the chat flow
+                const errMsg = e.message ?? 'Request failed';
+                setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${errMsg}` }]);
+            }
         } finally {
             setLoading(false);
+            setAbortController(null);
+        }
+    }
+
+    function stopGeneration() {
+        if (abortController) {
+            abortController.abort();
         }
     }
 
@@ -115,29 +148,43 @@ export default function Chat() {
                     <h1 className="chat-header__title">AI Chat</h1>
                     <p className="chat-header__sub">Converse with local and cloud AI models</p>
                 </div>
-                {(allLocalModelIds.length > 0 || cloudModels.length > 0) && (
-                    <select
-                        className="os-input chat-model-select"
-                        value={model}
-                        onChange={e => setModel(e.target.value)}
-                    >
-                        {allLocalModelIds.length > 0 && (
-                            <optgroup label="Local Models">
-                                {allLocalModelIds.map(id => {
-                                    const staticModel = staticLocalModels.find(m => m.id === id);
-                                    return <option key={id} value={id}>{staticModel ? staticModel.name : id}</option>;
-                                })}
-                            </optgroup>
-                        )}
-                        {cloudModels.length > 0 && (
-                            <optgroup label="Cloud Models">
-                                {cloudModels.map(m => (
-                                    <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                            </optgroup>
-                        )}
-                    </select>
-                )}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {(allLocalModelIds.length > 0 || cloudModels.length > 0) && (
+                        <select
+                            className="os-input chat-model-select"
+                            value={model}
+                            onChange={e => setModel(e.target.value)}
+                        >
+                            {allLocalModelIds.length > 0 && (
+                                <optgroup label="Local Models">
+                                    {allLocalModelIds.map(id => {
+                                        const staticModel = staticLocalModels.find(m => m.id === id);
+                                        return <option key={id} value={id}>{staticModel ? staticModel.name : id}</option>;
+                                    })}
+                                </optgroup>
+                            )}
+                            {cloudModels.length > 0 && (
+                                <optgroup label="Cloud Models">
+                                    {cloudModels.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                        </select>
+                    )}
+                    {messages.length > 0 && (
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => {
+                                if (window.confirm('Clear all chat history?')) {
+                                    setMessages([]);
+                                }
+                            }}
+                        >
+                            Clear Chat
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="chat-messages">
@@ -165,6 +212,16 @@ export default function Chat() {
             </div>
 
             <div className="chat-input-bar glass-card">
+                {loading && (
+                    <button
+                        className="btn btn-secondary chat-stop-btn"
+                        onClick={stopGeneration}
+                        style={{ marginRight: '8px', color: '#ff4444' }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                        Stop
+                    </button>
+                )}
                 <textarea
                     ref={textareaRef}
                     className="chat-input"
