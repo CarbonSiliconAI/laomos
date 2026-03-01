@@ -991,54 +991,58 @@ You can use tools multiple times in a row. Once you have fully completed the use
             }
         });
 
-        // AI News Hub Endpoint
+        // AI News Hub Endpoint (SSE)
         this.app.get('/api/news/search', async (req, res) => {
-            const rawTopic = req.query.topic as string || '';
-            const hours = req.query.hours as string || '24';
+            const topic = req.query.topic as string || '';
+            const sessionId = (req.query.sessionId as string) || 'default-os-session';
 
-            const topicLabel = rawTopic.trim() || 'Top 10 Global News';
-            const searchQuery = rawTopic.trim() ? encodeURIComponent(rawTopic.trim()) : 'World+News';
+            const searchQuery = topic.trim() ? topic.trim() : 'Top 10 Global News Breaking Headlines';
+
+            const searchTool = this.tools.getTool('smart_search');
+            if (!searchTool) {
+                return res.status(500).json({ error: 'Smart Search tool not registered in Kernel. Cannot fetch news.' });
+            }
+
+            // Set headers for Server-Sent Events
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+
+            const sendEvent = (type: string, data: any) => {
+                res.write(`event: ${type}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+            };
 
             try {
-                // Fetch RSS using Google News
-                const rssUrl = `https://news.google.com/rss/search?q=${searchQuery}+when:${hours}h&hl=en-US&gl=US&ceid=US:en`;
-                const { default: axios } = await import('axios');
-                const response = await axios.get(rssUrl);
-                const xml = response.data;
-
-                // Simple regex parsing for RSS XML
-                const itemRegex = new RegExp('<item>[\\\\s\\\\S]*?<title>(.*?)</title>[\\\\s\\\\S]*?<link>(.*?)</link>[\\\\s\\\\S]*?<source.*?>(.*?)</source>[\\\\s\\\\S]*?</item>', 'g');
-                const headlines: { title: string, link: string, source: string }[] = [];
-                let match;
-
-                while ((match = itemRegex.exec(xml)) !== null && headlines.length < 15) {
-                    headlines.push({
-                        title: match[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim(),
-                        link: match[2].trim(),
-                        source: match[3].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim(),
-                    });
-                }
-
-                if (headlines.length === 0) {
-                    return res.json({ headlines: [], analysis: 'No recent news found for this topic to analyze.' });
-                }
-
-                // AI Analysis
-                const promptData = this.registry.format('agent_app_news', 'analysis', {
-                    topic: topicLabel,
-                    newsData: JSON.stringify(headlines, null, 2)
+                // 1. First run the AI Agent Search tool to scrape the web
+                const rawSearchResult = await searchTool.execute({ query: searchQuery + ' latest news today', sessionId }, (event) => {
+                    sendEvent('trace', event); // Route the search sub-steps to the News UI
                 });
 
-                // Rely on the standard router fallback logic
-                const result = await this.modelRouter.routeChat(promptData.prompt);
+                // 2. Perform the specialized News Analysis over the raw JSON search payload
+                const promptData = this.registry.format('agent_app_news', 'analysis', {
+                    topic: searchQuery,
+                    newsData: JSON.stringify(rawSearchResult, null, 2)
+                });
 
-                res.json({
-                    headlines,
+                sendEvent('trace', { message: 'Running final 3-point AI Analysis...' });
+
+                // Route explicitly forcing a cloud provider like Anthropic/OpenAI (since it needs heavy reasoning to distill raw HTML/JSON)
+                const result = await this.modelRouter.routeChat(promptData.prompt, 'cloud-preferred');
+
+                const mappedHeadlines = Array.isArray(rawSearchResult)
+                    ? rawSearchResult.slice(0, 15)
+                    : Object.keys(rawSearchResult || {}).slice(0, 5).map(k => ({ title: k, link: '#' }));
+
+                sendEvent('result', {
+                    headlines: mappedHeadlines,
                     analysis: result.response || '*Analysis failed to generate.*'
                 });
             } catch (error: any) {
                 console.error('[Server] News Search error:', error);
-                res.status(500).json({ error: error.message });
+                sendEvent('error', { message: error.message });
+            } finally {
+                res.end();
             }
         });
 

@@ -7,6 +7,7 @@ import './AppShell.css';
 export default function AppShell() {
     return (
         <div className="app-shell">
+            <div className="app-drag-region" />
             <Dock />
             <Sidebar />
             <main className="app-shell__main">

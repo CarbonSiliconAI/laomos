@@ -14,32 +14,50 @@ export default function News() {
     const [result, setResult] = useState<NewsResult | null>(null);
     const [error, setError] = useState('');
 
+    const [traces, setTraces] = useState<string[]>([]);
+
     async function handleSearch() {
         setLoading(true);
         setError('');
         setResult(null);
+        setTraces([]);
 
-        try {
-            // Placeholder: we'll call the backend api we are going to create
-            const res = await apiFetch(`/api/news/search?topic=${encodeURIComponent(topic)}&hours=${hours}`);
-            if (res.error) throw new Error(res.error);
-            setResult(res);
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch news and analysis.');
-        } finally {
-            setLoading(false);
-        }
-    }
+        const url = `/api/news/search?topic=${encodeURIComponent(topic)}&hours=${hours}`;
+        const eventSource = new EventSource(url);
 
-    // Temporary fetch utility
-    async function apiFetch(url: string, opts?: RequestInit) {
-        const res = await fetch(url, {
-            headers: { 'Content-Type': 'application/json', ...opts?.headers },
-            ...opts,
+        eventSource.addEventListener('trace', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                setTraces(prev => [...prev, data.message || JSON.stringify(data)]);
+            } catch (err) {
+                console.error('Trace parse error', err);
+            }
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
+
+        eventSource.addEventListener('result', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                setResult(data);
+            } catch (err) {
+                console.error('Result parse error', err);
+                setError('Failed to parse final result.');
+            } finally {
+                setLoading(false);
+                eventSource.close();
+            }
+        });
+
+        eventSource.addEventListener('error', (e: any) => {
+            console.error('SSE Error:', e);
+            try {
+                const data = e.data ? JSON.parse(e.data) : { message: 'Stream connection error' };
+                setError(data.message || 'Stream connection error');
+            } catch (err) {
+                setError('Stream connection closed unexpectedly.');
+            }
+            setLoading(false);
+            eventSource.close();
+        });
     }
 
     function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -96,6 +114,14 @@ export default function News() {
                     <div className="news-loading">
                         <div className="spinner"></div>
                         <p>Gathering news and running AI analysis... This may take a minute.</p>
+                        <div className="news-traces">
+                            {traces.map((t, i) => (
+                                <div key={i} className="news-trace-item">
+                                    <span className="trace-dot"></span>
+                                    {t}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
