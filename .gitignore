@@ -14,6 +14,7 @@ storage/personal/
 storage/Docs/
 storage/Rags/
 storage/system/keys.json
+storage/system/telegram_config.json
 storage/system/graph.json
 
 # Test/debug files

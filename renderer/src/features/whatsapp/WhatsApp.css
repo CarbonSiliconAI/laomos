@@ -2,40 +2,52 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    overflow: hidden;
 }
 
 .whatsapp-header {
-    margin-bottom: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
 }
 
 .whatsapp-header__title {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    color: var(--text-color);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    margin: 0;
 }
 
 .whatsapp-header__sub {
-    font-size: 14px;
-    margin: 0;
-    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    margin: 2px 0 0;
+    color: var(--muted);
+}
+
+.whatsapp-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
 }
 
 .whatsapp-webview-container {
     flex: 1;
-    border-radius: 12px;
-    overflow: hidden;
-    background: white;
-    /* WhatsApp Web expects a white or specific dark theme bg */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    min-height: 0;
+    /* Critical for flex children — allows shrinking below content height */
+    position: relative;
+    /* Establishes positioning context for absolute webview */
+    background: #111b21;
 }
 
 .whatsapp-webview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     height: 100%;
     border: none;
-    display: flex;
 }

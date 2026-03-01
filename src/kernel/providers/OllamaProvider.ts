@@ -41,6 +41,9 @@ export class OllamaProvider implements ModelProvider {
             });
             return response.data.message.content;
         } catch (error: any) {
+            if (error.name === 'AbortError' || error.message === 'canceled') {
+                throw new Error('canceled');
+            }
             const msg = error.response?.data?.error || error.message;
             console.error(`[OllamaProvider] Error:`, error.response?.data || error.message);
             throw new Error(`Ollama Error: ${msg}`);

@@ -90,10 +90,10 @@ export class ExternalAPIManager {
             }
         }
 
-        if (provider === 'google') {
+        if (actualProvider === 'google') {
             try {
                 emit('Image Generation (Imagen 3)', 'running', 'Sending prompt to Google API...');
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generateImages-001:predict?key=${key}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${key}`;
                 const response = await axios.post(url, {
                     instances: [
                         { prompt: prompt }

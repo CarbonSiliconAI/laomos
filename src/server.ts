@@ -1,6 +1,7 @@
 
 import express from 'express';
 import path from 'path';
+import fs from 'fs-extra';
 import { GraphManager } from './graph_manager';
 
 import { FileSystemManager } from './fs_manager';
@@ -279,6 +280,19 @@ export class Server {
             } catch (error) {
                 console.error('[Server] Game chat error:', error);
                 res.status(500).json({ error: (error as Error).message });
+            }
+        });
+
+        this.app.post('/api/game/message', (req, res) => {
+            try {
+                const { role, content, image } = req.body;
+                if (!role || !content) return res.status(400).json({ error: 'Role and content required' });
+
+                this.gameManager.appendMessage({ role, content, image });
+                res.json({ state: this.gameManager.getState() });
+            } catch (error: any) {
+                console.error('[Server] Game append error:', error);
+                res.status(500).json({ error: error.message });
             }
         });
 
@@ -938,20 +952,94 @@ You can use tools multiple times in a row. Once you have fully completed the use
             }
         });
 
+        // ── Telegram Config Persistence ────────────────────────────────────
+        const telegramConfigPath = path.join(this.fsManager.getRootDir(), 'system', 'telegram_config.json');
+
+        const readTelegramConfig = async () => {
+            try {
+                await fs.ensureFile(telegramConfigPath);
+                const raw = await fs.readFile(telegramConfigPath, 'utf-8');
+                if (!raw.trim()) return { tokens: [], chatIds: [] };
+                return JSON.parse(raw);
+            } catch { return { tokens: [], chatIds: [] }; }
+        };
+        const writeTelegramConfig = async (config: any) => {
+            await fs.writeJSON(telegramConfigPath, config, { spaces: 2 });
+        };
+
+        this.app.get('/api/telegram/config', async (_req, res) => {
+            try { res.json(await readTelegramConfig()); }
+            catch (e: any) { res.status(500).json({ error: e.message }); }
+        });
+
+        this.app.post('/api/telegram/config/token', async (req, res) => {
+            try {
+                const { label, token } = req.body;
+                if (!label || !token) return res.status(400).json({ error: 'label and token required' });
+                const cfg = await readTelegramConfig();
+                if (cfg.tokens.some((t: any) => t.label === label)) return res.status(409).json({ error: 'Label already exists' });
+                cfg.tokens.push({ label, token });
+                await writeTelegramConfig(cfg);
+                res.json({ success: true });
+            } catch (e: any) { res.status(500).json({ error: e.message }); }
+        });
+
+        this.app.delete('/api/telegram/config/token', async (req, res) => {
+            try {
+                const label = req.query.label as string;
+                if (!label) return res.status(400).json({ error: 'label required' });
+                const cfg = await readTelegramConfig();
+                cfg.tokens = cfg.tokens.filter((t: any) => t.label !== label);
+                await writeTelegramConfig(cfg);
+                res.json({ success: true });
+            } catch (e: any) { res.status(500).json({ error: e.message }); }
+        });
+
+        this.app.post('/api/telegram/config/chatid', async (req, res) => {
+            try {
+                const { label, chatId } = req.body;
+                if (!label || !chatId) return res.status(400).json({ error: 'label and chatId required' });
+                const cfg = await readTelegramConfig();
+                if (cfg.chatIds.some((c: any) => c.label === label)) return res.status(409).json({ error: 'Label already exists' });
+                cfg.chatIds.push({ label, chatId });
+                await writeTelegramConfig(cfg);
+                res.json({ success: true });
+            } catch (e: any) { res.status(500).json({ error: e.message }); }
+        });
+
+        this.app.delete('/api/telegram/config/chatid', async (req, res) => {
+            try {
+                const label = req.query.label as string;
+                if (!label) return res.status(400).json({ error: 'label required' });
+                const cfg = await readTelegramConfig();
+                cfg.chatIds = cfg.chatIds.filter((c: any) => c.label !== label);
+                await writeTelegramConfig(cfg);
+                res.json({ success: true });
+            } catch (e: any) { res.status(500).json({ error: e.message }); }
+        });
+
         // Telegram Bot Endpoints (Proxied to avoid CORS on frontend)
         this.app.get('/api/telegram/updates', async (req, res) => {
             const token = req.query.token as string;
+            const offset = req.query.offset as string;
             if (!token) return res.status(400).json({ error: 'Token is required' });
 
             try {
-                const response = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+                let url = `https://api.telegram.org/bot${token}/getUpdates?timeout=1`;
+                if (offset) url += `&offset=${offset}`;
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (!data.ok) {
                     throw new Error(data.description || 'Failed to fetch updates');
                 }
 
+                let nextOffset: number | undefined;
                 const messages = (data.result || []).map((update: any) => {
+                    // Track the highest update_id so we can compute next offset
+                    if (!nextOffset || update.update_id >= nextOffset) {
+                        nextOffset = update.update_id + 1;
+                    }
                     if (update.message && update.message.text) {
                         return {
                             id: update.message.message_id,
@@ -965,7 +1053,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     return null;
                 }).filter(Boolean);
 
-                res.json({ results: messages });
+                res.json({ results: messages, nextOffset });
             } catch (error: any) {
                 console.error('[Server] Telegram Updates error:', error);
                 res.status(500).json({ error: error.message });
@@ -998,19 +1086,110 @@ You can use tools multiple times in a row. Once you have fully completed the use
             }
         });
 
-        // AI News Hub Endpoint (SSE)
+        // --- News Background Job Registry ---
+        interface NewsJob {
+            id: string;
+            status: 'running' | 'completed' | 'error';
+            traces: any[];
+            result: any | null;
+            error: string | null;
+            abortController: AbortController;
+            listeners: ((type: string, data: any) => void)[];
+        }
+        const newsRegistry = new Map<string, NewsJob>();
+
+        function emitToJobSubscribers(jobId: string, type: string, data: any) {
+            const job = newsRegistry.get(jobId);
+            if (!job) return;
+            job.listeners.forEach(l => l(type, data));
+        }
+
+        // 1. Trigger the background search
         this.app.get('/api/news/search', async (req, res) => {
             const topic = req.query.topic as string || '';
             const sessionId = (req.query.sessionId as string) || 'default-os-session';
-
             const searchQuery = topic.trim() ? topic.trim() : 'Top 10 Global News Breaking Headlines';
 
             const searchTool = this.tools.getTool('smart_search');
             if (!searchTool) {
-                return res.status(500).json({ error: 'Smart Search tool not registered in Kernel. Cannot fetch news.' });
+                return res.status(500).json({ error: 'Smart Search tool not registered' });
             }
 
-            // Set headers for Server-Sent Events
+            const jobId = require('uuid').v4();
+            const job: NewsJob = {
+                id: jobId,
+                status: 'running',
+                traces: [],
+                result: null,
+                error: null,
+                abortController: new AbortController(),
+                listeners: []
+            };
+            newsRegistry.set(jobId, job);
+
+            // Respond immediately to UI
+            res.json({ jobId });
+
+            // Run detached background analysis
+            (async () => {
+                try {
+                    const rawSearchResult = await searchTool.execute({
+                        query: searchQuery + ' latest news today',
+                        sessionId,
+                        signal: job.abortController.signal
+                    }, (event) => {
+                        job.traces.push(event); // Cache it
+                        emitToJobSubscribers(jobId, 'trace', event); // Push to any active UI Tabs
+                    });
+
+                    const analysisTrace = { message: 'Running final 3-point AI Analysis...' };
+                    job.traces.push(analysisTrace);
+                    emitToJobSubscribers(jobId, 'trace', analysisTrace);
+
+                    const promptData = this.registry.format('agent_app_news', 'analysis', {
+                        topic: searchQuery,
+                        newsData: JSON.stringify(rawSearchResult, null, 2)
+                    });
+
+                    const result = await this.modelRouter.routeChat(
+                        promptData.prompt,
+                        'cloud-preferred',
+                        'News Analysis',
+                        job.abortController.signal
+                    );
+
+                    const mappedHeadlines = Array.isArray(rawSearchResult)
+                        ? rawSearchResult.slice(0, 15)
+                        : Object.keys(rawSearchResult || {}).slice(0, 5).map(k => ({ title: k, link: '#' }));
+
+                    job.result = {
+                        headlines: mappedHeadlines,
+                        analysis: result.response || '*Analysis failed to generate.*'
+                    };
+                    job.status = 'completed';
+                    emitToJobSubscribers(jobId, 'result', job.result);
+                } catch (error: any) {
+                    if (error.message === 'canceled' || error.name === 'AbortError') {
+                        job.error = 'Analysis stopped by user.';
+                    } else {
+                        console.error('[Server] Detached News Search error:', error);
+                        job.error = error.message;
+                    }
+                    job.status = 'error';
+                    emitToJobSubscribers(jobId, 'error', { message: job.error });
+                }
+            })();
+        });
+
+        // 2. Stream & Sync Job Status (UI Re-attachment safe)
+        this.app.get('/api/news/stream/:jobId', (req, res) => {
+            const jobId = req.params.jobId;
+            const job = newsRegistry.get(jobId);
+
+            if (!job) {
+                return res.status(404).json({ error: 'Job not found or expired.' });
+            }
+
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
@@ -1020,37 +1199,36 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
             };
 
-            try {
-                // 1. First run the AI Agent Search tool to scrape the web
-                const rawSearchResult = await searchTool.execute({ query: searchQuery + ' latest news today', sessionId }, (event) => {
-                    sendEvent('trace', event); // Route the search sub-steps to the News UI
-                });
-
-                // 2. Perform the specialized News Analysis over the raw JSON search payload
-                const promptData = this.registry.format('agent_app_news', 'analysis', {
-                    topic: searchQuery,
-                    newsData: JSON.stringify(rawSearchResult, null, 2)
-                });
-
-                sendEvent('trace', { message: 'Running final 3-point AI Analysis...' });
-
-                // Route explicitly forcing a cloud provider like Anthropic/OpenAI (since it needs heavy reasoning to distill raw HTML/JSON)
-                const result = await this.modelRouter.routeChat(promptData.prompt, 'cloud-preferred');
-
-                const mappedHeadlines = Array.isArray(rawSearchResult)
-                    ? rawSearchResult.slice(0, 15)
-                    : Object.keys(rawSearchResult || {}).slice(0, 5).map(k => ({ title: k, link: '#' }));
-
-                sendEvent('result', {
-                    headlines: mappedHeadlines,
-                    analysis: result.response || '*Analysis failed to generate.*'
-                });
-            } catch (error: any) {
-                console.error('[Server] News Search error:', error);
-                sendEvent('error', { message: error.message });
-            } finally {
-                res.end();
+            // 1. Immediately replay cached traces
+            for (const t of job.traces) {
+                sendEvent('trace', t);
             }
+
+            // 2. See if we are already done
+            if (job.status === 'completed') {
+                sendEvent('result', job.result);
+                return res.end();
+            } else if (job.status === 'error') {
+                sendEvent('error', { message: job.error });
+                return res.end();
+            }
+
+            // 3. Keep the connection open and attach to the Job's listener array
+            job.listeners.push(sendEvent);
+
+            req.on('close', () => {
+                // When UI disconnects, just remove the listener. DO NOT ABORT the generation!
+                job.listeners = job.listeners.filter(l => l !== sendEvent);
+            });
+        });
+
+        // 3. User explicit stop click
+        this.app.post('/api/news/stop/:jobId', (req, res) => {
+            const job = newsRegistry.get(req.params.jobId);
+            if (job) {
+                job.abortController.abort();
+            }
+            res.json({ success: true });
         });
 
         // AI Generation Endpoints
@@ -1109,8 +1287,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type} \n`);
-                res.write(`data: ${JSON.stringify(data)} \n\n`);
+                res.write(`event: ${type}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
             };
 
             try {
@@ -1137,8 +1315,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type} \n`);
-                res.write(`data: ${JSON.stringify(data)} \n\n`);
+                res.write(`event: ${type}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
             };
 
             try {
@@ -1150,6 +1328,25 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 sendEvent('error', { message: error.message });
             } finally {
                 res.end();
+            }
+        });
+
+        this.app.get('/api/proxy/image', async (req, res) => {
+            const url = req.query.url as string;
+            if (!url) return res.status(400).send('URL required');
+            try {
+                // Fetch the image from the remote origin server side
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Status ${response.status}`);
+                const buffer = await response.arrayBuffer();
+
+                // Allow the frontend canvas to read this
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+                res.setHeader('Content-Type', response.headers.get('content-type') || 'image/png');
+                res.send(Buffer.from(buffer));
+            } catch (err: any) {
+                res.status(500).send('Proxy error: ' + err.message);
             }
         });
 
@@ -1165,8 +1362,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
             res.setHeader('Connection', 'keep-alive');
 
             const sendEvent = (type: string, data: any) => {
-                res.write(`event: ${type} \n`);
-                res.write(`data: ${JSON.stringify(data)} \n\n`);
+                res.write(`event: ${type}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
             };
 
             try {

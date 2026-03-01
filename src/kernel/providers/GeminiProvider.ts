@@ -67,6 +67,9 @@ export class GeminiProvider implements ModelProvider {
             }
 
         } catch (error: any) {
+            if (error.name === 'AbortError' || error.message === 'canceled') {
+                throw new Error('canceled');
+            }
             const msg = error.response?.data?.error?.message || error.message;
             console.error(`[GeminiProvider] Error:`, error.response?.data || error.message);
             throw new Error(`Google Error: ${msg}`);

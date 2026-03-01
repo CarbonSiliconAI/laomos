@@ -211,6 +211,7 @@ export class ToolRegistry {
                 }
                 const query = params.query;
                 const sessionId = params.sessionId || 'default-os-session';
+                const signal: AbortSignal | undefined = params.signal;
 
                 const stepTimers: Record<string, number> = {};
 
@@ -241,7 +242,7 @@ A) Local system context, OS memory, personal files, or past conversations.
 B) General knowledge, current events, programming help, or external data.
 Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 
-                const classificationRes = await this.router.routeChat(classificationPrompt, 'openai'); // Use strong model for logic if available
+                const classificationRes = await this.router.routeChat(classificationPrompt, 'openai', 'Local or Web Router', signal); // Use strong model for logic if available
                 const intent = classificationRes.response.trim().toUpperCase();
                 emit('Intent Classification', 'completed', `Intent recognized: ${intent}`);
 
@@ -264,7 +265,7 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 
                     emit('Synthesis', 'running', 'Summarizing local context...');
                     const summaryPrompt = `Synthesize an answer to "${query}" based ONLY on this context:\n${combinedHits}`;
-                    const answer = await this.router.routeChat(summaryPrompt);
+                    const answer = await this.router.routeChat(summaryPrompt, undefined, 'Local Search Synthesis', signal);
 
                     emit('Synthesis', 'completed', 'Local response generated.');
                     return { success: true, source: 'local', content: answer.response };
@@ -277,7 +278,7 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                     emit('Web Search', 'completed', 'Retrieved web sources.');
 
                     emit('Synthesis', 'running', 'Compiling final web summarize...');
-                    const searchRes = await this.router.routeChat(`Simulate a real-time web search response to accurately answer: "${query}". Provide a concise, highly informative answer.`);
+                    const searchRes = await this.router.routeChat(`Simulate a real-time web search response to accurately answer: "${query}". Provide a concise, highly informative answer.`, undefined, 'Web Search Synthesis', signal);
 
                     emit('Synthesis', 'completed', 'Web response generated.');
                     return { success: true, source: 'web', content: searchRes.response };

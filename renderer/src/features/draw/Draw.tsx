@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { api } from '../../lib/api';
 import './Draw.css';
 
 interface TraceEvent { step: string; status: string; details?: string; durationMs?: number; }
@@ -6,6 +8,8 @@ interface TraceEvent { step: string; status: string; details?: string; durationM
 type GenType = 'image' | 'graph';
 
 export default function Draw() {
+    const location = useLocation();
+    const navigate = useNavigate();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
     const [prompt, setPrompt] = useState('');
@@ -16,6 +20,8 @@ export default function Draw() {
     const [traces, setTraces] = useState<TraceEvent[]>([]);
     const paintingRef = useRef(false);
     const traceRef = useRef<HTMLDivElement>(null);
+    const returnToRef = useRef<string | null>(null);
+    const imageSavedRef = useRef(false);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -27,6 +33,25 @@ export default function Draw() {
     }, []);
 
     useEffect(() => { if (traceRef.current) traceRef.current.scrollTop = traceRef.current.scrollHeight; }, [traces]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const queryPrompt = params.get('prompt');
+        const auto = params.get('auto');
+        const returnTo = params.get('returnTo');
+
+        if (queryPrompt) {
+            returnToRef.current = returnTo;
+            imageSavedRef.current = false;
+            setPrompt(queryPrompt);
+            // Clear query params from URL immediately
+            navigate('/operations/draw', { replace: true });
+            if (auto === 'true') {
+                setTimeout(() => generate(queryPrompt), 150);
+            }
+        }
+        // location.key changes on every navigation, ensuring this fires even for repeat visits
+    }, [location.key]);
 
     function getCanvasCtx() {
         const canvas = canvasRef.current;
@@ -74,14 +99,15 @@ export default function Draw() {
         return 'var(--muted)';
     }
 
-    async function generate() {
-        if (!prompt.trim()) return;
+    async function generate(overridePrompt?: string | React.MouseEvent) {
+        const p = typeof overridePrompt === 'string' ? overridePrompt : prompt;
+        if (!p.trim()) return;
         setGenerating(true);
         setStatus('Contacting AI Service...');
         setTraces([]);
 
         const endpoint = genType === 'graph' ? '/api/ai/generate-graph' : '/api/ai/generate-image';
-        const url = `${endpoint}?provider=${encodeURIComponent(provider)}&prompt=${encodeURIComponent(prompt)}`;
+        const url = `${endpoint}?provider=${encodeURIComponent(provider)}&prompt=${encodeURIComponent(p)}`;
         const es = new EventSource(url);
 
         es.addEventListener('trace', (e) => {
@@ -101,12 +127,76 @@ export default function Draw() {
                 if (genType === 'image' && data.url) {
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
-                    img.onload = () => {
+
+                    const drawImageToCanvas = () => {
                         const ctx = getCanvasCtx();
                         const canvas = canvasRef.current;
-                        if (ctx && canvas) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        if (ctx && canvas) {
+                            // Clear before drawing new
+                            ctx.fillStyle = '#1a1a2e';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
                         setStatus('Image generated!');
+
+                        // Handle auto-return logic
+                        if (returnToRef.current === 'game' && !imageSavedRef.current) {
+                            imageSavedRef.current = true;
+                            setStatus('Saving to Adventure Game log...');
+                            api.gameAppendMessage({
+                                role: 'system',
+                                content: `Visualized drawing.`,
+                                image: data.url
+                            }).then(() => {
+                                returnToRef.current = null;
+                                navigate('/operations/game');
+                            }).catch(() => {
+                                imageSavedRef.current = false;
+                                setStatus('Image generated! Failed to auto-return to game.');
+                            });
+                        }
                     };
+
+                    img.onload = drawImageToCanvas;
+
+                    img.onerror = () => {
+                        console.warn("CORS or load failure for raw URL. Attempting via proxy...");
+                        // Use a proxy endpoint to bypass CORS restrictions for canvas painting
+                        const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(data.url)}`;
+                        const proxyImg = new Image();
+                        proxyImg.crossOrigin = 'anonymous';
+                        proxyImg.onload = () => {
+                            img.src = proxyUrl; // Just reuse the outer img reference or draw proxyImg directly
+                            const ctx = getCanvasCtx();
+                            const canvas = canvasRef.current;
+                            if (ctx && canvas) {
+                                ctx.fillStyle = '#1a1a2e';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                ctx.drawImage(proxyImg, 0, 0, canvas.width, canvas.height);
+                            }
+                            setStatus('Image generated! (via proxy)');
+
+                            // Handle auto-return logic
+                            if (returnToRef.current === 'game' && !imageSavedRef.current) {
+                                imageSavedRef.current = true;
+                                setStatus('Saving to Adventure Game log...');
+                                api.gameAppendMessage({
+                                    role: 'system',
+                                    content: `Visualized drawing.`,
+                                    image: data.url
+                                }).then(() => {
+                                    returnToRef.current = null;
+                                    navigate('/operations/game');
+                                }).catch(() => {
+                                    imageSavedRef.current = false;
+                                    setStatus('Image generated! Failed to auto-return to game.');
+                                });
+                            }
+                        };
+                        proxyImg.onerror = () => setStatus('Error loading image onto canvas. Check console.');
+                        proxyImg.src = proxyUrl;
+                    };
+
                     img.src = data.url;
                 } else if (data.code) {
                     setStatus('Graph generated! (see trace output)');
@@ -140,15 +230,15 @@ export default function Draw() {
                 <div className="draw-canvas-area glass-card">
                     <div className="draw-toolbar">
                         <button className={`draw-tool${tool === 'pen' ? ' draw-tool--active' : ''}`} onClick={() => setTool('pen')}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /></svg>
                             Pen
                         </button>
                         <button className={`draw-tool${tool === 'eraser' ? ' draw-tool--active' : ''}`} onClick={() => setTool('eraser')}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16l9-9 8 8-4 4"/><path d="M6 11l4 4"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16l9-9 8 8-4 4" /><path d="M6 11l4 4" /></svg>
                             Eraser
                         </button>
                         <button className="draw-tool" onClick={clearCanvas}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                             Clear
                         </button>
                     </div>

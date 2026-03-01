@@ -4,6 +4,7 @@ import path from 'path';
 export interface GameMessage {
     role: 'user' | 'system' | 'assistant';
     content: string;
+    image?: string;
 }
 
 export interface GameState {
@@ -54,6 +55,12 @@ export class GameManager {
         if (contextUpdate) state.context = contextUpdate;
         if (inventoryUpdate) state.inventory = inventoryUpdate;
         if (newMessage) state.history.push(newMessage);
+        this.saveState(state);
+    }
+
+    public appendMessage(msg: GameMessage) {
+        const state = this.getState();
+        state.history.push(msg);
         this.saveState(state);
     }
 

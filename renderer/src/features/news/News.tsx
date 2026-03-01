@@ -8,27 +8,71 @@ interface NewsResult {
 }
 
 export default function News() {
-    const [topic, setTopic] = useState('');
-    const [hours, setHours] = useState(24);
+    const [topic, setTopic] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('aos_news_state') || '{}').topic || ''; }
+        catch { return ''; }
+    });
+    const [hours, setHours] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('aos_news_state') || '{}').hours || 24; }
+        catch { return 24; }
+    });
+    const [result, setResult] = useState<NewsResult | null>(() => {
+        try { return JSON.parse(localStorage.getItem('aos_news_state') || '{}').result || null; }
+        catch { return null; }
+    });
+    const [traces, setTraces] = useState<string[]>(() => {
+        try { return JSON.parse(localStorage.getItem('aos_news_state') || '{}').traces || []; }
+        catch { return []; }
+    });
+    const [jobId, setJobId] = useState<string | null>(() => {
+        try { return JSON.parse(localStorage.getItem('aos_news_state') || '{}').jobId || null; }
+        catch { return null; }
+    });
+
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<NewsResult | null>(null);
     const [error, setError] = useState('');
 
-    const [traces, setTraces] = useState<string[]>([]);
+    // Keep a ref to the active stream so we can abort it if the user leaves the page
+    const streamRef = React.useRef<EventSource | null>(null);
 
-    async function handleSearch() {
-        setLoading(true);
-        setError('');
-        setResult(null);
-        setTraces([]);
+    // Save everything to localStorage whenever meaningful state changes
+    React.useEffect(() => {
+        localStorage.setItem('aos_news_state', JSON.stringify({ topic, hours, result, traces, jobId }));
+    }, [topic, hours, result, traces, jobId]);
 
-        const url = `/api/news/search?topic=${encodeURIComponent(topic)}&hours=${hours}`;
+    // Unmount cleanup logic (critical for severing active text/event-stream sockets)
+    React.useEffect(() => {
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.close();
+                streamRef.current = null;
+            }
+        };
+    }, []);
+
+    // Reattach on mount if we have an active job that was loading
+    React.useEffect(() => {
+        if (jobId && loading) {
+            attachToJob(jobId);
+        }
+    }, []);
+
+    function attachToJob(targetJobId: string) {
+        if (streamRef.current) streamRef.current.close();
+
+        const url = `/api/news/stream/${targetJobId}`;
         const eventSource = new EventSource(url);
+        streamRef.current = eventSource;
 
         eventSource.addEventListener('trace', (e) => {
             try {
                 const data = JSON.parse(e.data);
-                setTraces(prev => [...prev, data.message || JSON.stringify(data)]);
+                // We don't want to duplicate traces on re-attach
+                setTraces(prev => {
+                    const msg = data.message || JSON.stringify(data);
+                    if (!prev.includes(msg)) return [...prev, msg];
+                    return prev;
+                });
             } catch (err) {
                 console.error('Trace parse error', err);
             }
@@ -43,7 +87,9 @@ export default function News() {
                 setError('Failed to parse final result.');
             } finally {
                 setLoading(false);
+                setJobId(null);
                 eventSource.close();
+                streamRef.current = null;
             }
         });
 
@@ -51,13 +97,60 @@ export default function News() {
             console.error('SSE Error:', e);
             try {
                 const data = e.data ? JSON.parse(e.data) : { message: 'Stream connection error' };
-                setError(data.message || 'Stream connection error');
+                if (data.message !== 'Job vanished from memory.') {
+                    setError(data.message || 'Stream connection error');
+                }
             } catch (err) {
                 setError('Stream connection closed unexpectedly.');
             }
             setLoading(false);
+            setJobId(null);
             eventSource.close();
+            streamRef.current = null;
         });
+    }
+
+    async function handleSearch() {
+        setLoading(true);
+        setError('');
+        setResult(null);
+        setTraces([]);
+        setJobId(null);
+
+        try {
+            if (streamRef.current) streamRef.current.close();
+
+            const url = `/api/news/search?topic=${encodeURIComponent(topic)}&hours=${hours}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data.error) throw new Error(data.error);
+            if (!data.jobId) throw new Error("No Job ID returned from server");
+
+            setJobId(data.jobId);
+            attachToJob(data.jobId);
+
+        } catch (err: any) {
+            setError(err.message || String(err));
+            setLoading(false);
+        }
+    }
+
+    async function handleStop() {
+        if (streamRef.current) {
+            streamRef.current.close();
+            streamRef.current = null;
+        }
+        if (jobId) {
+            try {
+                await fetch(`/api/news/stop/${jobId}`, { method: 'POST' });
+            } catch (e) {
+                console.error("Failed to stop job on server", e);
+            }
+        }
+        setLoading(false);
+        setJobId(null);
+        setError('Analysis stopped by user.');
     }
 
     function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -94,13 +187,23 @@ export default function News() {
                     <option value={48}>Past 48 Hours</option>
                     <option value={168}>Past 7 Days</option>
                 </select>
-                <button
-                    className="btn btn-primary news-search-btn"
-                    onClick={handleSearch}
-                    disabled={loading}
-                >
-                    {loading ? 'Analyzing...' : 'Search & Analyze'}
-                </button>
+                {!loading ? (
+                    <button
+                        className="btn btn-primary news-search-btn"
+                        onClick={handleSearch}
+                    >
+                        Search & Analyze
+                    </button>
+                ) : (
+                    <button
+                        className="btn btn-secondary news-search-btn"
+                        onClick={handleStop}
+                        style={{ color: '#ff4444' }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '4px' }}><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                        Stop
+                    </button>
+                )}
             </div>
 
             {error && (

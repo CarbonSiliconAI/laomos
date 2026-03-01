@@ -33,6 +33,9 @@ export class OpenAIProvider implements ModelProvider {
 
             return response.data.choices[0].message.content;
         } catch (error: any) {
+            if (error.name === 'AbortError' || error.message === 'canceled') {
+                throw new Error('canceled');
+            }
             const msg = error.response?.data?.error?.message || error.message;
             console.error(`[OpenAIProvider] Error:`, error.response?.data || error.message);
             throw new Error(`OpenAI Error: ${msg}`);

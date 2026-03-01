@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { GameState } from '../../lib/api';
 import './Game.css';
@@ -229,6 +230,7 @@ function ChessGame() {
 
 // ── Adventure Component ─────────────────────────────────────────────────────
 function Adventure() {
+    const navigate = useNavigate();
     const [state, setGameState] = useState<GameState | null>(null);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -236,18 +238,57 @@ function Adventure() {
     const [models, setModels] = useState<string[]>([]);
     const [error, setError] = useState('');
     const bottomRef = useRef<HTMLDivElement>(null);
+    const logRef = useRef<HTMLDivElement>(null);
+    const [selectedText, setSelectedText] = useState('');
+    const [selectionRect, setSelectionRect] = useState<{ top: number; left: number } | null>(null);
 
     useEffect(() => {
-        api.gameState().then(s => setGameState(s)).catch(() => {});
+        api.gameState().then(s => setGameState(s)).catch(() => { });
         api.ollamaModels().then(r => {
             setModels(r.models ?? []);
             if (r.models?.length) setModel(r.models[0]);
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [state?.history]);
+
+    useEffect(() => {
+        function handleSelection() {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || !logRef.current) {
+                setSelectedText('');
+                setSelectionRect(null);
+                return;
+            }
+
+            // Ensure selection is inside the game log area
+            if (!logRef.current.contains(sel.anchorNode)) return;
+
+            const text = sel.toString().trim();
+            if (!text) {
+                setSelectedText('');
+                setSelectionRect(null);
+                return;
+            }
+
+            try {
+                const range = sel.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                const logRect = logRef.current.getBoundingClientRect();
+
+                setSelectedText(text);
+                setSelectionRect({
+                    top: rect.bottom - logRect.top + logRef.current.scrollTop + 8,
+                    left: rect.left - logRect.left + (rect.width / 2) - 40 // Centered roughly
+                });
+            } catch (e) { }
+        }
+
+        document.addEventListener('selectionchange', handleSelection);
+        return () => document.removeEventListener('selectionchange', handleSelection);
+    }, []);
 
     async function sendAction() {
         const text = input.trim();
@@ -266,10 +307,20 @@ function Adventure() {
         }
     }
 
+    async function generateImage() {
+        if (!selectedText) return;
+
+        const promptToPass = selectedText;
+        setSelectedText('');
+        setSelectionRect(null);
+
+        navigate(`/operations/draw?prompt=${encodeURIComponent(promptToPass)}&auto=true&returnTo=game`);
+    }
+
     async function resetGame() {
         if (!confirm('Reset game? All progress will be lost.')) return;
-        await api.gameReset().catch(() => {});
-        api.gameState().then(s => setGameState(s)).catch(() => {});
+        await api.gameReset().catch(() => { });
+        api.gameState().then(s => setGameState(s)).catch(() => { });
     }
 
     function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -295,21 +346,46 @@ function Adventure() {
                     <div className="divider" />
                     <div className="game-sidebar__section">
                         <div className="section-title">Inventory</div>
-                        <pre className="game-sidebar__text">{state?.inventory ?? '...'}</pre>
+                        <pre className="game-sidebar__text">{(state?.inventory ?? '...').replace(/\\n/g, '\n')}</pre>
                     </div>
                 </div>
                 <div className="game-main">
-                    <div className="game-log glass-card">
+                    <div className="game-log glass-card" ref={logRef} style={{ position: 'relative' }}>
+                        {selectionRect && selectedText && (
+                            <div
+                                className="game-selection-tooltip"
+                                style={{
+                                    position: 'absolute',
+                                    top: selectionRect.top,
+                                    left: selectionRect.left,
+                                    zIndex: 10,
+                                }}
+                            >
+                                <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); generateImage(); }}>
+                                    🎨 Draw
+                                </button>
+                            </div>
+                        )}
+
                         {(!state?.history || state.history.length === 0) && (
                             <div className="game-log__empty"><span>Your adventure begins... type an action below</span></div>
                         )}
                         {state?.history.map((msg, i) => (
                             <div key={i} className={`game-msg game-msg--${msg.role}`}>
                                 {msg.role === 'user' && <span className="game-msg__prefix">&gt; </span>}
+                                {msg.role === 'system' && <span className="game-msg__prefix" style={{ color: 'var(--accent)' }}>[System] </span>}
                                 <span className="game-msg__content">{msg.content}</span>
+                                {msg.image && msg.image === 'loading' && (
+                                    <div className="game-msg--loading" style={{ marginTop: '8px' }}>
+                                        <div className="chat-dot" /><div className="chat-dot" /><div className="chat-dot" />
+                                    </div>
+                                )}
+                                {msg.image && msg.image !== 'loading' && (
+                                    <img src={msg.image} className="game-msg-image" alt="Visualized scene" />
+                                )}
                             </div>
                         ))}
-                        {loading && (
+                        {loading && !state?.history.some(h => h.image === 'loading') && (
                             <div className="game-msg game-msg--assistant game-msg--loading">
                                 <div className="chat-dot" /><div className="chat-dot" /><div className="chat-dot" />
                             </div>

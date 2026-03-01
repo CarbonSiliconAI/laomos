@@ -86,6 +86,9 @@ export const api = {
     gameChat: (action: string, model?: string) => apiFetch<{ state: GameState }>('/api/game/chat', {
         method: 'POST', body: JSON.stringify({ action, model }),
     }),
+    gameAppendMessage: (msg: { role: string; content: string; image?: string }) => apiFetch<{ state: GameState }>('/api/game/message', {
+        method: 'POST', body: JSON.stringify(msg),
+    }),
     gameReset: () => apiFetch('/api/game/reset', { method: 'POST' }),
 
     // ── System ──────────────────────────────
@@ -170,7 +173,7 @@ export interface MailStatus {
 export interface GameState {
     context: string;
     inventory: string;
-    history: Array<{ role: string; content: string }>;
+    history: Array<{ role: string; content: string; image?: string }>;
 }
 
 export interface GameResponse {
