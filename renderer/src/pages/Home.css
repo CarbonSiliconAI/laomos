@@ -31,7 +31,7 @@
 /* ── KPI strip ────────────────────────────────────── */
 .home-kpis {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
     gap: 12px;
 }
 
@@ -94,7 +94,7 @@
 /* ── Quick launch ─────────────────────────────────── */
 .quick-launch {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 10px;
 }
 
@@ -210,3 +210,87 @@
 
 .mono  { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
+
+/* ── KPI sparkline ────────────────────────────────── */
+.kpi-card__trend {
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+/* ── Onboarding steps ─────────────────────────────── */
+.onboarding-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px;
+}
+
+.onboarding-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: var(--r-btn);
+    transition: background var(--dur-base) var(--ease-out);
+    text-align: left;
+    width: 100%;
+    color: var(--text);
+}
+
+.onboarding-step:hover {
+    background: rgba(99,102,241,0.06);
+}
+
+.onboarding-step__num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.onboarding-step__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.onboarding-step__title {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.onboarding-step__desc {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* ── Responsive: Quick Launch ────────────────────── */
+@media (max-width: 720px) {
+    .quick-launch {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+    }
+    .quick-launch__item { padding: 14px 6px 12px; }
+    .quick-launch__icon { width: 32px; height: 32px; border-radius: 9px; }
+    .quick-launch__label { font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+    .quick-launch {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    .quick-launch__item { padding: 10px 4px 8px; gap: 6px; }
+    .home-kpis { grid-template-columns: repeat(2, 1fr); }
+}

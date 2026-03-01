@@ -16,8 +16,8 @@ const CARDS = [
     },
     {
         path: '/knowledge/rag',
-        title: 'RAG',
-        desc: 'Convert documents and search knowledge base',
+        title: 'Knowledge Base',
+        desc: 'Import documents and ask questions against your knowledge base',
         color: 'rgba(16,185,129,0.85)',
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -42,8 +42,8 @@ const CARDS = [
     },
     {
         path: '/knowledge/graph',
-        title: 'System Graph',
-        desc: 'Visualize system component relationships',
+        title: 'Knowledge Graph',
+        desc: 'Explore and visualize relationships between concepts and entities',
         color: 'rgba(139,92,246,0.85)',
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

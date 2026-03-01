@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SectionPage.css';
 
-const CARDS = [
+const WORKFLOW_TOOLS = [
     {
         path: '/operations/flow',
         title: 'Flow Builder',
@@ -43,18 +43,9 @@ const CARDS = [
             </svg>
         ),
     },
-    {
-        path: '/operations/game',
-        title: 'Game',
-        desc: 'AI text adventure game',
-        color: 'rgba(168,85,247,0.85)',
-        icon: (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="2" />
-                <path d="M6 12h4M8 10v4M15 11h.01M18 11h.01" />
-            </svg>
-        ),
-    },
+];
+
+const CREATIVE_ENTERTAINMENT = [
     {
         path: '/operations/telegram',
         title: 'Telegram',
@@ -109,8 +100,37 @@ const CARDS = [
                 <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
         ),
-    }
+    },
+    {
+        path: '/operations/game',
+        title: 'Adventure',
+        desc: 'AI text adventure game',
+        color: 'rgba(168,85,247,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <path d="M6 12h4M8 10v4M15 11h.01M18 11h.01" />
+            </svg>
+        ),
+    },
 ];
+
+function CardList({ cards, navigate }: { cards: typeof WORKFLOW_TOOLS; navigate: (path: string) => void }) {
+    return (
+        <div className="section-cards">
+            {cards.map((c) => (
+                <button key={c.path} className="section-card glass-card" onClick={() => navigate(c.path)}>
+                    <div className="section-card__icon" style={{ background: c.color }}>{c.icon}</div>
+                    <div className="section-card__body">
+                        <div className="section-card__title">{c.title}</div>
+                        <div className="section-card__desc">{c.desc}</div>
+                    </div>
+                    <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+            ))}
+        </div>
+    );
+}
 
 export default function OperationsPage() {
     const navigate = useNavigate();
@@ -120,18 +140,12 @@ export default function OperationsPage() {
                 <h2 className="section-header__title">Operations</h2>
                 <p className="section-header__sub">Manage workflows, communications, and interactive tools</p>
             </div>
-            <div className="section-cards">
-                {CARDS.map((c) => (
-                    <button key={c.path} className="section-card glass-card" onClick={() => navigate(c.path)}>
-                        <div className="section-card__icon" style={{ background: c.color }}>{c.icon}</div>
-                        <div className="section-card__body">
-                            <div className="section-card__title">{c.title}</div>
-                            <div className="section-card__desc">{c.desc}</div>
-                        </div>
-                        <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                    </button>
-                ))}
-            </div>
+
+            <span className="section-group__label">Workflow Tools</span>
+            <CardList cards={WORKFLOW_TOOLS} navigate={navigate} />
+
+            <span className="section-group__label">Creative & Entertainment</span>
+            <CardList cards={CREATIVE_ENTERTAINMENT} navigate={navigate} />
         </div>
     );
 }

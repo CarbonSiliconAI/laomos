@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, RunRecord } from '../../lib/api';
+import EvolutionLogTab from '../../components/evolution/EvolutionLogTab';
 import './History.css';
 
 type Filter = 'all' | 'completed' | 'failed';
 
-export default function History() {
+function RunsTab() {
     const [runs, setRuns] = useState<RunRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<Filter>('all');
@@ -31,21 +33,14 @@ export default function History() {
     });
 
     return (
-        <div className="history-page">
-            <div className="history-header">
-                <div>
-                    <h1 className="history-header__title">Run History</h1>
-                    <p className="history-header__sub">Browse and inspect AI execution runs</p>
-                </div>
-                <div className="history-filters">
-                    {(['all', 'completed', 'failed'] as Filter[]).map(f => (
-                        <button key={f} className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'} history-filter-btn`} onClick={() => setFilter(f)}>
-                            {f.charAt(0).toUpperCase() + f.slice(1)}
-                        </button>
-                    ))}
-                </div>
+        <>
+            <div className="history-filters" style={{ padding: '0 24px 8px' }}>
+                {(['all', 'completed', 'failed'] as Filter[]).map(f => (
+                    <button key={f} className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'} history-filter-btn`} onClick={() => setFilter(f)}>
+                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                ))}
             </div>
-
             <div className="history-body">
                 <div className="history-table glass-card">
                     {loading ? (
@@ -89,6 +84,56 @@ export default function History() {
                     </div>
                 )}
             </div>
+        </>
+    );
+}
+
+export default function History() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get('tab') ?? 'runs';
+
+    const setTab = (tab: string) => {
+        setSearchParams({ tab }, { replace: true });
+    };
+
+    return (
+        <div className="history-page">
+            <div className="history-header">
+                <div>
+                    <h1 className="history-header__title">Run History</h1>
+                    <p className="history-header__sub">Browse and inspect AI execution runs</p>
+                </div>
+            </div>
+
+            <div className="history-tabs">
+                <button
+                    className={`history-tab ${activeTab === 'runs' ? 'history-tab--active' : ''}`}
+                    onClick={() => setTab('runs')}
+                >
+                    Runs
+                </button>
+                <button
+                    className={`history-tab ${activeTab === 'evolution' ? 'history-tab--active' : ''}`}
+                    onClick={() => setTab('evolution')}
+                >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ marginRight: 5, verticalAlign: 'middle' }}>
+                        <path d="M2 15c6.667-6 13.333 0 20-6" />
+                        <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
+                        <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" />
+                    </svg>
+                    Evolution
+                </button>
+            </div>
+
+            {activeTab === 'evolution' ? (
+                <div style={{ flex: 1, overflow: 'hidden', padding: '0 24px 16px' }}>
+                    <EvolutionLogTab />
+                </div>
+            ) : (
+                <RunsTab />
+            )}
         </div>
     );
 }

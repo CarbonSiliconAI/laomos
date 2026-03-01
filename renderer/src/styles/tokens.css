@@ -6,8 +6,8 @@
     --glass-border-soft: rgba(255,255,255,0.28);
 
     --glass-l1: rgba(255,255,255,0.72);   /* Dock / Sidebar chrome */
-    --glass-l2: rgba(255,255,255,0.55);   /* Primary panels */
-    --glass-l3: rgba(255,255,255,0.38);   /* Cards / secondary */
+    --glass-l2: rgba(255,255,255,0.62);   /* Primary panels */
+    --glass-l3: rgba(255,255,255,0.45);   /* Cards / secondary */
 
     /* ── Blur tiers ──────────────────────────────── */
     --blur-l1:    blur(36px) saturate(150%);
@@ -24,6 +24,13 @@
 
     --accent:      rgba(99,102,241,0.95);
     --accent-glow: rgba(99,102,241,0.14);
+
+    /* ── Evolution PCEC phase colors ─────────────── */
+    --evo-perceive:  rgba(59, 130, 246, 0.85);
+    --evo-construct: rgba(99, 102, 241, 0.85);
+    --evo-evaluate:  rgba(245, 158, 11, 0.85);
+    --evo-commit:    rgba(16, 185, 129, 0.85);
+    --evo-dna:       rgba(139, 92, 246, 0.85);
     --ok:    #10b981;
     --warn:  #f59e0b;
     --bad:   #ef4444;

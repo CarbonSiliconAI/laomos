@@ -34,6 +34,7 @@
     cursor: pointer;
     text-align: left;
     width: 100%;
+    border-left: 3px solid transparent;
     background: linear-gradient(145deg,
         rgba(255,255,255,0.22),
         rgba(255,255,255,0.08)
@@ -53,6 +54,7 @@
 .section-card:hover {
     transform: translateY(-2px);
     border-color: rgba(255,255,255,0.55);
+    border-left-color: var(--accent);
     box-shadow:
         0 14px 36px rgba(0,0,0,0.13),
         inset 0 1px 0 rgba(255,255,255,0.80);
@@ -97,4 +99,49 @@
 .section-card:hover .section-card__arrow {
     transform: translateX(4px);
     color: var(--muted);
+}
+
+/* ── Section group labels ─────────────────────────── */
+.section-group__label {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin: 32px 0 10px;
+    display: block;
+}
+
+.section-group__label:first-of-type {
+    margin-top: 0;
+}
+
+/* ── Coming soon placeholder ─────────────────────── */
+.section-coming-soon {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 22px;
+    background: linear-gradient(145deg,
+        rgba(255,255,255,0.14),
+        rgba(255,255,255,0.05)
+    );
+    backdrop-filter: var(--blur-l3);
+    -webkit-backdrop-filter: var(--blur-l3);
+    border: 1px dashed rgba(17,24,39,0.10);
+    border-radius: var(--r-card);
+    margin-top: 8px;
+}
+
+.section-coming-soon__icon {
+    color: var(--muted-2);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.section-coming-soon__text {
+    font-size: var(--fs-sm);
+    color: var(--muted-2);
+    font-weight: 500;
 }

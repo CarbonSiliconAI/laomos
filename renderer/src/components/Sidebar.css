@@ -89,3 +89,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.sidebar__divider {
+    height: 1px;
+    background: var(--line);
+    margin: 6px 10px;
+}

@@ -1,0 +1,475 @@
+/* ══════════════════════════════════════════════════════
+   Evolution Phylogenetic Tree — Liquid Glass Theme
+   ══════════════════════════════════════════════════════ */
+
+.phylo-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* ── Header ── */
+.phylo-tree__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phylo-tree__title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.phylo-tree__title {
+  font-size: var(--fs-lg, 18px);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.phylo-tree__subtitle {
+  font-size: var(--fs-xs, 12px);
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.phylo-tree__toggle {
+  padding: 6px 14px;
+  border-radius: var(--r-pill, 99px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  font-size: var(--fs-xs, 12px);
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--dur-fast, 150ms) var(--ease-out, ease-out),
+              color var(--dur-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.phylo-tree__toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.phylo-tree__toggle--active {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--accent, #4f46e5);
+  border-color: rgba(79, 70, 229, 0.2);
+}
+
+/* ── Stats strip ── */
+.phylo-tree__stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.phylo-tree__stat-card {
+  flex: 1 1 100px;
+  min-width: 100px;
+  padding: 10px 16px;
+  border-radius: var(--r-card, 18px);
+  background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: var(--blur-l3, blur(8px));
+  display: flex;
+  flex-direction: column;
+}
+
+.phylo-tree__stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phylo-tree__stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ── Canvas container — Liquid Glass ── */
+.phylo-tree__canvas-container {
+  position: relative;
+  flex: 1;
+  min-height: 600px;
+  border-radius: var(--r-card, 18px);
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(238, 242, 255, 0.5) 40%,
+    rgba(224, 231, 255, 0.4) 70%,
+    rgba(245, 243, 255, 0.5) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 4px 24px rgba(99, 102, 241, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.phylo-tree__canvas {
+  display: block;
+  width: 100%;
+  cursor: grab;
+  transition: opacity 0.3s ease;
+}
+
+.phylo-tree__canvas:active {
+  cursor: grabbing;
+}
+
+/* ── Canvas loading overlay ── */
+.phylo-tree__canvas-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: var(--r-card, 18px);
+  color: var(--muted, #64748b);
+  font-size: 13px;
+  z-index: 5;
+}
+
+.phylo-tree__canvas-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(99, 102, 241, 0.12);
+  border-top-color: var(--accent, #6366f1);
+}
+
+/* ── Zoom controls ── */
+.phylo-tree__zoom-controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.phylo-tree__zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text, #334155);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.phylo-tree__zoom-btn:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.phylo-tree__zoom-level {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Legend bar (HTML overlay) ── */
+.phylo-tree__legend-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  font-size: 12px;
+  color: var(--muted, #64748b);
+}
+
+.phylo-tree__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.phylo-tree__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.phylo-tree__legend-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+/* ── Tooltip (HTML overlay) ── */
+.phylo-tree__tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 20;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  min-width: 160px;
+  max-width: 260px;
+}
+
+.phylo-tree__tooltip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text, #1e293b);
+  margin-bottom: 2px;
+}
+
+.phylo-tree__tooltip-error {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--muted, #64748b);
+  margin-bottom: 6px;
+}
+
+.phylo-tree__tooltip-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  margin-bottom: 4px;
+}
+
+.phylo-tree__tooltip-outcome {
+  font-weight: 600;
+}
+
+.phylo-tree__tooltip-outcome--success { color: #059669; }
+.phylo-tree__tooltip-outcome--failure { color: #dc2626; }
+.phylo-tree__tooltip-outcome--fallback { color: #d97706; }
+
+.phylo-tree__tooltip-strategy {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--accent, #6366f1);
+}
+
+/* ── Selected event detail ── */
+.phylo-tree__detail {
+  padding: 16px 20px;
+}
+
+.phylo-tree__detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.phylo-tree__detail-meta {
+  display: block;
+  font-size: var(--fs-xs, 12px);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.phylo-tree__detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.phylo-tree__detail-cell {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.phylo-tree__detail-cell-label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.phylo-tree__detail-cell code {
+  font-size: var(--fs-xs, 12px);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.phylo-tree__close-btn {
+  margin-top: 10px;
+  padding: 4px 12px;
+  border-radius: var(--r-pill, 99px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.phylo-tree__close-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Shannon Diversity ── */
+.phylo-tree__shannon {
+  margin-top: 8px;
+}
+
+.phylo-tree__section-title {
+  font-size: var(--fs-xs, 12px);
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 12px;
+}
+
+.phylo-tree__shannon-cards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.phylo-tree__shannon-card {
+  flex: 1 1 140px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.phylo-tree__shannon-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phylo-tree__shannon-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.phylo-tree__shannon-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Strategy distribution bar ── */
+.phylo-tree__strat-bar {
+  margin-top: 10px;
+  padding: 14px 18px;
+}
+
+.phylo-tree__strat-segments {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 1px;
+  margin-top: 8px;
+}
+
+.phylo-tree__strat-segment {
+  min-width: 2px;
+  transition: width var(--dur-base, 280ms) var(--ease-out, ease-out);
+}
+
+.phylo-tree__strat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
+
+.phylo-tree__strat-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ── Loading & Empty states ── */
+.phylo-tree__loading,
+.phylo-tree__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.phylo-tree__loading .spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(99, 102, 241, 0.12);
+  border-top-color: var(--accent, #6366f1);
+}
+
+.phylo-tree__empty h3 {
+  font-size: var(--fs-base, 14px);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.phylo-tree__empty p {
+  font-size: var(--fs-sm, 13px);
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phylo-tree__strat-segment {
+    transition: none;
+  }
+  .phylo-tree__canvas {
+    transition: none;
+  }
+}

@@ -30,7 +30,7 @@ const CARDS = [
     {
         path: '/workforce/models',
         title: 'Model Manager',
-        desc: 'Manage and pull Ollama models',
+        desc: 'Download, configure, and manage local AI models',
         color: 'rgba(99,102,241,0.85)',
         icon: (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -61,6 +61,13 @@ export default function WorkforcePage() {
                         <svg className="section-card__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                     </button>
                 ))}
+            </div>
+
+            <div className="section-coming-soon glass-card">
+                <span className="section-coming-soon__icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                </span>
+                <span className="section-coming-soon__text">More agents coming soon</span>
             </div>
         </div>
     );

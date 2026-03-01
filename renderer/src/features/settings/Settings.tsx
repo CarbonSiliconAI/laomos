@@ -178,6 +178,15 @@ export default function Settings() {
                 <div className="settings-section glass-card">
                     <div className="settings-section__title">App Permissions</div>
                     <div className="settings-section__desc">Set access tiers for each app module</div>
+                    <p style={{
+                        fontSize: 'var(--fs-xs)',
+                        color: 'var(--muted-2)',
+                        marginTop: '2px',
+                        marginBottom: '8px',
+                        fontWeight: 400,
+                    }}>
+                        Tier 1: Read-only access &middot; Tier 2: Read + execute &middot; Tier 3: Full access (read, execute, write)
+                    </p>
                     {DEFAULT_APPS.map(app => (
                         <div key={app.id} className="settings-perm-row">
                             <span className="settings-perm-label">{app.name}</span>
