@@ -16,6 +16,7 @@ import WhatsAppPage from './features/whatsapp/WhatsApp';
 import NewsPage from './features/news/News';
 import DrawPage from './features/draw/Draw';
 import VideoPage from './features/video/Video';
+import BrowserPage from './features/browser/Browser';
 import ChatPage from './features/chat/Chat';
 import FilesPage from './features/files/Files';
 import ModelsPage from './features/models/Models';
@@ -45,6 +46,7 @@ export default function App() {
                     <Route path="/operations/news" element={<NewsPage />} />
                     <Route path="/operations/draw" element={<DrawPage />} />
                     <Route path="/operations/video" element={<VideoPage />} />
+                    <Route path="/operations/browser" element={<BrowserPage />} />
 
                     <Route path="/workforce" element={<WorkforcePage />} />
                     <Route path="/workforce/chat" element={<ChatPage />} />

@@ -99,6 +99,17 @@ const CARDS = [
             </svg>
         ),
     },
+    {
+        path: '/operations/browser',
+        title: 'Web Browser',
+        desc: 'Search the internet directly',
+        color: 'rgba(234,88,12,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+        ),
+    }
 ];
 
 export default function OperationsPage() {
