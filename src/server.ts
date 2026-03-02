@@ -13,6 +13,7 @@ import { ExternalAPIManager } from './external_api';
 import { ModelRouter } from './kernel/router';
 import { ContextManager } from './kernel/memory';
 import { AgentScheduler } from './kernel/scheduler';
+import { TaskAnalyzer } from './kernel/analyzer';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import { SkillLoader } from './kernel/skill_loader';
@@ -57,6 +58,7 @@ export class Server {
     private modelRouter: ModelRouter;
     private memory: ContextManager;
     private scheduler: AgentScheduler;
+    private taskAnalyzer: TaskAnalyzer;
     private registry: PromptRegistry;
     private tools: ToolRegistry;
     private firewall: AIFirewall;
@@ -78,6 +80,7 @@ export class Server {
         this.modelRouter = modelRouter;
         this.memory = memory;
         this.scheduler = scheduler;
+        this.taskAnalyzer = new TaskAnalyzer(modelRouter);
         this.registry = registry;
         this.tools = tools;
         this.firewall = firewall;
@@ -658,12 +661,11 @@ export class Server {
             res.json(declarations);
         });
 
-        // OpenClaw Skills Endpoint (Local)
         this.app.get('/api/skills', (req, res) => {
             try {
                 // Return structured SkillLoader data to frontend
                 const activeSkills = this.skillLoader.loadSkills();
-                res.json(activeSkills);
+                res.json({ skills: activeSkills });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }
@@ -845,8 +847,20 @@ You can use tools multiple times in a row. Once you have fully completed the use
             try {
                 const query = req.query.q as string || '';
 
-                // Fetch skills from the official ClawHub registry
-                const apiResponse = await fetch(`https://clawhub.ai/api/v1/skills?sort=downloads&search=${encodeURIComponent(query)}`);
+                let apiResponse;
+                let itemsList = [];
+
+                if (query.trim() === '') {
+                    // If empty query, fetch top downloaded skills (Discovery mode)
+                    apiResponse = await fetch(`https://clawhub.ai/api/v1/skills?sort=downloads`, {
+                        headers: { 'User-Agent': 'curl/8.7.1' }
+                    });
+                } else {
+                    // Normal search mode
+                    apiResponse = await fetch(`https://clawhub.ai/api/v1/search?q=${encodeURIComponent(query)}`, {
+                        headers: { 'User-Agent': 'curl/8.7.1' }
+                    });
+                }
 
                 if (!apiResponse.ok) {
                     throw new Error(`ClawHub API returned ${apiResponse.status}: ${apiResponse.statusText}`);
@@ -854,16 +868,37 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
                 const data = await apiResponse.json();
 
+                // The /skills endpoint returns .items, the /search endpoint returns .results
+                itemsList = query.trim() === '' ? data.items : data.results;
+
                 // Map the ClawHub payload and concurrently fetch the SKILL.md contents
-                const formattedSkills = await Promise.all((data.items || []).map(async (skillInfo: any) => {
+                const formattedSkills = await Promise.all((itemsList || []).map(async (skillInfo: any) => {
                     let markdownContent = '';
-                    const version = skillInfo.tags?.latest;
                     const slug = skillInfo.slug;
+                    let version = skillInfo.version;
+
+                    // The search API often returns `version: null`. We need to resolve the latest version.
+                    if (!version && slug) {
+                        try {
+                            const metaRes = await fetch(`https://clawhub.ai/api/v1/skills/${slug}`, {
+                                headers: { 'User-Agent': 'curl/8.7.1' },
+                                signal: AbortSignal.timeout(5000)
+                            });
+                            if (metaRes.ok) {
+                                const metaData = await metaRes.json();
+                                version = metaData.skill?.tags?.latest || metaData.latestVersion?.version;
+                            }
+                        } catch (e: any) {
+                            console.warn(`[ClawHub] Failed to resolve version for ${slug}: ${e.message}`);
+                        }
+                    }
 
                     if (version && slug) {
                         try {
-                            const zipUrl = `https://registry.clawhub.ai/${slug}/${version}.zip`;
-                            const zipResponse = await fetch(zipUrl);
+                            const zipUrl = `https://clawhub.ai/api/v1/download?slug=${slug}&version=${version}`;
+                            const zipResponse = await fetch(zipUrl, {
+                                headers: { 'User-Agent': 'curl/8.7.1' }
+                            });
                             if (zipResponse.ok) {
                                 const buffer = Buffer.from(await zipResponse.arrayBuffer());
                                 markdownContent = await extractSkillMdFromZip(buffer);
@@ -889,7 +924,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     };
                 }));
 
-                res.json({ results: formattedSkills });
+                res.json({ apps: formattedSkills });
             } catch (error: any) {
                 const code = error?.cause?.code ?? error?.code ?? '';
                 if (code === 'ENOTFOUND' || code === 'ECONNREFUSED') {
@@ -898,6 +933,47 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     console.error('[ClawHub Search Error]', error.message);
                 }
                 res.status(503).json({ error: 'ClawHub registry is unavailable.' });
+            }
+        });
+
+        // OpenClaw ClawHub Install Endpoint
+        this.app.post('/api/clawhub/install', async (req, res) => {
+            try {
+                const { slug, version } = req.body;
+                if (!slug || !version) {
+                    return res.status(400).json({ error: 'Missing slug or version.' });
+                }
+
+                console.log(`[ClawHub] Starting download of ${slug}@${version}...`);
+                const zipUrl = `https://clawhub.ai/api/v1/download?slug=${slug}&version=${version}`;
+
+                // Shadow Browser Download
+                const response = await fetch(zipUrl, {
+                    headers: { 'User-Agent': 'curl/8.7.1' }
+                });
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch skill package: ${response.statusText}`);
+                }
+
+                // Buffer the zip file
+                const buffer = Buffer.from(await response.arrayBuffer());
+
+                // Save zip into storage/skills
+                const skillsDir = path.join(this.fsManager.getRootDir(), 'skills');
+                if (!fs.existsSync(skillsDir)) fs.mkdirSync(skillsDir, { recursive: true });
+
+                const zipPath = path.join(skillsDir, `${slug}-${version}.zip`);
+                fs.writeFileSync(zipPath, buffer);
+
+                console.log(`[ClawHub] Downloaded ${zipPath}. Triggering auto-extract...`);
+
+                // Trigger the auto-extraction by forcing a skill reload from disk cache
+                this.skillLoader.loadSkills(true);
+
+                res.json({ success: true, message: `Installed ${slug}@${version}` });
+            } catch (error: any) {
+                console.error(`[ClawHub Install Error] ${error.message}`);
+                res.status(500).json({ error: error.message });
             }
         });
 
@@ -1665,6 +1741,18 @@ Instructions:
             const state = this.scheduler.getJobStatus(req.params.jobId);
             if (!state) return res.status(404).json({ error: 'Job not found' });
             res.json(state);
+        });
+
+        this.app.post('/api/kernel/analyze', async (req, res) => {
+            try {
+                const { prompt } = req.body;
+                if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+
+                const analysis = await this.taskAnalyzer.analyzeTask(prompt);
+                res.json(analysis);
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
         });
 
         // Mock Search API Endpoint for AI Flow Testing

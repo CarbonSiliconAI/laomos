@@ -60,7 +60,7 @@ export class GeminiProvider implements ModelProvider {
             });
 
             const candidates = response.data.candidates;
-            if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts.length > 0) {
+            if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts?.length > 0) {
                 return candidates[0].content.parts[0].text;
             } else {
                 return '';

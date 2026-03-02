@@ -1,0 +1,303 @@
+.analyzer-app {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: transparent;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.analyzer-header {
+    flex-shrink: 0;
+    margin-bottom: 24px;
+}
+
+.analyzer-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-color), var(--primary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.analyzer-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: var(--muted-2);
+}
+
+.analyzer-chat-area {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 24px;
+    scroll-behavior: smooth;
+}
+
+.analyzer-empty {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 400px;
+    color: var(--muted-2);
+    opacity: 0.6;
+}
+
+.analyzer-empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--bg-modifier-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.analyzer-empty h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.analyzer-empty p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.analyzer-message {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.analyzer-message.user {
+    flex-direction: row-reverse;
+}
+
+.analyzer-message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-modifier-active);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-color);
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+}
+
+.analyzer-message.user .analyzer-message-avatar {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.analyzer-message-bubble {
+    max-width: 80%;
+}
+
+.analyzer-message-text {
+    background: var(--bg-color-tertiary);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border-top-right-radius: 4px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.analyzer-message.assistant .analyzer-message-text {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 12px;
+    background: var(--bg-color-secondary);
+}
+
+.analyzer-parsed-card {
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 500px;
+    max-width: 100%;
+}
+
+.analyzer-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.analyzer-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analyzer-label.success-label {
+    color: var(--success-color);
+}
+
+.analyzer-value {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background: var(--bg-color-tertiary);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.analyzer-error {
+    color: var(--danger-color);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.analyzer-input-area {
+    margin-top: auto;
+    display: flex;
+    gap: 12px;
+    background: #ffffff;
+    padding: 12px 20px;
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+    align-items: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    .analyzer-input-area {
+        background: #1e1e1e;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.analyzer-input-area textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 15px;
+    resize: none;
+    padding: 8px;
+    font-family: inherit;
+    line-height: 1.5;
+    min-height: 24px;
+    max-height: 150px;
+}
+
+.analyzer-input-area textarea:focus {
+    outline: none;
+}
+
+.analyzer-input-area textarea::placeholder {
+    color: var(--muted-3);
+}
+
+.analyzer-send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.analyzer-send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: var(--primary-hover);
+}
+
+.analyzer-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-modifier-active);
+    color: var(--muted-2);
+}
+
+/* Typing Indicator */
+.analyzer-typing-indicator {
+    background: var(--bg-color-secondary);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border-top-left-radius: 4px;
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.analyzer-typing-indicator span {
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+
+.analyzer-typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.analyzer-typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

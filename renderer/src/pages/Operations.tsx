@@ -43,6 +43,17 @@ const WORKFLOW_TOOLS = [
             </svg>
         ),
     },
+    {
+        path: '/operations/analyzer',
+        title: 'Task Analyzer',
+        desc: 'Goal-driven kernel testing',
+        color: 'rgba(99,102,241,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+        ),
+    },
 ];
 
 const CREATIVE_ENTERTAINMENT = [

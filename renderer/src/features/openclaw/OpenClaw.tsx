@@ -15,6 +15,7 @@ export default function OpenClaw() {
     const [apps, setApps] = useState<ClawApp[]>([]);
     const [query, setQuery] = useState('');
     const [hubLoading, setHubLoading] = useState(false);
+    const [installingSlug, setInstallingSlug] = useState<string | null>(null);
 
     // Inspector
     const [selectedSkill, setSelectedSkill] = useState<SkillDef | null>(null);
@@ -36,6 +37,25 @@ export default function OpenClaw() {
             .then(r => setApps(r.apps ?? []))
             .catch(() => setApps([]))
             .finally(() => setHubLoading(false));
+    }
+
+    async function installSkill(e: React.MouseEvent, slug: string, version: string) {
+        e.stopPropagation();
+        setInstallingSlug(slug);
+        try {
+            const res = await api.clawInstall(slug, version);
+            if (res.success) {
+                // Update local list of apps to show it's installed (if possible) or just switch to Local Skills tab.
+                fetchLocalSkills();
+                setTab('local');
+            } else {
+                alert(`Install failed: ${res.message}`);
+            }
+        } catch (err: any) {
+            alert(`Install failed: ${err.message}`);
+        } finally {
+            setInstallingSlug(null);
+        }
     }
 
     useEffect(() => { fetchLocalSkills(); }, []);
@@ -165,8 +185,14 @@ export default function OpenClaw() {
                                                 <div className="claw-card__version">v{app.version}</div>
                                             </div>
                                             <button className={`btn ${app.installed ? 'btn-ghost' : 'btn-primary'} claw-card__install`}
-                                                onClick={e => { e.stopPropagation(); if (!app.installed) alert(`Install ${app.name} — coming soon`); }}>
-                                                {app.installed ? 'Installed' : 'Install'}
+                                                disabled={installingSlug === (app.slug || app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || app.installed}
+                                                onClick={e => {
+                                                    if (!app.installed) {
+                                                        const validSlug = app.slug || app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                                                        installSkill(e, validSlug, app.version || '1.0.0');
+                                                    }
+                                                }}>
+                                                {app.installed ? 'Installed' : installingSlug === (app.slug || app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) ? 'Installing...' : 'Install'}
                                             </button>
                                         </div>
                                         <p className="claw-card__desc">{app.description}</p>

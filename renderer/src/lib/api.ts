@@ -103,12 +103,13 @@ export const api = {
     telemetryRun: (runId: string) => apiFetch<RunRecord>(`/api/telemetry/runs/${runId}`),
     telemetryUsagePerHour: () => apiFetch<{ data: UsageHour[] }>('/api/telemetry/usage-per-hour'),
     telemetryProviderUsage: () => apiFetch<{ data: ProviderUsage[] }>('/api/telemetry/provider-usage'),
-    aiJobs: () => apiFetch<{ jobs: AIJob[] }>('/api/ai/jobs'),
-    aiStop: (jobId: string) => apiFetch<{ success: boolean; message?: string }>('/api/ai/stop', { method: 'POST', body: JSON.stringify({ jobId }) }),
     systemMetrics: () => apiFetch<HardwareMetrics>('/api/system/metrics'),
 
     // ── OpenClaw ────────────────────────────
     clawSearch: (q: string) => apiFetch<{ apps: ClawApp[] }>(`/api/clawhub/search?q=${encodeURIComponent(q)}`),
+    clawInstall: (slug: string, version: string) => apiFetch<{ success: boolean; message: string }>('/api/clawhub/install', {
+        method: 'POST', body: JSON.stringify({ slug, version })
+    }),
 
     // ── RAG ─────────────────────────────────
     ragSearch: (q: string, tags?: string) => apiFetch<{ apps: object[] }>(
@@ -117,6 +118,11 @@ export const api = {
 
     // ── Graph ───────────────────────────────
     graph: () => apiFetch<{ nodes: object[]; edges: object[] }>('/api/graph'),
+
+    // ── Kernel Analyzer ─────────────────────
+    kernelAnalyze: (prompt: string) => apiFetch<AnalyzedTask>('/api/kernel/analyze', {
+        method: 'POST', body: JSON.stringify({ prompt }),
+    }),
 
     // ── Budget / Cache ───────────────────────
     budgetGet: () => apiFetch<BudgetConstraint>('/api/budget'),
@@ -128,6 +134,13 @@ export const api = {
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────
+
+export interface AnalyzedTask {
+    target: string;
+    expected_output: string;
+    success_criteria: string;
+    error?: string;
+}
 
 export interface SkillDef {
     id: string;
@@ -229,6 +242,7 @@ export interface ClawApp {
     id: string;
     name: string;
     description: string;
+    slug?: string;
     tags: string[];
     version: string;
     installed?: boolean;
