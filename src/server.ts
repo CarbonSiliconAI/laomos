@@ -17,6 +17,7 @@ import { TaskAnalyzer } from './kernel/analyzer';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import { SkillLoader } from './kernel/skill_loader';
+import { TelegramSkillDaemon } from './kernel/telegram_skill_daemon';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
@@ -63,6 +64,7 @@ export class Server {
     private tools: ToolRegistry;
     private firewall: AIFirewall;
     private skillLoader: SkillLoader;
+    private telegramDaemon: TelegramSkillDaemon;
     private journal?: ExecutionJournal;
     private gameManager: GameManager;
     private mailManager: MailManager;
@@ -85,6 +87,7 @@ export class Server {
         this.tools = tools;
         this.firewall = firewall;
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
+        this.telegramDaemon = new TelegramSkillDaemon(this.modelRouter, this.taskAnalyzer, this.skillLoader, this.fsManager.getRootDir());
         this.journal = journal;
         this.gameManager = new GameManager(this.fsManager.getPersonalDir());
 
@@ -1217,6 +1220,39 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 res.json({ success: true, result: data.result });
             } catch (error: any) {
                 console.error('[Server] Telegram Send error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Telegram Skill Daemon Endpoints ─────────────────────────────────
+        this.app.post('/api/telegram/skill-daemon/start', async (req, res) => {
+            try {
+                const { token, chatId } = req.body;
+                if (!token || !chatId) return res.status(400).json({ error: 'Token and chatId are required.' });
+                this.telegramDaemon.start(token, chatId);
+                res.json({ success: true, message: 'Telegram Skill Daemon started.' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/telegram/skill-daemon/stop', async (_req, res) => {
+            try {
+                this.telegramDaemon.stop();
+                res.json({ success: true, message: 'Telegram Skill Daemon stopped.' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/telegram/skill-daemon/status', async (_req, res) => {
+            try {
+                res.json({
+                    running: this.telegramDaemon.isRunning(),
+                    log: this.telegramDaemon.getLog(),
+                    messages: this.telegramDaemon.getMessages()
+                });
+            } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }
         });

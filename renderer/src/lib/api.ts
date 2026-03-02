@@ -111,6 +111,13 @@ export const api = {
         method: 'POST', body: JSON.stringify({ slug, version })
     }),
 
+    // ── Telegram Skill Daemon ───────────────
+    telegramDaemonStart: (token: string, chatId: string) => apiFetch<{ success: boolean }>('/api/telegram/skill-daemon/start', {
+        method: 'POST', body: JSON.stringify({ token, chatId })
+    }),
+    telegramDaemonStop: () => apiFetch<{ success: boolean }>('/api/telegram/skill-daemon/stop', { method: 'POST' }),
+    telegramDaemonStatus: () => apiFetch<{ running: boolean; log: { timestamp: number; type: string; message: string }[]; messages: { id: number; text: string; isSelf: boolean; date: number; sender: string }[] }>('/api/telegram/skill-daemon/status'),
+
     // ── RAG ─────────────────────────────────
     ragSearch: (q: string, tags?: string) => apiFetch<{ apps: object[] }>(
         `/api/apps/search?q=${encodeURIComponent(q)}${tags ? `&tags=${encodeURIComponent(tags)}` : ''}`

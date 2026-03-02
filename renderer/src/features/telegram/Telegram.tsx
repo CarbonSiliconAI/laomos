@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { api } from '../../lib/api';
 import './Telegram.css';
 
 interface Message {
@@ -28,6 +29,12 @@ export default function Telegram() {
     const offsetRef = useRef<number | undefined>(undefined);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // ── AI Skills Daemon ──────────────────────────────────────────────
+    const [daemonRunning, setDaemonRunning] = useState(false);
+    const [daemonLog, setDaemonLog] = useState<{ timestamp: number; type: string; message: string }[]>([]);
+    const [showLog, setShowLog] = useState(false);
+    const [daemonToggling, setDaemonToggling] = useState(false);
+
     // ── Add-new Inputs ───────────────────────────────────────────────
     const [showAddToken, setShowAddToken] = useState(false);
     const [newTokenLabel, setNewTokenLabel] = useState('');
@@ -39,6 +46,10 @@ export default function Telegram() {
     // ── Load saved config on mount ───────────────────────────────────
     useEffect(() => {
         fetchConfig();
+        // Check daemon status on mount
+        api.telegramDaemonStatus()
+            .then(s => { setDaemonRunning(s.running); setDaemonLog(s.log || []); })
+            .catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -108,13 +119,15 @@ export default function Telegram() {
         fetchUpdates();
     }
 
-    // ── Start/stop polling when logged in ─────────────────────────
+    // ── Start/stop polling when logged in (pause when daemon is active) ──
     useEffect(() => {
-        if (isLoggedIn && token) {
+        if (isLoggedIn && token && !daemonRunning) {
             pollingRef.current = setInterval(() => fetchUpdates(), 3000);
             return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
         }
-    }, [isLoggedIn, token]);
+        // If daemon is running, clear any existing polling
+        if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    }, [isLoggedIn, token, daemonRunning]);
 
     async function fetchUpdates() {
         if (!token) return;
@@ -161,6 +174,51 @@ export default function Telegram() {
     function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') send();
     }
+
+    // ── Daemon toggle ────────────────────────────────────────────────
+    async function toggleDaemon() {
+        setDaemonToggling(true);
+        try {
+            if (daemonRunning) {
+                await api.telegramDaemonStop();
+                setDaemonRunning(false);
+            } else {
+                if (!chatId.trim()) {
+                    alert('Please select a Chat ID before enabling AI Skills.');
+                    setDaemonToggling(false);
+                    return;
+                }
+                await api.telegramDaemonStart(token, chatId);
+                setDaemonRunning(true);
+            }
+        } catch (err: any) {
+            alert('Daemon error: ' + err.message);
+        } finally {
+            setDaemonToggling(false);
+        }
+    }
+
+    // Poll daemon log + messages when running
+    useEffect(() => {
+        if (!daemonRunning) return;
+        const logInterval = setInterval(async () => {
+            try {
+                const s = await api.telegramDaemonStatus();
+                setDaemonLog(s.log || []);
+                setDaemonRunning(s.running);
+
+                // Merge daemon messages into the chat UI
+                if (s.messages && s.messages.length > 0) {
+                    setMessages(prev => {
+                        const existingIds = new Set(prev.map(m => m.id));
+                        const newMsgs = s.messages.filter(m => !existingIds.has(m.id));
+                        return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
+                    });
+                }
+            } catch (_) { }
+        }, 3000);
+        return () => clearInterval(logInterval);
+    }, [daemonRunning]);
 
     // ── LOGIN SCREEN ─────────────────────────────────────────────────
     if (!isLoggedIn) {
@@ -253,6 +311,21 @@ export default function Telegram() {
                     <p className="telegram-header__sub">Connected</p>
                 </div>
                 <div className="telegram-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                        className={`btn ${daemonRunning ? 'btn-danger' : 'btn-primary'}`}
+                        onClick={toggleDaemon}
+                        disabled={daemonToggling}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--fs-xs)' }}
+                    >
+                        <span style={{ fontSize: '14px' }}>{daemonRunning ? '⏹' : '🤖'}</span>
+                        {daemonToggling ? '...' : daemonRunning ? 'Stop AI Skills' : 'AI Skills'}
+                    </button>
+                    {daemonRunning && (
+                        <button className="btn btn-secondary" onClick={() => setShowLog(!showLog)}
+                            style={{ fontSize: 'var(--fs-xs)', padding: '4px 10px' }}>
+                            {showLog ? 'Hide Log' : 'Log'}
+                        </button>
+                    )}
                     <button className="btn btn-secondary" onClick={fetchUpdates} disabled={loading}>Refresh</button>
                     <button className="btn btn-secondary btn-danger" onClick={() => setIsLoggedIn(false)}>Disconnect</button>
                 </div>
@@ -318,6 +391,47 @@ export default function Telegram() {
                     display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--fs-xs)',
                 }}>
                     <span>⚠️</span><span>Select or enter a <strong>Chat ID</strong> above to send messages.</span>
+                </div>
+            )}
+
+            {/* ── Daemon Activity Log ── */}
+            {showLog && daemonRunning && (
+                <div style={{
+                    maxHeight: '180px', overflow: 'auto', padding: '8px 16px',
+                    borderBottom: '1px solid var(--line)',
+                    background: 'var(--glass-strong)', fontSize: 'var(--fs-xs)',
+                    fontFamily: 'var(--font-mono, monospace)',
+                }}>
+                    {daemonLog.length === 0 && <span style={{ color: 'var(--muted)' }}>No activity yet...</span>}
+                    {daemonLog.map((entry, i) => (
+                        <div key={i} style={{
+                            padding: '2px 0', display: 'flex', gap: '8px',
+                            color: entry.type === 'error' ? 'var(--bad)'
+                                : entry.type === 'match' ? 'var(--accent)'
+                                    : entry.type === 'execute' ? '#f59e0b'
+                                        : entry.type === 'reply' ? 'var(--good)'
+                                            : 'var(--muted)',
+                        }}>
+                            <span style={{ opacity: 0.5, whiteSpace: 'nowrap' }}>
+                                {new Date(entry.timestamp).toLocaleTimeString()}
+                            </span>
+                            <span style={{ fontWeight: 600, width: '56px', textTransform: 'uppercase' }}>{entry.type}</span>
+                            <span style={{ flex: 1 }}>{entry.message}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Daemon Status Indicator ── */}
+            {daemonRunning && !showLog && (
+                <div style={{
+                    padding: '6px 16px', borderBottom: '1px solid var(--line)',
+                    background: 'rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', gap: '8px',
+                    fontSize: 'var(--fs-xs)',
+                }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+                    <span style={{ color: '#10b981', fontWeight: 600 }}>AI Skills Daemon Active</span>
+                    <span style={{ color: 'var(--muted)' }}>— Listening for incoming messages and routing to OpenClaw skills</span>
                 </div>
             )}
 
