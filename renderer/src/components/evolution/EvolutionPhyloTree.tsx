@@ -234,17 +234,18 @@ export default function EvolutionPhyloTree() {
     requestAnimationFrame(() => setCanvasReady(true));
   }, [tree, canvasSize]);
 
-  // Resize observer
+  // Resize observer — observe canvas element directly for exact CSS dimensions
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new ResizeObserver(entries => {
-      const { width, height } = entries[0].contentRect;
-      const w = Math.max(600, Math.floor(width));
-      const h = Math.max(600, Math.floor(height - 20));
-      setCanvasSize({ width: w, height: h });
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (w > 0 && h > 0) {
+        setCanvasSize({ width: w, height: h });
+      }
     });
-    observer.observe(container);
+    observer.observe(canvas);
     return () => observer.disconnect();
   }, []);
 
@@ -256,16 +257,20 @@ export default function EvolutionPhyloTree() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { width: W, height: H } = canvasSize;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-
     function draw() {
-      if (!ctx) return;
-      const W = canvasSize.width;
-      const H = canvasSize.height;
+      if (!ctx || !canvas) return;
+
+      // Sync buffer to actual CSS display size every frame — no lag, no mismatch
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth;
+      const H = canvas.clientHeight;
+      const bufW = Math.round(W * dpr);
+      const bufH = Math.round(H * dpr);
+      if (canvas.width !== bufW || canvas.height !== bufH) {
+        canvas.width = bufW;
+        canvas.height = bufH;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Clear canvas (CSS provides the Liquid Glass background)
       ctx.clearRect(0, 0, W, H);
@@ -422,8 +427,10 @@ export default function EvolutionPhyloTree() {
     const handler = (e: WheelEvent) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      const scaleX = canvas.clientWidth / rect.width;
+      const scaleY = canvas.clientHeight / rect.height;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
       const t = transformRef.current;
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
       const newScale = Math.max(0.3, Math.min(5, t.scale * zoomFactor));
@@ -472,8 +479,11 @@ export default function EvolutionPhyloTree() {
 
     const rect = canvas.getBoundingClientRect();
     const t = transformRef.current;
-    const screenX = e.clientX - rect.left;
-    const screenY = e.clientY - rect.top;
+    // Map mouse position from CSS display space to drawing coordinate space
+    const scaleX = canvas.clientWidth / rect.width;
+    const scaleY = canvas.clientHeight / rect.height;
+    const screenX = (e.clientX - rect.left) * scaleX;
+    const screenY = (e.clientY - rect.top) * scaleY;
     // Convert screen coords to world coords accounting for zoom/pan
     const worldX = (screenX - t.x) / t.scale;
     const worldY = (screenY - t.y) / t.scale;
@@ -626,7 +636,7 @@ export default function EvolutionPhyloTree() {
         <canvas
           ref={canvasRef}
           className="phylo-tree__canvas"
-          style={{ width: canvasSize.width, height: canvasSize.height, opacity: canvasReady ? 1 : 0 }}
+          style={{ opacity: canvasReady ? 1 : 0 }}
           onMouseMove={handleMouseMove}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
