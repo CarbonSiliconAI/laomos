@@ -22,6 +22,7 @@ export default function OpenClaw() {
     const [inspectorInput, setInspectorInput] = useState('');
     const [inspectorOutput, setInspectorOutput] = useState('');
     const [executing, setExecuting] = useState(false);
+    const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
     const [selectedProvider, setSelectedProvider] = useState('cloud');
 
     function fetchLocalSkills() {
@@ -76,10 +77,16 @@ export default function OpenClaw() {
 
     async function runSkill() {
         if (!selectedSkill || !inspectorInput.trim()) return;
+
+        // Generate a random ID for this execution so we can target it for cancellation
+        const execId = crypto.randomUUID();
+        setCurrentExecutionId(execId);
+
         setExecuting(true);
         setInspectorOutput('Contacting Kernel ModelRouter...');
         try {
             const res = await api.skillsExecute({
+                executionId: execId,
                 skillContext: (selectedSkill as any).instructions ?? (selectedSkill as any).skill_markdown ?? '',
                 userInput: inspectorInput.trim(),
                 preferredProvider: selectedProvider,
@@ -89,6 +96,19 @@ export default function OpenClaw() {
             setInspectorOutput(`Error: ${e.message}`);
         } finally {
             setExecuting(false);
+            setCurrentExecutionId(null);
+        }
+    }
+
+    async function stopSkill() {
+        if (!currentExecutionId) return;
+        try {
+            await api.skillsCancel(currentExecutionId);
+            setInspectorOutput(prev => prev + '\n\n[Skill Execution Cancelled by User]');
+            setExecuting(false);
+            setCurrentExecutionId(null);
+        } catch (e) {
+            console.error('Failed to cancel skill', e);
         }
     }
 
@@ -307,13 +327,25 @@ export default function OpenClaw() {
                                 rows={3}
                             />
 
-                            <button
-                                className="btn btn-primary claw-inspector__run"
-                                onClick={runSkill}
-                                disabled={executing || !inspectorInput.trim()}
-                            >
-                                {executing ? <><div className="spinner" /> Executing...</> : 'Run Skill'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    className="btn btn-primary claw-inspector__run"
+                                    style={{ flex: 1 }}
+                                    onClick={runSkill}
+                                    disabled={executing || !inspectorInput.trim()}
+                                >
+                                    {executing ? <><div className="spinner" /> Executing...</> : 'Run Skill'}
+                                </button>
+                                {executing && (
+                                    <button
+                                        className="btn"
+                                        style={{ background: '#ef4444', color: 'white', border: '1px solid #dc2626' }}
+                                        onClick={stopSkill}
+                                    >
+                                        Stop
+                                    </button>
+                                )}
+                            </div>
 
                             {inspectorOutput && (
                                 <>

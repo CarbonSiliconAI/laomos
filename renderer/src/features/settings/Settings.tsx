@@ -52,6 +52,10 @@ export default function Settings() {
     const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
     const [updateReady, setUpdateReady] = useState(false);
 
+    // Auto-Config
+    const [configRunning, setConfigRunning] = useState(false);
+    const [configLog, setConfigLog] = useState('');
+
     // App Permissions
     const [permissions, setPermissions] = useState<Record<string, string>>(() => {
         try { return JSON.parse(localStorage.getItem('appPermissions') ?? '{}'); } catch { return {}; }
@@ -114,6 +118,19 @@ export default function Settings() {
     async function switchChannel(ch: string) {
         setChannel(ch);
         await window.osUpdater?.channel.set(ch).catch(() => { });
+    }
+
+    async function runAutoConfig() {
+        setConfigRunning(true);
+        setConfigLog('Starting system auto-configuration...\nThis will install node, python, and ollama using Homebrew.\nThis might take a few minutes.');
+        try {
+            const res = await api.systemAutoConfig();
+            setConfigLog(prev => prev + '\n\n' + (res.log || 'Completed successfully.'));
+        } catch (err: any) {
+            setConfigLog(prev => prev + '\n\nError: ' + err.message);
+        } finally {
+            setConfigRunning(false);
+        }
     }
 
     return (
@@ -263,6 +280,31 @@ export default function Settings() {
                     <button className="btn btn-ghost" onClick={clearCache} disabled={clearing}>
                         {clearing ? <><div className="spinner" /> Clearing…</> : 'Clear Cache'}
                     </button>
+                </div>
+
+                {/* Auto-Config */}
+                <div className="settings-section glass-card">
+                    <div className="settings-section__title">System Auto-Config</div>
+                    <div className="settings-section__desc">Install required system dependencies (Node/npm, Python, Ollama) via Homebrew</div>
+                    <div className="settings-btn-row" style={{ marginTop: '12px' }}>
+                        <button className="btn btn-primary" onClick={runAutoConfig} disabled={configRunning}>
+                            {configRunning ? <><div className="spinner" /> Configuring…</> : 'Run Auto-Config'}
+                        </button>
+                    </div>
+                    {configLog && (
+                        <div className="settings-log-box mono" style={{
+                            marginTop: '12px',
+                            padding: '12px',
+                            background: 'var(--bg-3)',
+                            borderRadius: '6px',
+                            fontSize: 'var(--fs-xs)',
+                            whiteSpace: 'pre-wrap',
+                            maxHeight: '200px',
+                            overflowY: 'auto'
+                        }}>
+                            {configLog}
+                        </div>
+                    )}
                 </div>
 
                 {/* System */}

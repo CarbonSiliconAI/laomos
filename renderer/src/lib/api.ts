@@ -36,6 +36,9 @@ export const api = {
     skillsExecute: (body: object) => apiFetch<{ result: string }>('/api/skills/execute', {
         method: 'POST', body: JSON.stringify(body),
     }),
+    skillsCancel: (executionId: string) => apiFetch<{ success: boolean; message: string }>('/api/skills/cancel', {
+        method: 'POST', body: JSON.stringify({ executionId }),
+    }),
     kernelTools: () => apiFetch<{ tools: ToolDef[] }>('/api/kernel/tools'),
     kernelRun: (body: object) => apiFetch('/api/kernel/run', {
         method: 'POST', body: JSON.stringify(body),
@@ -97,6 +100,7 @@ export const api = {
     systemFirewallSet: (enabled: boolean) => apiFetch<{ success: boolean; enabled: boolean }>('/api/system/firewall', {
         method: 'POST', body: JSON.stringify({ enabled }),
     }),
+    systemAutoConfig: () => apiFetch<{ success: boolean; log?: string }>('/api/system/auto-config', { method: 'POST' }),
     // ── Activity Monitor & Telemetry ───────────────────────────
     telemetryStats: () => apiFetch<TelemetryStats>('/api/telemetry/stats'),
     telemetryRuns: () => apiFetch<{ runs: RunRecord[] }>('/api/telemetry/runs'),

@@ -29,6 +29,7 @@ import OpenClawPage from './features/openclaw/OpenClaw';
 import MonitorPage from './features/monitor/Monitor';
 import HistoryPage from './features/history/History';
 import SettingsPage from './features/settings/Settings';
+import AutoConfigPage from './features/auto-config/AutoConfig';
 import EvolutionTreePage from './pages/EvolutionTree';
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
                     <Route path="/governance" element={<GovernancePage />} />
                     <Route path="/governance/monitor" element={<MonitorPage />} />
                     <Route path="/governance/history" element={<HistoryPage />} />
+                    <Route path="/governance/auto-config" element={<AutoConfigPage />} />
                     <Route path="/governance/settings" element={<SettingsPage />} />
                     <Route path="/governance/evolution-tree" element={<EvolutionTreePage />} />
                     <Route path="/governance/api-keys" element={<ApiKeysPage />} />

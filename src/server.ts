@@ -71,6 +71,7 @@ export class Server {
     private gameManager: GameManager;
     private mailManager: MailManager;
     private activeRequests: RequestManager = {};
+    private activeSkillExecutions = new Map<string, AbortController>();
     private httpServer: any;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -561,6 +562,75 @@ export class Server {
             }
         });
 
+        // API Endpoint for system auto-config (install dependencies)
+        this.app.post('/api/system/auto-config', async (req, res) => {
+            try {
+                const util = require('util');
+                const os = require('os');
+                const execAsync = util.promisify(require('child_process').exec);
+
+                let command = '';
+                const platform = os.platform();
+
+                res.setHeader('Content-Type', 'application/json');
+
+                if (platform === 'darwin') {
+                    // macOS: Use Homebrew. Ensure user's path is loaded.
+                    const tempScriptPath = require('path').join(os.tmpdir(), 'laomos-brew-install.sh');
+                    require('fs').writeFileSync(tempScriptPath, '#!/bin/bash\n' +
+                        'echo "Laomos Auto-Config"\n' +
+                        'echo "Please enter your Mac password to install Homebrew."\n' +
+                        '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"\n' +
+                        'echo ""\n' +
+                        'echo "Done! Please close this terminal and click Auto-Config in Laomos again."\n'
+                    );
+                    require('fs').chmodSync(tempScriptPath, 0o755);
+
+                    command = `
+                        export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+                        if ! command -v brew &> /dev/null; then
+                            osascript -e 'tell application "Terminal" to activate' -e 'tell application "Terminal" to do script "${tempScriptPath}"'
+                            echo "A Terminal window has been opened to securely ask for your Mac password."
+                            echo "Please complete the Homebrew installation there, then click 'Run Auto-Config' again!"
+                            exit 0
+                        fi
+                        echo "Installing dependencies via Homebrew..."
+                        brew install node python ollama
+                    `;
+                } else if (platform === 'win32') {
+                    // Windows: Use winget
+                    command = 'winget install OpenJS.NodeJS Python.Python.3.11 Ollama.Ollama --accept-package-agreements --accept-source-agreements';
+                } else if (platform === 'linux') {
+                    // Linux: Assume apt-based for now (Debian/Ubuntu)
+                    command = `
+                        if ! sudo -n true 2>/dev/null; then
+                            echo "ERROR: Laomos requires permission to install packages."
+                            echo "Please run this command manually in your terminal:"
+                            echo "  sudo apt-get update && sudo apt-get install -y nodejs npm python3 python3-pip curl && curl -fsSL https://ollama.com/install.sh | sh"
+                            exit 1
+                        fi
+                        echo "Updating apt package list..."
+                        sudo apt-get update
+                        echo "Installing Node and Python..."
+                        sudo apt-get install -y nodejs npm python3 python3-pip curl
+                        echo "Installing Ollama..."
+                        curl -fsSL https://ollama.com/install.sh | sh
+                    `;
+                } else {
+                    throw new Error(`Unsupported operating system for auto-config: ${platform}`);
+                }
+
+                const { stdout, stderr } = await execAsync(command);
+                res.json({ success: true, log: stdout + '\n' + stderr });
+            } catch (error: any) {
+                console.error('[Server] Auto-config error:', error);
+                res.status(500).json({
+                    error: error.message || 'Auto-config failed',
+                    log: error.stdout ? (error.stdout + '\n' + error.stderr) : (error.message || '')
+                });
+            }
+        });
+
         // API Endpoint to get graph data
         this.app.get('/api/graph', async (req, res) => {
             try {
@@ -574,7 +644,7 @@ export class Server {
         // API Endpoint to list files
         this.app.get('/api/files/list', async (req, res) => {
             const dirPath = req.query.path as string || this.fsManager.getRootDir();
-            console.log(`[Server] Listing files for path: ${dirPath}`);
+            console.log(`[Server] Listing files for path: ${dirPath} `);
             try {
                 const files = await this.fsManager.listFiles(dirPath);
                 res.json({
@@ -583,7 +653,7 @@ export class Server {
                     root: this.fsManager.getRootDir()
                 });
             } catch (error) {
-                console.error(`[Server] Error listing files:`, error);
+                console.error(`[Server] Error listing files: `, error);
                 res.status(500).json({ error: (error as Error).message });
             }
         });
@@ -679,6 +749,13 @@ export class Server {
 
         // OpenClaw Skill Execution Endpoint
         this.app.post('/api/skills/execute', async (req, res) => {
+            let passedExecutionId = req.body.executionId;
+            let controller: AbortController | null = null;
+            if (passedExecutionId) {
+                controller = new AbortController();
+                this.activeSkillExecutions.set(passedExecutionId, controller);
+            }
+
             try {
                 const { skillContext, userInput, preferredProvider } = req.body;
 
@@ -694,27 +771,27 @@ You are an advanced OpenClaw AI agent running inside the AiOS environment on the
 You have been granted access to the following skills:
 ${skillContext}
 
-To execute these skills, you have access to the following XML tools. You MUST use these exact formats. 
+To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
 Do NOT wrap the XML tags in markdown code blocks.
 
 1. Execute a shell command:
-<bash>
-your command here
-</bash>
+                    <bash>
+                        your command here
+                            </bash>
 
-2. Read a file from the file system:
-<read_file>
-/absolute/path/or/relative/path/to/file.txt
-</read_file>
+                    2. Read a file from the file system:
+                    <read_file>
+                        /absolute/path / or / relative / path / to / file.txt
+                        </read_file>
 
-3. Save content to a file in the user's personal directory:
-<save_file path="output.txt">
-File content here
-</save_file>
+                    3. Save content to a file in the user's personal directory:
+                        < save_file path = "output.txt" >
+                            File content here
+                                </save_file>
 
-When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
-You can use tools multiple times in a row. Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
-</Register_SystemPrompt>`;
+When you output a < bash > or < read_file > tag, the system will execute it and reply with the results. 
+You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+                        </Register_SystemPrompt>`;
 
                 let messages: any[] = [
                     { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
@@ -729,6 +806,12 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 const execAsync = util.promisify(require('child_process').exec);
 
                 while (iterations < maxIterations) {
+                    if (controller?.signal.aborted) {
+                        console.log(`[Skill Execution] Loop aborted by user.`);
+                        finalResponse = "Skill execution was cancelled by the user.";
+                        break;
+                    }
+
                     iterations++;
                     console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
 
@@ -753,10 +836,16 @@ You can use tools multiple times in a row. Once you have fully completed the use
                             console.log(`[Skill Execution] Executing bash: ${command}`);
                             // Use login shell to inherit user's full PATH (python3, pip3, npm, etc.)
                             const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
-                            const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.fsManager.getRootDir() });
+                            const execOpts: any = { cwd: this.fsManager.getRootDir(), timeout: 30000 };
+                            if (controller) { execOpts.signal = controller.signal; }
+                            const { stdout, stderr } = await execAsync(shellCmd, execOpts);
                             const output = (stdout || '') + (stderr || '');
                             nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
                         } catch (error: any) {
+                            if (error.name === 'AbortError') {
+                                console.log('[Skill Execution] Bash exec aborted.');
+                                throw error; // break outer loop gracefully or let it re-evaluate
+                            }
                             console.error(`[Skill Execution] Bash error:`, error.message);
                             nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
                         }
@@ -819,6 +908,28 @@ You can use tools multiple times in a row. Once you have fully completed the use
             } catch (error: any) {
                 console.error('[Skill Execution] Error:', error);
                 res.status(500).json({ error: error.message || 'Skill execution failed.' });
+            } finally {
+                if (passedExecutionId) {
+                    this.activeSkillExecutions.delete(passedExecutionId);
+                }
+            }
+        });
+
+        // OpenClaw Skill Execution Cancel Endpoint
+        this.app.post('/api/skills/cancel', (req, res) => {
+            const { executionId } = req.body;
+            if (!executionId) {
+                return res.status(400).json({ error: 'executionId is required' });
+            }
+
+            const controller = this.activeSkillExecutions.get(executionId);
+            if (controller) {
+                console.log(`[Skill Execution] Cancelling execution ${executionId}`);
+                controller.abort();
+                this.activeSkillExecutions.delete(executionId);
+                return res.json({ success: true, message: 'Execution cancelled.' });
+            } else {
+                return res.status(404).json({ error: 'Execution ID not found or already completed.' });
             }
         });
 
