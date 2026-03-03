@@ -799,7 +799,7 @@ You can use tools multiple times in a row.Once you have fully completed the user
 
                 let finalResponse = '';
                 let iterations = 0;
-                const maxIterations = 10;
+                const maxIterations = 20;
                 let levelUsed = '1';
                 let providerUsed = 'local';
 
