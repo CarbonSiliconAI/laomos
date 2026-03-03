@@ -142,11 +142,11 @@ export class OllamaManager {
         let recommendedModels = [];
 
         if (totalMemGB < 8) {
-            recommendedModels = ['tinyllama', 'qwen:0.5b', 'gemma:2b'];
+            recommendedModels = ['qwen3.5:0.6b', 'phi4-mini', 'gemma3'];
         } else if (totalMemGB < 16) {
-            recommendedModels = ['llama3', 'mistral', 'gemma:7b'];
+            recommendedModels = ['qwen3.5:4b', 'llama3.1', 'gemma3', 'deepseek-r1:8b'];
         } else {
-            recommendedModels = ['llama3:70b', 'mixtral'];
+            recommendedModels = ['qwen3.5:8b', 'llama4-scout', 'deepseek-r1:14b'];
         }
 
         return {

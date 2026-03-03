@@ -35,14 +35,14 @@ export class SkillLoader {
      */
     private extractZipFiles(dir: string) {
         if (!fs.existsSync(dir)) return;
-        
+
         const list = fs.readdirSync(dir);
         for (const file of list) {
             if (file.toLowerCase().endsWith('.zip')) {
                 const zipPath = path.join(dir, file);
                 const extractFolderName = path.basename(file, path.extname(file));
                 const extractPath = path.join(dir, extractFolderName);
-                
+
                 try {
                     console.log(`[SkillLoader] Extracting ${file} to ${extractPath}...`);
                     const zip = new AdmZip(zipPath);
@@ -89,10 +89,10 @@ export class SkillLoader {
         }
 
         console.log(`[SkillLoader] Cache expired or forced refresh. Scanning ${this.skillsDir}...`);
-        
+
         // Auto-extract any new zip files before scanning
         this.extractZipFiles(this.skillsDir);
-        
+
         const skillFiles = this.findSkillFiles(this.skillsDir);
         const parsedSkills: OpenClawSkill[] = [];
 
@@ -103,12 +103,17 @@ export class SkillLoader {
 
                 // Fallback for missing frontmatter name/description
                 const defaultName = path.basename(path.dirname(file)) || 'UnnamedSkill';
+                const skillDir = path.dirname(file);
+
+                // Resolve {baseDir} placeholder to the actual skill directory
+                let instructions = parsed.content.trim();
+                instructions = instructions.replace(/\{baseDir\}/g, skillDir);
 
                 parsedSkills.push({
                     name: parsed.data.name || defaultName,
                     description: parsed.data.description || 'No description provided.',
-                    instructions: parsed.content.trim(),
-                    metadata: parsed.data
+                    instructions,
+                    metadata: { ...parsed.data, skillDir }
                 });
             } catch (error) {
                 console.error(`[SkillLoader] Failed to load skill at ${file}:`, error);

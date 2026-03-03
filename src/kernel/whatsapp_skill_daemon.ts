@@ -3,13 +3,13 @@ import { TaskAnalyzer, AnalyzedTask } from './analyzer';
 import { SkillLoader, OpenClawSkill } from './skill_loader';
 import * as util from 'util';
 
-export interface DaemonLogEntry {
+export interface WADaemonLogEntry {
     timestamp: number;
     type: 'info' | 'match' | 'execute' | 'reply' | 'error';
     message: string;
 }
 
-export interface DaemonChatMessage {
+export interface WADaemonChatMessage {
     id: number;
     text: string;
     isSelf: boolean;
@@ -29,22 +29,17 @@ The JSON must have the following exact structure:
 }
 `.trim();
 
-export class TelegramSkillDaemon {
+export class WhatsAppSkillDaemon {
     private modelRouter: ModelRouter;
     private taskAnalyzer: TaskAnalyzer;
     private skillLoader: SkillLoader;
 
     private running = false;
-    private pollTimer: ReturnType<typeof setTimeout> | null = null;
-    private pollAbortController: AbortController | null = null;
-    private token = '';
-    private chatId = '';
-    private offset: number | undefined;
-    private log: DaemonLogEntry[] = [];
-    private chatMessages: DaemonChatMessage[] = [];
+    private log: WADaemonLogEntry[] = [];
+    private chatMessages: WADaemonChatMessage[] = [];
     private maxLogSize = 50;
     private storageRoot = '';
-    private stoppedAt = 0;
+    private processing = false;
 
     constructor(
         modelRouter: ModelRouter,
@@ -58,149 +53,114 @@ export class TelegramSkillDaemon {
         this.storageRoot = storageRoot;
     }
 
-    start(token: string, chatId: string) {
+    start() {
         if (this.running) return;
-        this.token = token;
-        this.chatId = chatId;
         this.running = true;
-        this.addLog('info', `Daemon started. Listening to chat ${chatId}...`);
-        this.poll();
+        this.addLog('info', 'WhatsApp AI Skill Daemon started. Listening for messages...');
     }
 
     stop() {
         this.running = false;
-        this.stoppedAt = Date.now();
-        if (this.pollTimer) {
-            clearTimeout(this.pollTimer);
-            this.pollTimer = null;
-        }
-        // Abort any in-flight getUpdates request to avoid conflict with frontend polling
-        if (this.pollAbortController) {
-            this.pollAbortController.abort();
-            this.pollAbortController = null;
-        }
-        this.addLog('info', 'Daemon stopped.');
+        this.addLog('info', 'WhatsApp AI Skill Daemon stopped.');
     }
 
     isRunning(): boolean {
         return this.running;
     }
 
-    /** Returns ms since daemon stopped, or Infinity if never stopped / still running */
-    msSinceStopped(): number {
-        if (this.running) return Infinity;
-        if (this.stoppedAt === 0) return Infinity;
-        return Date.now() - this.stoppedAt;
+    isProcessing(): boolean {
+        return this.processing;
     }
 
-    getLog(): DaemonLogEntry[] {
+    getLog(): WADaemonLogEntry[] {
         return [...this.log];
     }
 
-    getMessages(): DaemonChatMessage[] {
+    getMessages(): WADaemonChatMessage[] {
         return [...this.chatMessages];
     }
 
-    private addLog(type: DaemonLogEntry['type'], message: string) {
+    private addLog(type: WADaemonLogEntry['type'], message: string) {
         this.log.push({ timestamp: Date.now(), type, message });
         if (this.log.length > this.maxLogSize) this.log.shift();
-        console.log(`[TelegramSkillDaemon] [${type}] ${message}`);
+        console.log(`[WhatsAppSkillDaemon] [${type}] ${message}`);
     }
 
-    private async poll() {
-        if (!this.running) return;
-
-        try {
-            // 1. Fetch new messages from Telegram
-            let url = `https://api.telegram.org/bot${this.token}/getUpdates?timeout=1`;
-            if (this.offset !== undefined) url += `&offset=${this.offset}`;
-
-            this.pollAbortController = new AbortController();
-            const response = await fetch(url, { signal: this.pollAbortController.signal });
-            this.pollAbortController = null;
-            const data = await response.json();
-
-            if (data.ok && data.result && data.result.length > 0) {
-                for (const update of data.result) {
-                    // Track offset
-                    this.offset = update.update_id + 1;
-
-                    // Only process text messages from the target chat
-                    if (
-                        update.message &&
-                        update.message.text &&
-                        String(update.message.chat.id) === String(this.chatId)
-                    ) {
-                        const incomingText = update.message.text;
-                        const sender = update.message.from?.first_name || 'User';
-                        this.addLog('info', `New message from ${sender}: "${incomingText.substring(0, 80)}..."`);
-
-                        // Track incoming message for the chat UI
-                        this.chatMessages.push({
-                            id: update.message.message_id,
-                            text: incomingText,
-                            isSelf: false,
-                            date: (update.message.date || Math.floor(Date.now() / 1000)) * 1000,
-                            sender
-                        });
-
-                        // Process asynchronously so polling continues
-                        this.processMessage(incomingText).catch(err => {
-                            this.addLog('error', `Processing failed: ${err.message}`);
-                        });
-                    }
-                }
-            }
-        } catch (err: any) {
-            this.addLog('error', `Poll error: ${err.message}`);
+    /**
+     * Called by the frontend when a new WhatsApp message is detected in the webview.
+     * Processes the message through the skill pipeline and returns a reply.
+     */
+    async processMessage(text: string, sender: string): Promise<string> {
+        if (!this.running) {
+            return '';
         }
 
-        // Schedule next poll
-        if (this.running) {
-            this.pollTimer = setTimeout(() => this.poll(), 3000);
-        }
-    }
+        this.processing = true;
+        this.addLog('info', `New message from ${sender}: "${text.substring(0, 80)}"`);
 
-    private async processMessage(userMessage: string) {
+        // Track incoming message
+        this.chatMessages.push({
+            id: Date.now(),
+            text,
+            isSelf: false,
+            date: Date.now(),
+            sender
+        });
+
         try {
             // Step 1: Analyze the task
             this.addLog('info', 'Analyzing task intent...');
-            const analysis = await this.taskAnalyzer.analyzeTask(userMessage);
+            const analysis = await this.taskAnalyzer.analyzeTask(text);
             this.addLog('match', `Target: ${analysis.target}`);
 
             // Step 2: Find the best matching skill
             const skills = this.skillLoader.loadSkills();
             if (skills.length === 0) {
-                await this.sendReply('No OpenClaw skills are installed. Please install skills from the App Store first.');
-                return;
+                const reply = 'No OpenClaw skills are installed. Please install skills from the ClawHub first.';
+                this.trackReply(reply);
+                this.processing = false;
+                return reply;
             }
 
             const matchedSkill = await this.matchSkill(analysis, skills);
             if (!matchedSkill) {
-                // No skill matched — just do generic AI chat
                 this.addLog('info', 'No specific skill matched. Using generic AI response.');
-                const { response } = await this.modelRouter.routeChat(userMessage);
-                await this.sendReply(response);
-                return;
+                const { response } = await this.modelRouter.routeChat(text, 'cloud');
+                this.trackReply(response);
+                this.processing = false;
+                return response;
             }
 
             this.addLog('match', `Matched skill: ${matchedSkill.name}`);
 
             // Step 3: Execute the skill
             this.addLog('execute', `Executing skill "${matchedSkill.name}"...`);
-            const result = await this.executeSkill(matchedSkill, userMessage);
+            const result = await this.executeSkill(matchedSkill, text);
             this.addLog('execute', `Skill execution complete. Response length: ${result.length} chars.`);
 
-            // Step 4: Reply to Telegram
-            await this.sendReply(result);
-            this.addLog('reply', 'Reply sent to Telegram.');
+            // Step 4: Track the reply
+            this.trackReply(result);
+            this.addLog('reply', 'Reply ready for WhatsApp.');
+            this.processing = false;
+            return result;
 
         } catch (err: any) {
             this.addLog('error', `Pipeline error: ${err.message}`);
-            try {
-                await this.sendReply(`⚠️ Error processing your request: ${err.message}`);
-            } catch (_) { /* ignore send failures */ }
+            const errReply = `⚠️ Error processing your request: ${err.message}`;
+            this.trackReply(errReply);
+            this.processing = false;
+            return errReply;
         }
+    }
+
+    private trackReply(text: string) {
+        this.chatMessages.push({
+            id: Date.now(),
+            text,
+            isSelf: true,
+            date: Date.now(),
+            sender: '🤖 AI Skills'
+        });
     }
 
     private async matchSkill(analysis: AnalyzedTask, skills: OpenClawSkill[]): Promise<OpenClawSkill | null> {
@@ -215,7 +175,7 @@ User's Request: "${analysis.target}"
 Expected Output: "${analysis.expected_output}"`;
 
         try {
-            const { response } = await this.modelRouter.routeChat(prompt, 'cloud-preferred', 'Skill Matcher');
+            const { response } = await this.modelRouter.routeChat(prompt, 'cloud', 'WA Skill Matcher');
 
             let cleaned = response.trim();
             if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim();
@@ -224,7 +184,6 @@ Expected Output: "${analysis.expected_output}"`;
             const parsed = JSON.parse(cleaned);
             if (parsed.skillName === 'none' || !parsed.skillName) return null;
 
-            // Find the skill by name (case-insensitive)
             const matched = skills.find(s => s.name.toLowerCase() === parsed.skillName.toLowerCase());
             if (matched) {
                 this.addLog('match', `Reasoning: ${parsed.reasoning}`);
@@ -277,7 +236,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
             iterations++;
 
             const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\\n');
-            const result = await this.modelRouter.routeChat(chatString);
+            const result = await this.modelRouter.routeChat(chatString, 'cloud', 'WA Skill Execution');
             const aiMessage = result.response;
 
             messages.push({ role: 'assistant', content: aiMessage });
@@ -292,7 +251,6 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 const command = bashMatch[1].trim();
                 try {
                     this.addLog('execute', `Running: ${command.substring(0, 100)}`);
-                    // Use login shell to inherit user's full PATH
                     const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
                     const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.storageRoot });
                     const output = (stdout || '') + (stderr || '');
@@ -346,34 +304,5 @@ You can use tools multiple times in a row. Once you have fully completed the use
         }
 
         return finalResponse || 'Skill execution completed but produced no output.';
-    }
-
-    private async sendReply(text: string) {
-        // Telegram has a 4096 char limit per message
-        const maxLen = 4000;
-        const chunks: string[] = [];
-        for (let i = 0; i < text.length; i += maxLen) {
-            chunks.push(text.substring(i, i + maxLen));
-        }
-
-        for (const chunk of chunks) {
-            await fetch(`https://api.telegram.org/bot${this.token}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: this.chatId,
-                    text: chunk
-                })
-            });
-        }
-
-        // Track outgoing message for the chat UI
-        this.chatMessages.push({
-            id: Date.now(),
-            text,
-            isSelf: true,
-            date: Date.now(),
-            sender: '🤖 AI Skills'
-        });
     }
 }

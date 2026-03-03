@@ -22,6 +22,7 @@ export default function OpenClaw() {
     const [inspectorInput, setInspectorInput] = useState('');
     const [inspectorOutput, setInspectorOutput] = useState('');
     const [executing, setExecuting] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState('cloud');
 
     function fetchLocalSkills() {
         setLocalLoading(true);
@@ -81,6 +82,7 @@ export default function OpenClaw() {
             const res = await api.skillsExecute({
                 skillContext: (selectedSkill as any).instructions ?? (selectedSkill as any).skill_markdown ?? '',
                 userInput: inspectorInput.trim(),
+                preferredProvider: selectedProvider,
             });
             setInspectorOutput(res.result ?? JSON.stringify(res, null, 2));
         } catch (e: any) {
@@ -196,6 +198,57 @@ export default function OpenClaw() {
                                             </button>
                                         </div>
                                         <p className="claw-card__desc">{app.description}</p>
+
+                                        {/* Stats row */}
+                                        {app.stats && (
+                                            <div style={{
+                                                display: 'flex', gap: '12px', flexWrap: 'wrap',
+                                                fontSize: 'var(--fs-xs)', color: 'var(--muted)',
+                                                margin: '6px 0 4px', alignItems: 'center',
+                                            }}>
+                                                <span title="Downloads" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    ⬇ {app.stats.downloads >= 1000 ? `${(app.stats.downloads / 1000).toFixed(1)}k` : app.stats.downloads}
+                                                </span>
+                                                <span title="Installs" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    📦 {app.stats.installs.toLocaleString()} installs
+                                                </span>
+                                                <span title="Stars" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    ⭐ {app.stats.stars}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Verification badges */}
+                                        <div style={{
+                                            display: 'flex', gap: '6px', flexWrap: 'wrap',
+                                            margin: '4px 0',
+                                        }}>
+                                            {app.openclawVerified && (
+                                                <span style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                    padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600,
+                                                    background: 'rgba(16,185,129,0.12)', color: '#10b981',
+                                                    border: '1px solid rgba(16,185,129,0.25)',
+                                                }}>✓ OpenClaw Verified</span>
+                                            )}
+                                            {app.virusTotalClean && (
+                                                <span style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                    padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600,
+                                                    background: 'rgba(59,130,246,0.12)', color: '#3b82f6',
+                                                    border: '1px solid rgba(59,130,246,0.25)',
+                                                }}>🛡 VirusTotal Clean</span>
+                                            )}
+                                            {!app.openclawVerified && !app.virusTotalClean && (
+                                                <span style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                    padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600,
+                                                    background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+                                                    border: '1px solid rgba(245,158,11,0.25)',
+                                                }}>⚠ Unreviewed</span>
+                                            )}
+                                        </div>
+
                                         <div className="claw-card__tags">
                                             {(app.tags ?? []).map(t => <span key={t} className="badge badge-accent">{t}</span>)}
                                         </div>
@@ -228,6 +281,24 @@ export default function OpenClaw() {
                             )}
 
                             <label className="claw-inspector__label">Input</label>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ fontSize: 'var(--fs-xs)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>Model:</label>
+                                <select
+                                    className="os-input"
+                                    value={selectedProvider}
+                                    onChange={e => setSelectedProvider(e.target.value)}
+                                    style={{
+                                        flex: 1, padding: '4px 8px', fontSize: 'var(--fs-xs)',
+                                        background: 'var(--glass)', border: '1px solid var(--line)',
+                                        borderRadius: '6px', color: 'var(--fg)',
+                                    }}
+                                >
+                                    <option value="cloud">☁️ Cloud (Anthropic → OpenAI → Google)</option>
+                                    <option value="cloud-preferred">⚡ Cloud Preferred (fallback to local)</option>
+                                    <option value="">🔄 Auto (level-based routing)</option>
+                                    <option value="local">💻 Local (Ollama)</option>
+                                </select>
+                            </div>
                             <textarea
                                 className="os-input claw-inspector__input"
                                 placeholder="Enter input to run this skill..."

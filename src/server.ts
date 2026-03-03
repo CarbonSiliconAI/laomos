@@ -18,6 +18,7 @@ import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import { SkillLoader } from './kernel/skill_loader';
 import { TelegramSkillDaemon } from './kernel/telegram_skill_daemon';
+import { WhatsAppSkillDaemon } from './kernel/whatsapp_skill_daemon';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
@@ -65,6 +66,7 @@ export class Server {
     private firewall: AIFirewall;
     private skillLoader: SkillLoader;
     private telegramDaemon: TelegramSkillDaemon;
+    private whatsappDaemon: WhatsAppSkillDaemon;
     private journal?: ExecutionJournal;
     private gameManager: GameManager;
     private mailManager: MailManager;
@@ -88,6 +90,7 @@ export class Server {
         this.firewall = firewall;
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.telegramDaemon = new TelegramSkillDaemon(this.modelRouter, this.taskAnalyzer, this.skillLoader, this.fsManager.getRootDir());
+        this.whatsappDaemon = new WhatsAppSkillDaemon(this.modelRouter, this.taskAnalyzer, this.skillLoader, this.fsManager.getRootDir());
         this.journal = journal;
         this.gameManager = new GameManager(this.fsManager.getPersonalDir());
 
@@ -677,11 +680,14 @@ export class Server {
         // OpenClaw Skill Execution Endpoint
         this.app.post('/api/skills/execute', async (req, res) => {
             try {
-                const { skillContext, userInput } = req.body;
+                const { skillContext, userInput, preferredProvider } = req.body;
 
                 if (!skillContext || !userInput) {
                     return res.status(400).json({ error: 'skillContext and userInput are required' });
                 }
+
+                // Default to cloud models for faster iteration
+                const modelPreference = preferredProvider || 'cloud';
 
                 const systemInstruction = `<Register_SystemPrompt>
 You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
@@ -727,7 +733,7 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
 
                     const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\\n');
-                    const result = await this.modelRouter.routeChat(chatString);
+                    const result = await this.modelRouter.routeChat(chatString, modelPreference, 'Skill Execution');
                     const aiMessage = result.response;
                     levelUsed = result.level;
                     providerUsed = result.providerUsed;
@@ -745,8 +751,9 @@ You can use tools multiple times in a row. Once you have fully completed the use
                         const command = bashMatch[1].trim();
                         try {
                             console.log(`[Skill Execution] Executing bash: ${command}`);
-                            // We execute from the app root or a safe dir
-                            const { stdout, stderr } = await execAsync(command, { cwd: this.fsManager.getRootDir() });
+                            // Use login shell to inherit user's full PATH (python3, pip3, npm, etc.)
+                            const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
+                            const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.fsManager.getRootDir() });
                             const output = (stdout || '') + (stderr || '');
                             nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
                         } catch (error: any) {
@@ -880,8 +887,8 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     const slug = skillInfo.slug;
                     let version = skillInfo.version;
 
-                    // The search API often returns `version: null`. We need to resolve the latest version.
-                    if (!version && slug) {
+                    // The search API often returns `version: null` and NO stats. We need to resolve from the detail endpoint.
+                    if ((!version || !skillInfo.stats) && slug) {
                         try {
                             const metaRes = await fetch(`https://clawhub.ai/api/v1/skills/${slug}`, {
                                 headers: { 'User-Agent': 'curl/8.7.1' },
@@ -889,10 +896,22 @@ You can use tools multiple times in a row. Once you have fully completed the use
                             });
                             if (metaRes.ok) {
                                 const metaData = await metaRes.json();
-                                version = metaData.skill?.tags?.latest || metaData.latestVersion?.version;
+                                if (!version) {
+                                    version = metaData.skill?.tags?.latest || metaData.latestVersion?.version;
+                                }
+                                // Merge stats, owner, moderation from detail endpoint
+                                if (!skillInfo.stats && metaData.skill?.stats) {
+                                    skillInfo.stats = metaData.skill.stats;
+                                }
+                                if (!skillInfo.owner && metaData.owner) {
+                                    skillInfo.owner = metaData.owner;
+                                }
+                                if (skillInfo.moderation === undefined && metaData.moderation !== undefined) {
+                                    skillInfo.moderation = metaData.moderation;
+                                }
                             }
                         } catch (e: any) {
-                            console.warn(`[ClawHub] Failed to resolve version for ${slug}: ${e.message}`);
+                            console.warn(`[ClawHub] Failed to resolve details for ${slug}: ${e.message}`);
                         }
                     }
 
@@ -918,7 +937,18 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     return {
                         name: skillInfo.displayName || skillInfo.slug,
                         description: skillInfo.summary || 'No description provided.',
-                        skill_markdown: markdownContent, // Attached raw Markdown text
+                        skill_markdown: markdownContent,
+                        slug: skillInfo.slug,
+                        version: version || skillInfo.tags?.latest || '',
+                        stats: {
+                            downloads: skillInfo.stats?.downloads || 0,
+                            installs: skillInfo.stats?.installsCurrent || skillInfo.stats?.installsAllTime || 0,
+                            stars: skillInfo.stats?.stars || 0,
+                            versions: skillInfo.stats?.versions || 1,
+                        },
+                        author: skillInfo.owner?.handle || skillInfo.owner?.displayName || 'clawhub',
+                        openclawVerified: skillInfo.moderation?.status === 'approved' || (skillInfo.stats?.stars > 50),
+                        virusTotalClean: skillInfo.moderation?.virusTotal !== 'flagged',
                         metadata: {
                             author: `@clawhub`,
                             downloads: skillInfo.stats?.downloads || 0,
@@ -950,16 +980,43 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 console.log(`[ClawHub] Starting download of ${slug}@${version}...`);
                 const zipUrl = `https://clawhub.ai/api/v1/download?slug=${slug}&version=${version}`;
 
-                // Shadow Browser Download
-                const response = await fetch(zipUrl, {
-                    headers: { 'User-Agent': 'curl/8.7.1' }
-                });
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch skill package: ${response.statusText}`);
+                // Retry logic for rate-limited requests
+                const maxRetries = 3;
+                let lastError = '';
+                let buffer: Buffer | null = null;
+
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    console.log(`[ClawHub] Download attempt ${attempt}/${maxRetries}...`);
+                    const response = await fetch(zipUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                            'Accept': '*/*',
+                        },
+                        redirect: 'follow',
+                    });
+
+                    if (response.ok) {
+                        buffer = Buffer.from(await response.arrayBuffer());
+                        break;
+                    }
+
+                    if (response.status === 429) {
+                        const retryAfter = parseInt(response.headers.get('retry-after') || '30', 10);
+                        lastError = `Rate limited (attempt ${attempt}/${maxRetries}). Waiting ${retryAfter}s...`;
+                        console.log(`[ClawHub] ${lastError}`);
+                        if (attempt < maxRetries) {
+                            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                            continue;
+                        }
+                    }
+
+                    lastError = `Failed to fetch skill package: ${response.statusText} (${response.status})`;
+                    if (attempt >= maxRetries) break;
                 }
 
-                // Buffer the zip file
-                const buffer = Buffer.from(await response.arrayBuffer());
+                if (!buffer) {
+                    throw new Error(lastError || 'Failed to download after all retries.');
+                }
 
                 // Save zip into storage/skills
                 const skillsDir = path.join(this.fsManager.getRootDir(), 'skills');
@@ -973,7 +1030,71 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 // Trigger the auto-extraction by forcing a skill reload from disk cache
                 this.skillLoader.loadSkills(true);
 
-                res.json({ success: true, message: `Installed ${slug}@${version}` });
+                // ── Post-install: parse SKILL.md for install commands ──────────
+                const installLogs: string[] = [];
+                try {
+                    const skillDir = path.join(skillsDir, `${slug}-${version}`);
+                    const skillMdPath = path.join(skillDir, 'SKILL.md');
+                    if (fs.existsSync(skillMdPath)) {
+                        const skillMdContent = fs.readFileSync(skillMdPath, 'utf8');
+
+                        // Find the ## Installation section
+                        const installMatch = skillMdContent.match(/##\s*Installation\s*\n([\s\S]*?)(?=\n##\s|$)/i);
+                        if (installMatch) {
+                            const installSection = installMatch[1];
+
+                            // Extract the FIRST ```bash block (primary/recommended install)
+                            const bashBlockMatch = installSection.match(/```bash\n([\s\S]*?)```/);
+                            if (bashBlockMatch) {
+                                const commands = bashBlockMatch[1]
+                                    .split('\n')
+                                    .map(l => l.trim())
+                                    .filter(l => l && !l.startsWith('#') && !l.startsWith('cd ') && !l.startsWith('git clone'));
+
+                                if (commands.length > 0) {
+                                    console.log(`[ClawHub] Found ${commands.length} install command(s) in SKILL.md. Running...`);
+                                    const { exec } = require('child_process');
+                                    const execAsync = require('util').promisify(exec);
+
+                                    for (const cmd of commands) {
+                                        console.log(`[ClawHub] Running: ${cmd}`);
+                                        installLogs.push(`> ${cmd}`);
+                                        try {
+                                            // Use login shell to inherit user's full PATH
+                                            const shellCmd = `/bin/zsh -l -c ${JSON.stringify(cmd)}`;
+                                            const { stdout, stderr } = await execAsync(shellCmd, {
+                                                cwd: skillDir,
+                                                timeout: 120000,
+                                                env: { ...process.env, PATH: process.env.PATH }
+                                            });
+                                            if (stdout) installLogs.push(stdout.substring(0, 500));
+                                            if (stderr) installLogs.push(`stderr: ${stderr.substring(0, 300)}`);
+                                        } catch (cmdErr: any) {
+                                            const errMsg = `Command failed: ${cmdErr.message}`;
+                                            console.warn(`[ClawHub] ${errMsg}`);
+                                            installLogs.push(errMsg);
+                                            // Don't throw — continue with remaining commands
+                                        }
+                                    }
+                                    console.log(`[ClawHub] Post-install commands completed.`);
+                                }
+                            } else {
+                                console.log(`[ClawHub] Installation section found but no bash block detected.`);
+                            }
+                        } else {
+                            console.log(`[ClawHub] No ## Installation section found in SKILL.md. Skipping post-install.`);
+                        }
+                    }
+                } catch (postInstallErr: any) {
+                    console.warn(`[ClawHub] Post-install error (non-fatal): ${postInstallErr.message}`);
+                    installLogs.push(`Post-install error: ${postInstallErr.message}`);
+                }
+
+                res.json({
+                    success: true,
+                    message: `Installed ${slug}@${version}`,
+                    installLogs: installLogs.length > 0 ? installLogs : undefined
+                });
             } catch (error: any) {
                 console.error(`[ClawHub Install Error] ${error.message}`);
                 res.status(500).json({ error: error.message });
@@ -1158,6 +1279,15 @@ You can use tools multiple times in a row. Once you have fully completed the use
 
         // Telegram Bot Endpoints (Proxied to avoid CORS on frontend)
         this.app.get('/api/telegram/updates', async (req, res) => {
+            // Block frontend polling while the daemon is running or within cooldown
+            if (this.telegramDaemon.isRunning()) {
+                return res.json({ results: [], paused: true, reason: 'Daemon is active' });
+            }
+            const cooldownMs = this.telegramDaemon.msSinceStopped();
+            if (cooldownMs < 5000) {
+                return res.json({ results: [], paused: true, reason: 'Daemon cooldown' });
+            }
+
             const token = req.query.token as string;
             const offset = req.query.offset as string;
             if (!token) return res.status(400).json({ error: 'Token is required' });
@@ -1252,6 +1382,49 @@ You can use tools multiple times in a row. Once you have fully completed the use
                     log: this.telegramDaemon.getLog(),
                     messages: this.telegramDaemon.getMessages()
                 });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── WhatsApp Skill Daemon Endpoints ───────────────────────────
+        this.app.post('/api/whatsapp/skill-daemon/start', async (_req, res) => {
+            try {
+                this.whatsappDaemon.start();
+                res.json({ success: true, message: 'WhatsApp Skill Daemon started.' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/whatsapp/skill-daemon/stop', async (_req, res) => {
+            try {
+                this.whatsappDaemon.stop();
+                res.json({ success: true, message: 'WhatsApp Skill Daemon stopped.' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/whatsapp/skill-daemon/status', async (_req, res) => {
+            try {
+                res.json({
+                    running: this.whatsappDaemon.isRunning(),
+                    processing: this.whatsappDaemon.isProcessing(),
+                    log: this.whatsappDaemon.getLog(),
+                    messages: this.whatsappDaemon.getMessages()
+                });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/whatsapp/skill-daemon/process', async (req, res) => {
+            try {
+                const { text, sender } = req.body;
+                if (!text) return res.status(400).json({ error: 'text is required.' });
+                const reply = await this.whatsappDaemon.processMessage(text, sender || 'WhatsApp User');
+                res.json({ success: true, reply });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }

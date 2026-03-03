@@ -118,6 +118,14 @@ export const api = {
     telegramDaemonStop: () => apiFetch<{ success: boolean }>('/api/telegram/skill-daemon/stop', { method: 'POST' }),
     telegramDaemonStatus: () => apiFetch<{ running: boolean; log: { timestamp: number; type: string; message: string }[]; messages: { id: number; text: string; isSelf: boolean; date: number; sender: string }[] }>('/api/telegram/skill-daemon/status'),
 
+    // ── WhatsApp Skill Daemon ────────────────
+    whatsappDaemonStart: () => apiFetch<{ success: boolean }>('/api/whatsapp/skill-daemon/start', { method: 'POST' }),
+    whatsappDaemonStop: () => apiFetch<{ success: boolean }>('/api/whatsapp/skill-daemon/stop', { method: 'POST' }),
+    whatsappDaemonStatus: () => apiFetch<{ running: boolean; processing: boolean; log: { timestamp: number; type: string; message: string }[]; messages: { id: number; text: string; isSelf: boolean; date: number; sender: string }[] }>('/api/whatsapp/skill-daemon/status'),
+    whatsappDaemonProcess: (text: string, sender: string) => apiFetch<{ success: boolean; reply: string }>('/api/whatsapp/skill-daemon/process', {
+        method: 'POST', body: JSON.stringify({ text, sender })
+    }),
+
     // ── RAG ─────────────────────────────────
     ragSearch: (q: string, tags?: string) => apiFetch<{ apps: object[] }>(
         `/api/apps/search?q=${encodeURIComponent(q)}${tags ? `&tags=${encodeURIComponent(tags)}` : ''}`
@@ -253,6 +261,15 @@ export interface ClawApp {
     tags: string[];
     version: string;
     installed?: boolean;
+    stats?: {
+        downloads: number;
+        installs: number;
+        stars: number;
+        versions: number;
+    };
+    author?: string;
+    openclawVerified?: boolean;
+    virusTotalClean?: boolean;
 }
 
 export interface BudgetConstraint {
