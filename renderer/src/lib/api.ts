@@ -149,6 +149,9 @@ export const api = {
     kernelAnalyze: (prompt: string) => apiFetch<AnalyzedTask>('/api/kernel/analyze', {
         method: 'POST', body: JSON.stringify({ prompt }),
     }),
+    kernelAbort: (jobId: string) => apiFetch<{ success: boolean; message: string }>(`/api/kernel/abort/${jobId}`, {
+        method: 'POST',
+    }),
 
     // ── Budget / Cache ───────────────────────
     budgetGet: () => apiFetch<BudgetConstraint>('/api/budget'),

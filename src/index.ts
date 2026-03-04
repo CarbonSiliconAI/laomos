@@ -87,6 +87,12 @@ async function main() {
 
     const port = parseInt(process.env.PORT || '3123', 10);
     const server = new Server(graphManager, fsManager, ollamaManager, identityManager, externalApiManager, router, memory, scheduler, registry, tools, firewall, port, journal);
+
+    // Inject the server's executeSkill method into the scheduler's apiHandlers
+    // so the scheduler can run OpenClaw skills locally when executing flows.
+    (scheduler as any).apiHandlers.executeSkill = server.executeSkill.bind(server);
+    (scheduler as any).apiHandlers.skillLoader = (server as any).skillLoader;
+
     server.start();
 
     // Keep the event loop alive (safety net)

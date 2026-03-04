@@ -27,7 +27,7 @@ export class ModelRouter {
         identityManager: IdentityManager,
         ollamaManager: OllamaManager,
         getFallbackPref: () => string = () => 'local',
-        getFallbackLocalPref: () => string = () => 'llama3.1'
+        getFallbackLocalPref: () => string = () => 'qwen3.5:9b'
     ) {
         this.localProvider = new OllamaProvider(ollamaManager);
         this.getFallbackPref = getFallbackPref;

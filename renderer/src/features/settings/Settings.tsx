@@ -261,8 +261,8 @@ export default function Settings() {
                             </div>
                             <div className="settings-field">
                                 <label>Fallback Local Model</label>
-                                <input className="os-input" type="text" placeholder="e.g. llama3.1, qwen3.5:4b"
-                                    value={budget.fallbackLocalModel ?? 'llama3.1'}
+                                <input className="os-input" type="text" placeholder="e.g. qwen3.5:9b, llama3.1:8b"
+                                    value={budget.fallbackLocalModel ?? 'qwen3.5:9b'}
                                     onChange={e => setBudget(b => b ? { ...b, fallbackLocalModel: e.target.value } : b)} />
                             </div>
                             <button className="btn btn-primary" onClick={saveBudget} disabled={saving}>

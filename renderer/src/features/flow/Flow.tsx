@@ -32,11 +32,12 @@ interface TeleEvent {
     context?: { label?: string; cache_hit?: boolean; model_selected_reason?: string };
 }
 
-const DEFAULT_TOOLS: ToolDef[] = [
-    { type: 'chat', label: '\u{1F4AC} Ollama Chat', cat: 'Conversational', domain: 'General', func: 'Local LLM text generation', in: 'Text', out: 'Text' },
-    { type: 'draw', label: '\u{1F3A8} AI Draw', cat: 'Generative', domain: 'Art', func: 'Generates images from prompts', in: 'Text', out: 'Image URL' },
-    { type: 'video', label: '\u{1F3AC} AI Video', cat: 'Generative', domain: 'Media', func: 'Generates video clips', in: 'Text', out: 'Video Stream' },
-    { type: 'search', label: '\u{1F50D} Web Search', cat: 'Search', domain: 'General', func: 'Queries real-time web data', in: 'Search Query', out: 'JSON Results' },
+// ── Default Native Tools ────────────────────────────────────────────────────
+const NATIVE_TOOLS: ToolDef[] = [
+    { type: 'chat', label: '\u{1F4AC} Ollama Chat', cat: 'Native AI', domain: 'General', func: 'Local LLM text generation', in: 'Text', out: 'Text' },
+    { type: 'draw', label: '\u{1F3A8} AI Draw', cat: 'Native AI', domain: 'Art', func: 'Generates images from prompts', in: 'Text', out: 'Image URL' },
+    { type: 'video', label: '\u{1F3AC} AI Video', cat: 'Native AI', domain: 'Media', func: 'Generates video clips', in: 'Text', out: 'Video Stream' },
+    { type: 'search', label: '\u{1F50D} Web Search', cat: 'Search & Tools', domain: 'General', func: 'Queries real-time web data', in: 'Search Query', out: 'JSON Results' },
     { type: 'display', label: '\u{1F441} Input Display', cat: 'Utility', domain: 'General', func: 'Displays ingested input', in: 'Any', out: 'Same as Input' },
 ];
 
@@ -57,6 +58,23 @@ export default function Flow() {
     const [teleEvents, setTeleEvents] = useState<TeleEvent[]>([]);
     const [runId, setRunId] = useState('');
     const [svgPaths, setSvgPaths] = useState<string[]>([]);
+    const [paletteTools, setPaletteTools] = useState<ToolDef[]>(NATIVE_TOOLS);
+
+    // Fetch OpenClaw skills dynamically
+    useEffect(() => {
+        api.skills().then(res => {
+            const skillTools = (res.skills || []).map(s => ({
+                type: `skill:${s.name}`,
+                label: `\u{1F9BE} ${s.name}`,
+                cat: 'OpenClaw Skills',
+                domain: 'Skill',
+                func: s.description || 'Executes an OpenClaw skill',
+                in: 'Parameters',
+                out: 'Output'
+            }));
+            setPaletteTools([...NATIVE_TOOLS, ...skillTools]);
+        }).catch(err => console.error('Failed to load skills for Flow UI', err));
+    }, []);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const draggingRef = useRef<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
@@ -258,6 +276,16 @@ export default function Flow() {
         return '#888';
     }
 
+    async function abortFlow() {
+        if (!runId) return;
+        try {
+            await api.kernelAbort(runId);
+        } catch (e) {
+            console.error('Failed to abort flow:', e);
+        }
+        setRunning(false);
+    }
+
     return (
         <div className="flow-page">
             {/* Header */}
@@ -266,23 +294,36 @@ export default function Flow() {
                     <h1 className="flow-header__title">Flow Builder</h1>
                     <p className="flow-header__sub">Drag tools onto the canvas and connect them</p>
                 </div>
-                <button className="btn btn-primary" onClick={runFlow} disabled={running || nodes.length === 0}>
-                    {running ? <><div className="spinner" /> Running...</> : <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                        Run Graph
-                    </>}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-primary" onClick={runFlow} disabled={running || nodes.length === 0}>
+                        {running ? <><div className="spinner" /> Running...</> : <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                            Run Graph
+                        </>}
+                    </button>
+                    {running && (
+                        <button className="btn btn-danger" onClick={abortFlow} style={{ background: '#FF3B30', color: '#fff', border: 'none' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
+                            Stop
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Left: Tool Palette */}
             <div className="flow-palette glass-card">
                 <div className="section-title">Tool Palette</div>
                 <div className="flow-palette-list">
-                    {DEFAULT_TOOLS.map(tool => (
-                        <div key={tool.type} className="flow-palette-item" draggable
-                            onDragStart={e => { e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('text/plain', JSON.stringify(tool)); }}>
-                            <span className="flow-palette-item__label">{tool.label}</span>
-                            <span className="flow-palette-item__desc">{tool.func}</span>
+                    {Array.from(new Set(paletteTools.map(t => t.cat))).map(cat => (
+                        <div key={cat} className="flow-palette-cat-box">
+                            <div className="flow-palette-cat-title">{cat}</div>
+                            {paletteTools.filter(t => t.cat === cat).map(tool => (
+                                <div key={tool.type} className="flow-palette-item" draggable
+                                    onDragStart={e => { e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('text/plain', JSON.stringify(tool)); }}>
+                                    <span className="flow-palette-item__label">{tool.label}</span>
+                                    <span className="flow-palette-item__desc">{tool.func}</span>
+                                </div>
+                            ))}
                         </div>
                     ))}
                 </div>
@@ -293,7 +334,7 @@ export default function Flow() {
                 onDragOver={handleDragOver} onDrop={handleDrop}
                 onMouseMove={handleCanvasMouseMove} onMouseUp={handleCanvasMouseUp} onMouseLeave={handleCanvasMouseUp}>
                 <svg className="flow-svg-edges" width="100%" height="100%">
-                    {svgPaths.map((d, i) => <path key={i} d={d} stroke="rgba(255,255,255,0.25)" strokeWidth="3" fill="none" />)}
+                    {svgPaths.map((d, i) => <path key={i} d={d} stroke="rgba(0,0,0,0.5)" strokeWidth="3" fill="none" />)}
                 </svg>
                 <div className="flow-canvas">
                     {nodes.length === 0 && (
@@ -374,7 +415,7 @@ export default function Flow() {
                             <label className="flow-inspector__label">Agent Category</label>
                             <select className="os-input" value={selectedNode.cat}
                                 onChange={e => updateNodeField(selectedNode.id, 'cat', e.target.value)}>
-                                {['Conversational','Generative','Vision','Planning','Tools','Search','Utility'].map(o =>
+                                {['Conversational', 'Generative', 'Vision', 'Planning', 'Tools', 'Search', 'Utility'].map(o =>
                                     <option key={o} value={o}>{o}</option>)}
                             </select>
                             <label className="flow-inspector__label">Vertical Domain</label>
@@ -396,11 +437,16 @@ export default function Flow() {
                         </div>
                         <div className="flow-inspector__col flow-inspector__col--wide">
                             <label className="flow-inspector__label">
-                                Manual Input Value <span className="flow-inspector__hint">(Overrides incoming connections)</span>
+                                {selectedNode.cat === 'OpenClaw Skills' ? 'Preset Input Words / Parameters' : 'Manual Input Value'}
+                                <span className="flow-inspector__hint">
+                                    {selectedNode.cat === 'OpenClaw Skills'
+                                        ? ' (Parameters passed into this OpenClaw skill)'
+                                        : ' (Overrides incoming connections)'}
+                                </span>
                             </label>
                             <textarea className="os-input mono" rows={3} value={selectedNode.manualInput}
                                 onChange={e => updateNodeField(selectedNode.id, 'manualInput', e.target.value)}
-                                placeholder="Start execution with this input..." />
+                                placeholder={selectedNode.cat === 'OpenClaw Skills' ? 'e.g., search keywords' : "Start execution with this input..."} />
                             <label className="flow-inspector__label">Last Output Value</label>
                             <textarea className="os-input mono" rows={3} value={selectedNode.lastOutput} readOnly
                                 placeholder="Output will appear here after run..." />

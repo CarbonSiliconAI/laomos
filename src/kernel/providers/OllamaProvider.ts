@@ -5,7 +5,7 @@ import { OllamaManager } from '../../ollama_manager';
 export class OllamaProvider implements ModelProvider {
     public id = 'ollama';
     private manager: OllamaManager;
-    private defaultModel = 'qwen3.5'; // Can be configured centrally later
+    private defaultModel = 'qwen3.5:9b'; // Can be configured centrally later
     private baseUrl = 'http://127.0.0.1:11434';
 
     constructor(manager: OllamaManager) {

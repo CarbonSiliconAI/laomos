@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs-extra';
 import { GraphManager } from './graph_manager';
+import os from 'os';
 
 import { FileSystemManager } from './fs_manager';
 
@@ -39,18 +40,18 @@ export interface RequestManager {
     [requestId: string]: AbortController;
 }
 
-// In-memory budget state (resets on restart — mock per spec)
+// In-memory budget state (initialized with defaults)
 export let currentBudget: BudgetConstraint = {
     maxCostUsdPerRun: 0.50,
     maxLatencyMs: 30_000,
     qualityFloor: 0.6,
     preferredModels: [],
     fallbackModels: ['local'],
-    fallbackLocalModel: 'llama3.1',
+    fallbackLocalModel: 'qwen3.5:9b',
 };
 
 export const getFallbackPreference = () => currentBudget.fallbackModels[0] || 'local';
-export const getFallbackLocalPreference = () => currentBudget.fallbackLocalModel || 'llama3.1';
+export const getFallbackLocalPreference = () => currentBudget.fallbackLocalModel || 'qwen3.5:9b';
 
 export class Server {
     private app: express.Application;
@@ -102,6 +103,19 @@ export class Server {
         const systemDir = path.join(this.fsManager.getRootDir(), 'system');
         this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
 
+        // Hydrate budget at startup
+        try {
+            const stateDir = path.join(this.fsManager.getSystemDir(), '.laomos_state');
+            const budgetFile = path.join(stateDir, 'budget.json');
+            if (fs.existsSync(budgetFile)) {
+                const savedBudget = JSON.parse(fs.readFileSync(budgetFile, 'utf8'));
+                currentBudget = { ...currentBudget, ...savedBudget };
+                console.log('[Server] Loaded budget settings from disk.');
+            }
+        } catch (err) {
+            console.error('[Server] Failed to load budget on startup:', err);
+        }
+
         this.calendarManager = new CalendarManager(
             systemDir,
             async (targetId, inputPayload) => {
@@ -114,106 +128,8 @@ export class Server {
                     skillContext = targetSkill ? (targetSkill.instructions || '') : '';
                 }
 
-                const systemInstruction = `<Register_SystemPrompt>
-You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
-You have been granted access to the following skills:
-${skillContext}
-
-To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
-Do NOT wrap the XML tags in markdown code blocks.
-
-1. Execute a shell command:
-                    <bash>
-                        your command here
-                            </bash>
-
-                    2. Read a file from the file system:
-                    <read_file>
-                        /absolute/path / or / relative / path / to / file.txt
-                        </read_file>
-
-                    3. Save content to a file in the user's personal directory:
-                        <save_file path="output.txt">
-                            File content here
-                                </save_file>
-
-When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
-You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
-                        </Register_SystemPrompt>`;
-
-                let messages: any[] = [
-                    { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
-                ];
-
-                let finalResponse = '';
-                let iterations = 0;
-                const maxIterations = 10;
-                const execAsync = util.promisify(require('child_process').exec);
-
-                while (iterations < maxIterations) {
-                    iterations++;
-                    const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n');
-                    const result = await this.modelRouter.routeChat(chatString, preferredProvider || 'cloud', 'Calendar Skill Exec');
-                    const aiMessage = result.response;
-                    messages.push({ role: 'assistant', content: aiMessage });
-
-                    let requiresNextTurn = false;
-                    let nextUserMessage = '';
-
-                    const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
-                    let bashMatch;
-                    while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
-                        const command = bashMatch[1].trim();
-                        try {
-                            const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
-                            const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.fsManager.getRootDir(), timeout: 30000 });
-                            const output = (stdout || '') + (stderr || '');
-                            nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
-                        } catch (error: any) {
-                            nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
-                        }
-                        requiresNextTurn = true;
-                    }
-
-                    const readFileRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
-                    let fileMatch;
-                    while ((fileMatch = readFileRegex.exec(aiMessage)) !== null) {
-                        const filePath = fileMatch[1].trim();
-                        try {
-                            const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
-                            const content = require('fs').readFileSync(resolvedPath, 'utf8');
-                            nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
-                        } catch (error: any) {
-                            nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
-                        }
-                        requiresNextTurn = true;
-                    }
-
-                    const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
-                    let saveMatch;
-                    let finalResponseModified = aiMessage;
-                    while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
-                        const filePath = saveMatch[1];
-                        const content = saveMatch[2];
-                        const fullPath = `personal/${filePath}`;
-                        try {
-                            await this.fsManager.createFile(fullPath, content.trim());
-                            finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
-                        } catch (error: any) {
-                        }
-                    }
-
-                    if (requiresNextTurn) {
-                        messages.push({ role: 'user', content: nextUserMessage });
-                    } else {
-                        finalResponse = finalResponseModified;
-                        break;
-                    }
-                }
-                if (iterations >= maxIterations) {
-                    finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
-                }
-                return finalResponse;
+                const resultObj = await this.executeSkill(skillContext, userInput, preferredProvider || 'cloud');
+                return resultObj.response;
             },
             async (targetId, inputPayload) => {
                 const { nodes, edges } = inputPayload;
@@ -298,7 +214,8 @@ You can use tools multiple times in a row.Once you have fully completed the user
         this.app.post('/api/ollama/chat', async (req, res) => {
             const abortController = new AbortController();
             req.on('close', () => {
-                abortController.abort();
+                console.log('[Server] POST /api/ollama/chat req.on("close") fired.');
+                // abortController.abort();
             });
 
             try {
@@ -890,144 +807,12 @@ You can use tools multiple times in a row.Once you have fully completed the user
                 // Default to cloud models for faster iteration
                 const modelPreference = preferredProvider || 'cloud';
 
-                const systemInstruction = `<Register_SystemPrompt>
-You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
-You have been granted access to the following skills:
-${skillContext}
-
-To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
-Do NOT wrap the XML tags in markdown code blocks.
-
-1. Execute a shell command:
-                    <bash>
-                        your command here
-                            </bash>
-
-                    2. Read a file from the file system:
-                    <read_file>
-                        /absolute/path / or / relative / path / to / file.txt
-                        </read_file>
-
-                    3. Save content to a file in the user's personal directory:
-                        < save_file path = "output.txt" >
-                            File content here
-                                </save_file>
-
-When you output a < bash > or < read_file > tag, the system will execute it and reply with the results. 
-You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
-                        </Register_SystemPrompt>`;
-
-                let messages: any[] = [
-                    { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
-                ];
-
-                let finalResponse = '';
-                let iterations = 0;
-                const maxIterations = 20;
-                let levelUsed = '1';
-                let providerUsed = 'local';
-
-                const execAsync = util.promisify(require('child_process').exec);
-
-                while (iterations < maxIterations) {
-                    if (controller?.signal.aborted) {
-                        console.log(`[Skill Execution] Loop aborted by user.`);
-                        finalResponse = "Skill execution was cancelled by the user.";
-                        break;
-                    }
-
-                    iterations++;
-                    console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
-
-                    const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\\n');
-                    const result = await this.modelRouter.routeChat(chatString, modelPreference, 'Skill Execution');
-                    const aiMessage = result.response;
-                    levelUsed = result.level;
-                    providerUsed = result.providerUsed;
-
-                    messages.push({ role: 'assistant', content: aiMessage });
-                    console.log(`\n\n[Skill Execution] ========== AI RESPONSE START ==========\n${aiMessage}\n========== AI RESPONSE END ==========\n\n`);
-
-                    let requiresNextTurn = false;
-                    let nextUserMessage = '';
-
-                    // 1. Process <bash> tools
-                    const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
-                    let bashMatch;
-                    while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
-                        const command = bashMatch[1].trim();
-                        try {
-                            console.log(`[Skill Execution] Executing bash: ${command}`);
-                            // Use login shell to inherit user's full PATH (python3, pip3, npm, etc.)
-                            const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
-                            const execOpts: any = { cwd: this.fsManager.getRootDir(), timeout: 30000 };
-                            if (controller) { execOpts.signal = controller.signal; }
-                            const { stdout, stderr } = await execAsync(shellCmd, execOpts);
-                            const output = (stdout || '') + (stderr || '');
-                            nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
-                        } catch (error: any) {
-                            if (error.name === 'AbortError') {
-                                console.log('[Skill Execution] Bash exec aborted.');
-                                throw error; // break outer loop gracefully or let it re-evaluate
-                            }
-                            console.error(`[Skill Execution] Bash error:`, error.message);
-                            nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
-                        }
-                        requiresNextTurn = true;
-                    }
-
-                    // 2. Process <read_file> tools
-                    const readRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
-                    let readMatch;
-                    while ((readMatch = readRegex.exec(aiMessage)) !== null) {
-                        const filePath = readMatch[1].trim();
-                        try {
-                            console.log(`[Skill Execution] Reading file: ${filePath}`);
-                            // Safely resolve against root
-                            const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
-                            const content = require('fs').readFileSync(resolvedPath, 'utf8');
-                            nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
-                        } catch (error: any) {
-                            console.error(`[Skill Execution] Read file error:`, error.message);
-                            nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
-                        }
-                        requiresNextTurn = true;
-                    }
-
-                    // 3. Process <save_file> tools (We do this on every turn just in case they save intermediately)
-                    const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
-                    let saveMatch;
-                    let finalResponseModified = aiMessage;
-                    while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
-                        const filePath = saveMatch[1];
-                        const content = saveMatch[2];
-                        const fullPath = `personal/${filePath}`;
-                        try {
-                            await this.fsManager.createFile(fullPath, content.trim());
-                            console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
-                            finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
-                        } catch (error: any) {
-                            console.error(`[Skill Execution] Save file error:`, error.message);
-                        }
-                    }
-
-                    if (requiresNextTurn) {
-                        messages.push({ role: 'user', content: nextUserMessage });
-                    } else {
-                        // Exit loop, task complete
-                        finalResponse = finalResponseModified;
-                        break;
-                    }
-                }
-
-                if (iterations >= maxIterations) {
-                    finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
-                }
+                const resultObj = await this.executeSkill(skillContext, userInput, modelPreference, controller);
 
                 res.json({
-                    response: finalResponse,
-                    level: levelUsed,
-                    providerUsed: providerUsed
+                    response: resultObj.response,
+                    level: resultObj.levelUsed,
+                    providerUsed: resultObj.providerUsed
                 });
             } catch (error: any) {
                 console.error('[Skill Execution] Error:', error);
@@ -1295,12 +1080,13 @@ You can use tools multiple times in a row.Once you have fully completed the user
                                         console.log(`[ClawHub] Running: ${cmd}`);
                                         installLogs.push(`> ${cmd}`);
                                         try {
-                                            // Use login shell to inherit user's full PATH
+                                            // Use login shell to inherit user's full PATH, and prepend our laomos bin dir
+                                            const laomosBinDir = path.join(os.homedir(), '.laomos', 'bin');
                                             const shellCmd = `/bin/zsh -l -c ${JSON.stringify(cmd)}`;
                                             const { stdout, stderr } = await execAsync(shellCmd, {
-                                                cwd: skillDir,
+                                                cwd: this.fsManager.getRootDir(),
                                                 timeout: 120000,
-                                                env: { ...process.env, PATH: process.env.PATH }
+                                                env: { ...process.env, PATH: `${laomosBinDir}${path.delimiter}${process.env.PATH}` }
                                             });
                                             if (stdout) installLogs.push(stdout.substring(0, 500));
                                             if (stderr) installLogs.push(`stderr: ${stderr.substring(0, 300)}`);
@@ -1318,6 +1104,49 @@ You can use tools multiple times in a row.Once you have fully completed the user
                             }
                         } else {
                             console.log(`[ClawHub] No ## Installation section found in SKILL.md. Skipping post-install.`);
+                        }
+
+                        // ── Auto-generate executable wrappers for scripts in the system PATH ──
+                        const scriptsDir = path.join(skillDir, 'scripts');
+                        if (fs.existsSync(scriptsDir)) {
+                            const laomosBinDir = path.join(os.homedir(), '.laomos', 'bin');
+                            fs.mkdirSync(laomosBinDir, { recursive: true });
+
+                            const scriptFiles = fs.readdirSync(scriptsDir);
+                            let wrappersCreated = 0;
+
+                            for (const sfile of scriptFiles) {
+                                const ext = path.extname(sfile).toLowerCase();
+                                const commandName = path.basename(sfile, ext);
+                                const scriptFullPath = path.join(scriptsDir, sfile);
+                                const wrapperPath = path.join(laomosBinDir, commandName);
+                                const winWrapperPath = path.join(laomosBinDir, `${commandName}.cmd`);
+
+                                try {
+                                    if (ext === '.py') {
+                                        fs.writeFileSync(wrapperPath, `#!/usr/bin/env bash\npython3 "${scriptFullPath}" "$@"\n`);
+                                        fs.chmodSync(wrapperPath, '755');
+                                        fs.writeFileSync(winWrapperPath, `@echo off\npython "${scriptFullPath}" %*\n`);
+                                        wrappersCreated++;
+                                    } else if (ext === '.sh') {
+                                        fs.writeFileSync(wrapperPath, `#!/usr/bin/env bash\nbash "${scriptFullPath}" "$@"\n`);
+                                        fs.chmodSync(wrapperPath, '755');
+                                        fs.writeFileSync(winWrapperPath, `@echo off\nbash "${scriptFullPath}" %*\n`);
+                                        wrappersCreated++;
+                                    } else if (ext === '.js') {
+                                        fs.writeFileSync(wrapperPath, `#!/usr/bin/env bash\nnode "${scriptFullPath}" "$@"\n`);
+                                        fs.chmodSync(wrapperPath, '755');
+                                        fs.writeFileSync(winWrapperPath, `@echo off\nnode "${scriptFullPath}" %*\n`);
+                                        wrappersCreated++;
+                                    }
+                                } catch (werr) {
+                                    console.error(`[ClawHub] Failed to create wrapper for ${sfile}:`, werr);
+                                }
+                            }
+                            if (wrappersCreated > 0) {
+                                console.log(`[ClawHub] Created ${wrappersCreated} executable wrappers in ${laomosBinDir}`);
+                                installLogs.push(`Linked ${wrappersCreated} command(s) to system PATH.`);
+                            }
                         }
                     }
                 } catch (postInstallErr: any) {
@@ -2025,7 +1854,8 @@ Instructions:
         this.app.post('/api/ai/chat', async (req, res) => {
             const abortController = new AbortController();
             req.on('close', () => {
-                abortController.abort();
+                console.log('[Server] POST /api/ai/chat req.on("close") fired.');
+                // abortController.abort();
             });
 
             try {
@@ -2383,6 +2213,19 @@ Instructions:
             }
         });
 
+        this.app.post('/api/kernel/abort/:jobId', async (req, res) => {
+            try {
+                const success = await this.scheduler.abortJob(req.params.jobId);
+                if (success) {
+                    res.json({ success: true, message: 'Job aborted successfully' });
+                } else {
+                    res.status(404).json({ error: 'Job not found or not running' });
+                }
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // ───────────────────────────────────────────────────────────────────────
 
         // ── Budget & Semantic Cache (Phase 2) ─────────────────────────────────
@@ -2391,8 +2234,19 @@ Instructions:
             res.json(currentBudget);
         });
 
-        this.app.post('/api/budget', (req, res) => {
+        this.app.post('/api/budget', async (req, res) => {
             currentBudget = { ...currentBudget, ...req.body };
+
+            // Save to disk
+            try {
+                const stateDir = path.join(this.fsManager.getSystemDir(), '.laomos_state');
+                await fs.ensureDir(stateDir);
+                await fs.writeFile(path.join(stateDir, 'budget.json'), JSON.stringify(currentBudget, null, 2));
+            } catch (err) {
+                console.error('[Server] Failed to save budget:', err);
+                return res.status(500).json({ error: 'Failed to save budget settings' });
+            }
+
             res.json(currentBudget);
         });
 
@@ -2470,6 +2324,137 @@ Instructions:
                 }
             });
         });
+    }
+
+    public async executeSkill(skillContext: string, userInput: string, modelPreference: string = 'cloud', controller: AbortController | null = null): Promise<{ response: string; levelUsed: string; providerUsed: string }> {
+        const systemInstruction = `<Register_SystemPrompt>
+You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
+You have been granted access to the following skills:
+${skillContext}
+
+To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
+Do NOT wrap the XML tags in markdown code blocks.
+
+1. Execute a shell command:
+<bash>
+your command here
+</bash>
+
+2. Read a file from the file system:
+<read_file>
+/absolute/path/or/relative/path/to/file.txt
+</read_file>
+
+3. Save content to a file in the user's personal directory:
+<save_file path="output.txt">
+File content here
+</save_file>
+
+When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
+You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+</Register_SystemPrompt>`;
+
+        let messages: any[] = [
+            { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
+        ];
+
+        let finalResponse = '';
+        let iterations = 0;
+        const maxIterations = 20;
+        let levelUsed = '1';
+        let providerUsed = 'local';
+
+        const execAsync = util.promisify(require('child_process').exec);
+
+        while (iterations < maxIterations) {
+            if (controller?.signal.aborted) {
+                console.log(`[Skill Execution] Loop aborted by user.`);
+                return { response: "Skill execution was cancelled by the user.", levelUsed, providerUsed };
+            }
+
+            iterations++;
+            console.log(`[Skill Execution] Loop Iteration ${iterations}...`);
+
+            const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n');
+            const result = await this.modelRouter.routeChat(chatString, modelPreference, 'Skill Execution');
+            const aiMessage = result.response;
+            levelUsed = result.level;
+            providerUsed = result.providerUsed;
+
+            messages.push({ role: 'assistant', content: aiMessage });
+            console.log(`\n\n[Skill Execution] ========== AI RESPONSE START ==========\n${aiMessage}\n========== AI RESPONSE END ==========\n\n`);
+
+            let requiresNextTurn = false;
+            let nextUserMessage = '';
+
+            // 1. Process <bash> tools
+            const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
+            let bashMatch;
+            while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
+                const command = bashMatch[1].trim();
+                try {
+                    console.log(`[Skill Execution] Executing bash: ${command}`);
+                    const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
+                    const execOpts: any = { cwd: this.fsManager.getRootDir(), timeout: 120000 };
+                    if (controller) { execOpts.signal = controller.signal; }
+                    const { stdout, stderr } = await execAsync(shellCmd, execOpts);
+                    const output = (stdout || '') + (stderr || '');
+                    nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
+                } catch (error: any) {
+                    if (error.name === 'AbortError') throw error;
+                    console.error(`[Skill Execution] Bash error:`, error.message);
+                    nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
+                }
+                requiresNextTurn = true;
+            }
+
+            // 2. Process <read_file> tools
+            const readRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
+            let readMatch;
+            while ((readMatch = readRegex.exec(aiMessage)) !== null) {
+                const filePath = readMatch[1].trim();
+                try {
+                    console.log(`[Skill Execution] Reading file: ${filePath}`);
+                    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
+                    const content = require('fs').readFileSync(resolvedPath, 'utf8');
+                    nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
+                } catch (error: any) {
+                    console.error(`[Skill Execution] Read file error:`, error.message);
+                    nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
+                }
+                requiresNextTurn = true;
+            }
+
+            // 3. Process <save_file> tools
+            const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+            let saveMatch;
+            let finalResponseModified = aiMessage;
+            while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
+                const filePath = saveMatch[1];
+                const content = saveMatch[2];
+                const fullPath = `personal/${filePath}`;
+                try {
+                    await this.fsManager.createFile(fullPath, content.trim());
+                    console.log(`[Skill Execution] Intercepted file save to: ${fullPath}`);
+                    finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                } catch (error: any) {
+                    console.error(`[Skill Execution] Save file error:`, error.message);
+                }
+            }
+
+            if (requiresNextTurn) {
+                messages.push({ role: 'user', content: nextUserMessage });
+            } else {
+                finalResponse = finalResponseModified;
+                break;
+            }
+        }
+
+        if (iterations >= maxIterations) {
+            finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
+        }
+
+        return { response: finalResponse, levelUsed, providerUsed };
     }
 
     public async start() {

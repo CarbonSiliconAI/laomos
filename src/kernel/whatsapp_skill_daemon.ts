@@ -1,6 +1,7 @@
 import { ModelRouter } from './router';
 import { TaskAnalyzer, AnalyzedTask } from './analyzer';
 import { SkillLoader, OpenClawSkill } from './skill_loader';
+import os from 'os';
 import * as util from 'util';
 
 export interface WADaemonLogEntry {
@@ -252,7 +253,11 @@ You can use tools multiple times in a row. Once you have fully completed the use
                 try {
                     this.addLog('execute', `Running: ${command.substring(0, 100)}`);
                     const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
-                    const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.storageRoot });
+                    const laomosBinDir = require('path').join(os.homedir(), '.laomos', 'bin');
+                    const { stdout, stderr } = await execAsync(shellCmd, {
+                        cwd: this.storageRoot,
+                        env: { ...process.env, PATH: `${laomosBinDir}${require('path').delimiter}${process.env.PATH}` }
+                    });
                     const output = (stdout || '') + (stderr || '');
                     nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
                 } catch (error: any) {

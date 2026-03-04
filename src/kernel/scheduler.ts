@@ -292,14 +292,29 @@ export class AgentScheduler {
                     result = `Generated Video at: ${res}`;
                     model = 'mock';
                 }
+            } else if (task.type.startsWith('skill:')) {
+                const skillName = task.type.split(':')[1];
+                const activeSkills = this.apiHandlers.skillLoader.loadSkills();
+                const targetSkill = activeSkills.find((s: any) => s.name === skillName);
+
+                if (!targetSkill) {
+                    throw new Error(`Skill ${skillName} not found or not loaded.`);
+                }
+
+                // If inputData is empty but manualInput is provided, the scheduler already populates inputData
+                // with manualInput initially. We just pass `inputData` as the user prompt.
+                const skillContext = targetSkill.description + "\nAvailable parameters/tools: " + JSON.stringify(targetSkill.tools || []);
+
+                // Invoke the main server's executeSkill method if available, or just call the ModelRouter
+                // We'll use the Server's executeSkill context internally, passed via apiHandlers
+                if (this.apiHandlers.executeSkill) {
+                    const skillOut = await this.apiHandlers.executeSkill(skillContext, inputData, 'cloud');
+                    result = skillOut.response || 'No response captured.';
+                } else {
+                    result = `Error: ExecuteSkill handler not provided to Scheduler for ${skillName}`;
+                }
+                model = 'cloud';
             } else if (task.type === 'search') {
-                await new Promise(r => setTimeout(r, 800));
-                result = `Mock Search Result for: "${inputData}"\nFound 10,000 results.`;
-                model = 'mock';
-            } else if (task.type === 'display') {
-                result = inputData;
-                model = 'passthrough';
-            } else {
                 result = `Processed ${task.type}`;
                 model = 'mock';
             }
