@@ -259,6 +259,12 @@ export default function Settings() {
                                     <option value="online">Online (OpenAI / Anthropic / Gemini)</option>
                                 </select>
                             </div>
+                            <div className="settings-field">
+                                <label>Fallback Local Model</label>
+                                <input className="os-input" type="text" placeholder="e.g. llama3.1, qwen3.5:4b"
+                                    value={budget.fallbackLocalModel ?? 'llama3.1'}
+                                    onChange={e => setBudget(b => b ? { ...b, fallbackLocalModel: e.target.value } : b)} />
+                            </div>
                             <button className="btn btn-primary" onClick={saveBudget} disabled={saving}>
                                 {saving ? <><div className="spinner" /> Saving…</> : 'Save Budget'}
                             </button>

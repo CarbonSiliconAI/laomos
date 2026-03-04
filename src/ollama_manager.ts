@@ -107,27 +107,28 @@ export class OllamaManager {
     }
 
     async pullModel(model: string): Promise<any> {
-        // We use axios to trigger the pull via API if possible, or exec CLI
-        // Ollama API has a /api/pull endpoint
-        let isRunning = await this.checkStatus();
-        if (!isRunning) {
-            console.log('[Ollama] Service is not running. Attempting to start...');
-            await this.ensureService();
-            isRunning = await this.checkStatus();
-            if (!isRunning) {
-                throw new Error('Ollama service failed to start automatically.');
-            }
+        console.log(`[Ollama] Pulling model '${model}' via CLI...`);
+
+        // Include common brew/local bin paths
+        let envPath = process.env.PATH || '';
+        if (os.platform() === 'win32') {
+            const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+            envPath = `${envPath};${path.join(localAppData, 'Programs', 'Ollama')}`;
+        } else {
+            envPath = `${envPath}:/usr/local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/bin:/usr/bin`;
         }
 
         try {
-            const response = await axios.post(`${this.baseUrl}/api/pull`, {
-                name: model,
-                stream: false // For simplicity, wait for full pull (might timeout for large models)
+            const { stdout, stderr } = await execAsync(`ollama run ${model} --keepalive 1s <<< ""`, {
+                env: { ...process.env, PATH: envPath },
+                timeout: 600000 // 10 minute timeout for large model downloads
             });
-            return response.data;
-        } catch (error) {
-            console.error('[Ollama] Error pulling model:', error);
-            throw error;
+            console.log(`[Ollama] Model '${model}' pulled successfully.`);
+            return { status: 'success', model, log: (stdout || '') + (stderr || '') };
+        } catch (error: any) {
+            const msg = error.stderr || error.message;
+            console.error('[Ollama] Error pulling model:', msg);
+            throw new Error(`Ollama pull failed: ${msg}`);
         }
     }
 
@@ -142,11 +143,11 @@ export class OllamaManager {
         let recommendedModels = [];
 
         if (totalMemGB < 8) {
-            recommendedModels = ['qwen3.5:0.6b', 'phi4-mini', 'gemma3'];
+            recommendedModels = ['qwen3.5:0.8b', 'phi4-mini', 'gemma3'];
         } else if (totalMemGB < 16) {
             recommendedModels = ['qwen3.5:4b', 'llama3.1', 'gemma3', 'deepseek-r1:8b'];
         } else {
-            recommendedModels = ['qwen3.5:8b', 'llama4-scout', 'deepseek-r1:14b'];
+            recommendedModels = ['qwen3.5:9b', 'llama4-scout', 'deepseek-r1:14b'];
         }
 
         return {

@@ -21,10 +21,17 @@ export class ModelRouter {
     private activeJobs: Map<string, AIJob> = new Map();
 
     private getFallbackPref: () => string;
+    private getFallbackLocalPref: () => string;
 
-    constructor(identityManager: IdentityManager, ollamaManager: OllamaManager, getFallbackPref: () => string = () => 'local') {
+    constructor(
+        identityManager: IdentityManager,
+        ollamaManager: OllamaManager,
+        getFallbackPref: () => string = () => 'local',
+        getFallbackLocalPref: () => string = () => 'llama3.1'
+    ) {
         this.localProvider = new OllamaProvider(ollamaManager);
         this.getFallbackPref = getFallbackPref;
+        this.getFallbackLocalPref = getFallbackLocalPref;
         this.providers.set('local', this.localProvider);
         this.providers.set('openai', new OpenAIProvider(identityManager));
         this.providers.set('anthropic', new AnthropicProvider(identityManager));
@@ -80,7 +87,7 @@ export class ModelRouter {
 
         try {
             trackJob('local');
-            const res = await this.localProvider.chat(messages, undefined, { signal: abortSignal });
+            const res = await this.localProvider.chat(messages, this.getFallbackLocalPref(), { signal: abortSignal });
             cleanupJob();
             return { response: res, level: `${levelStr} (local fallback)`, providerUsed: 'local' };
         } catch (e: any) {
@@ -103,9 +110,9 @@ Rate the following task's complexity on a scale of 1 to 3:
 2 (Medium): Logical transformation, retrieval, multi-step planning, coding.
 3 (Complex): High-level math, deep reasoning, massive code generation, agent conflict resolution.
 
-Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
+RATE THE COMPLEXITY: (1, 2, or 3)`},
                 { role: 'user', content: prompt }
-            ]);
+            ], this.getFallbackLocalPref());
 
             const rawText = response.trim();
             const match = rawText.match(/[123]/);
@@ -175,8 +182,8 @@ Respond WITH ONLY A SINGLE DIGIT (1, 2, or 3) and absolutely nothing else.`},
 
         messages.push({ role: 'user', content: prompt });
 
-        console.log(`[ModelRouter] Extracted System Prompt:`, systemContent.substring(0, 500) + '...');
-        console.log(`[ModelRouter] Forwarded User Prompt:`, prompt.substring(0, 500) + '...');
+        console.log(`[ModelRouter] Extracted System Prompt: `, systemContent.substring(0, 500) + '...');
+        console.log(`[ModelRouter] Forwarded User Prompt: `, prompt.substring(0, 500) + '...');
 
 
         let pAnthropic = this.providers.get('anthropic');

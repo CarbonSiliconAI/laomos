@@ -8,6 +8,7 @@ import KnowledgePage from './pages/Knowledge';
 import GovernancePage from './pages/Governance';
 
 // Features
+import CalendarPage from './features/calendar/Calendar';
 import FlowPage from './features/flow/Flow';
 import MailPage from './features/mail/Mail';
 import GamePage from './features/game/Game';
@@ -41,6 +42,7 @@ export default function App() {
                     <Route path="/home" element={<HomePage />} />
 
                     <Route path="/operations" element={<OperationsPage />} />
+                    <Route path="/operations/calendar" element={<CalendarPage />} />
                     <Route path="/operations/flow" element={<FlowPage />} />
                     <Route path="/operations/mail" element={<MailPage />} />
                     <Route path="/operations/game" element={<GamePage />} />

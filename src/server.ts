@@ -33,6 +33,7 @@ import { AIFirewall } from './kernel/firewall';
 import { GameManager } from './game_manager';
 import { MailManager } from './mail_manager';
 import { google } from 'googleapis';
+import { CalendarManager, ScheduledJob } from './kernel/calendar';
 
 export interface RequestManager {
     [requestId: string]: AbortController;
@@ -45,9 +46,11 @@ export let currentBudget: BudgetConstraint = {
     qualityFloor: 0.6,
     preferredModels: [],
     fallbackModels: ['local'],
+    fallbackLocalModel: 'llama3.1',
 };
 
 export const getFallbackPreference = () => currentBudget.fallbackModels[0] || 'local';
+export const getFallbackLocalPreference = () => currentBudget.fallbackLocalModel || 'llama3.1';
 
 export class Server {
     private app: express.Application;
@@ -72,6 +75,7 @@ export class Server {
     private mailManager: MailManager;
     private activeRequests: RequestManager = {};
     private activeSkillExecutions = new Map<string, AbortController>();
+    private calendarManager: CalendarManager;
     private httpServer: any;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -97,6 +101,126 @@ export class Server {
 
         const systemDir = path.join(this.fsManager.getRootDir(), 'system');
         this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
+
+        this.calendarManager = new CalendarManager(
+            systemDir,
+            async (targetId, inputPayload) => {
+                // Execute Skill background logic
+                let { skillContext, userInput, preferredProvider } = inputPayload;
+
+                if (!skillContext) {
+                    const skills = this.skillLoader.loadSkills();
+                    const targetSkill = skills.find(s => s.name.toLowerCase() === targetId.toLowerCase());
+                    skillContext = targetSkill ? (targetSkill.instructions || '') : '';
+                }
+
+                const systemInstruction = `<Register_SystemPrompt>
+You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
+You have been granted access to the following skills:
+${skillContext}
+
+To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
+Do NOT wrap the XML tags in markdown code blocks.
+
+1. Execute a shell command:
+                    <bash>
+                        your command here
+                            </bash>
+
+                    2. Read a file from the file system:
+                    <read_file>
+                        /absolute/path / or / relative / path / to / file.txt
+                        </read_file>
+
+                    3. Save content to a file in the user's personal directory:
+                        <save_file path="output.txt">
+                            File content here
+                                </save_file>
+
+When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
+You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+                        </Register_SystemPrompt>`;
+
+                let messages: any[] = [
+                    { role: 'user', content: `${systemInstruction}\nUser Input: ${userInput}` }
+                ];
+
+                let finalResponse = '';
+                let iterations = 0;
+                const maxIterations = 10;
+                const execAsync = util.promisify(require('child_process').exec);
+
+                while (iterations < maxIterations) {
+                    iterations++;
+                    const chatString = messages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join('\n');
+                    const result = await this.modelRouter.routeChat(chatString, preferredProvider || 'cloud', 'Calendar Skill Exec');
+                    const aiMessage = result.response;
+                    messages.push({ role: 'assistant', content: aiMessage });
+
+                    let requiresNextTurn = false;
+                    let nextUserMessage = '';
+
+                    const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
+                    let bashMatch;
+                    while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
+                        const command = bashMatch[1].trim();
+                        try {
+                            const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
+                            const { stdout, stderr } = await execAsync(shellCmd, { cwd: this.fsManager.getRootDir(), timeout: 30000 });
+                            const output = (stdout || '') + (stderr || '');
+                            nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
+                        } catch (error: any) {
+                            nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    const readFileRegex = /<read_file>([\s\S]*?)<\/read_file>/g;
+                    let fileMatch;
+                    while ((fileMatch = readFileRegex.exec(aiMessage)) !== null) {
+                        const filePath = fileMatch[1].trim();
+                        try {
+                            const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
+                            const content = require('fs').readFileSync(resolvedPath, 'utf8');
+                            nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
+                        } catch (error: any) {
+                            nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
+                        }
+                        requiresNextTurn = true;
+                    }
+
+                    const saveFileRegex = /<save_file\s+path="([^"]+)">([\s\S]*?)<\/save_file>/g;
+                    let saveMatch;
+                    let finalResponseModified = aiMessage;
+                    while ((saveMatch = saveFileRegex.exec(aiMessage)) !== null) {
+                        const filePath = saveMatch[1];
+                        const content = saveMatch[2];
+                        const fullPath = `personal/${filePath}`;
+                        try {
+                            await this.fsManager.createFile(fullPath, content.trim());
+                            finalResponseModified = finalResponseModified.replace(saveMatch[0], `\n*[Skill executed file save: ${fullPath}]*\n`);
+                        } catch (error: any) {
+                        }
+                    }
+
+                    if (requiresNextTurn) {
+                        messages.push({ role: 'user', content: nextUserMessage });
+                    } else {
+                        finalResponse = finalResponseModified;
+                        break;
+                    }
+                }
+                if (iterations >= maxIterations) {
+                    finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
+                }
+                return finalResponse;
+            },
+            async (targetId, inputPayload) => {
+                const { nodes, edges } = inputPayload;
+                const jobId = await this.scheduler.submitJob(nodes, edges);
+                return `Flow Job Submitted: ${jobId}`;
+            }
+        );
 
         this.configureRoutes();
     }
@@ -2295,6 +2419,45 @@ Instructions:
             }
         });
 
+        // ── Calendar endpoints ─────────────────────────────────────
+        this.app.get('/api/calendar/jobs', (req, res) => {
+            try {
+                const jobs = this.calendarManager.getAllJobs();
+                res.json({ jobs });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/calendar/jobs', async (req, res) => {
+            try {
+                const { type, targetId, inputPayload, scheduledTime } = req.body;
+                if (!type || !targetId || !scheduledTime) {
+                    return res.status(400).json({ error: 'type, targetId, and scheduledTime are required.' });
+                }
+
+                const parsedTime = new Date(scheduledTime).getTime();
+                if (isNaN(parsedTime)) {
+                    return res.status(400).json({ error: 'Invalid scheduledTime format.' });
+                }
+
+                const job = await this.calendarManager.addJob(type, targetId, inputPayload, parsedTime);
+                res.json({ success: true, job });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.delete('/api/calendar/jobs/:id', async (req, res) => {
+            try {
+                const deleted = await this.calendarManager.deleteJob(req.params.id);
+                if (deleted) res.json({ success: true });
+                else res.status(404).json({ error: 'Job not found' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // SPA fallback — serve React index.html for any non-API route
         // Express 5 requires named wildcard: /{*path} instead of *
         const appRoot2 = process.env.APP_ROOT || process.cwd();
@@ -2309,12 +2472,15 @@ Instructions:
         });
     }
 
-    public start() {
+    public async start() {
         this.httpServer = this.app.listen(this.port, '127.0.0.1', () => {
             console.log(`[Server] Web Interface running at http://127.0.0.1:${this.port}`);
         });
         this.httpServer.on('error', (err: any) => {
             console.error('[Server] Error:', err.message);
         });
+
+        await this.calendarManager.init();
+        this.calendarManager.start();
     }
 }

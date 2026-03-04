@@ -4,10 +4,10 @@ import './Models.css';
 
 export const AVAILABLE_MODELS = [
     // Local models (Ollama)
-    { id: 'qwen3.5:0.6b', name: 'Qwen 3.5 (0.6B)', size: '400MB', desc: "Alibaba's latest nano model", cloud: false },
-    { id: 'qwen3.5:1.5b', name: 'Qwen 3.5 (1.5B)', size: '1.0GB', desc: "Alibaba's latest micro model", cloud: false },
+    { id: 'qwen3.5:0.8b', name: 'Qwen 3.5 (0.8B)', size: '500MB', desc: "Alibaba's latest nano model", cloud: false },
+    { id: 'qwen3.5:2b', name: 'Qwen 3.5 (2B)', size: '1.4GB', desc: "Alibaba's latest micro model", cloud: false },
     { id: 'qwen3.5:4b', name: 'Qwen 3.5 (4B)', size: '2.6GB', desc: "Alibaba's strong small model", cloud: false },
-    { id: 'qwen3.5:8b', name: 'Qwen 3.5 (8B)', size: '5.2GB', desc: "Alibaba's powerful 8B model", cloud: false },
+    { id: 'qwen3.5:9b', name: 'Qwen 3.5 (9B)', size: '5.8GB', desc: "Alibaba's powerful 9B model", cloud: false },
     { id: 'llama4-scout', name: 'Llama 4 Scout (17B)', size: '12GB', desc: "Meta's latest open model", cloud: false },
     { id: 'llama3.3', name: 'Llama 3.3 (70B)', size: '40GB', desc: "Meta's refined 70B model", cloud: false },
     { id: 'llama3.1', name: 'Llama 3.1 (8B)', size: '4.7GB', desc: "Meta's reliable 8B workhorse", cloud: false },

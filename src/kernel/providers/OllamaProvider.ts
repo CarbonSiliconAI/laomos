@@ -5,7 +5,7 @@ import { OllamaManager } from '../../ollama_manager';
 export class OllamaProvider implements ModelProvider {
     public id = 'ollama';
     private manager: OllamaManager;
-    private defaultModel = 'llama3.1'; // Can be configured centrally later
+    private defaultModel = 'qwen3.5'; // Can be configured centrally later
     private baseUrl = 'http://127.0.0.1:11434';
 
     constructor(manager: OllamaManager) {
@@ -27,9 +27,26 @@ export class OllamaProvider implements ModelProvider {
             }
         }
 
+        const availableModels = await this.manager.listModels();
+        let targetModel = model;
+
+        if (!availableModels.includes(targetModel)) {
+            if (availableModels.length > 0) {
+                console.warn(`[OllamaProvider] Requested model '${targetModel}' not found. Falling back to '${availableModels[0]}'`);
+                targetModel = availableModels[0];
+            } else {
+                console.log(`[OllamaProvider] No models available. Pulling '${targetModel}' automatically...`);
+                try {
+                    await this.manager.pullModel(targetModel);
+                } catch (error: any) {
+                    throw new Error(`Failed to pull model '${targetModel}': ${error.message}`);
+                }
+            }
+        }
+
         try {
             const response = await axios.post(`${this.baseUrl}/api/chat`, {
-                model: model,
+                model: targetModel,
                 messages: messages,
                 stream: false,
                 options: {

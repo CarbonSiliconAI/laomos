@@ -30,6 +30,7 @@ export interface BudgetConstraint {
     qualityFloor: number;
     preferredModels: string[];
     fallbackModels: string[];
+    fallbackLocalModel?: string;
 }
 
 export interface ExecutionEvent {

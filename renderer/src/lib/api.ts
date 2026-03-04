@@ -45,6 +45,13 @@ export const api = {
     }),
     kernelStatus: (jobId: string) => apiFetch<KernelStatus>(`/api/kernel/status/${jobId}`),
 
+    // ── Calendar ─────────────────────────────
+    calendarJobs: () => apiFetch<{ jobs: ScheduledJob[] }>('/api/calendar/jobs'),
+    calendarCreateJob: (body: { type: 'skill' | 'flow'; targetId: string; inputPayload: any; scheduledTime: string }) => apiFetch<{ success: boolean; job: ScheduledJob }>('/api/calendar/jobs', {
+        method: 'POST', body: JSON.stringify(body),
+    }),
+    calendarDeleteJob: (id: string) => apiFetch<{ success: boolean }>(`/api/calendar/jobs/${id}`, { method: 'DELETE' }),
+
     // ── Files ───────────────────────────────
     filesList: (p?: string) => apiFetch<{ files: FileEntry[] }>(`/api/files/list${p ? `?path=${encodeURIComponent(p)}` : ''}`),
     filesRead: (p: string) => apiFetch<{ content: string }>(`/api/files/read?path=${encodeURIComponent(p)}`),
@@ -175,6 +182,17 @@ export interface ToolDef {
     parameters?: object;
 }
 
+export interface ScheduledJob {
+    id: string;
+    type: 'skill' | 'flow';
+    targetId: string;
+    inputPayload: any;
+    scheduledTime: string; // ISO format
+    status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+    result?: string;
+    createdAt: string;
+}
+
 export interface KernelStatus {
     status: string;
     result?: string;
@@ -282,6 +300,7 @@ export interface BudgetConstraint {
     qualityFloor: number;
     preferredModels: string[];
     fallbackModels: string[];
+    fallbackLocalModel?: string;
 }
 
 export interface CacheStats {

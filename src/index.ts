@@ -9,7 +9,7 @@ import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import path from 'path';
 import { GraphManager } from './graph_manager';
-import { Server, getFallbackPreference } from './server';
+import { Server, getFallbackPreference, getFallbackLocalPreference } from './server';
 import { ExternalAPIManager } from './external_api';
 import { ExecutionJournal } from './telemetry/journal';
 import { BudgetConstraint } from './telemetry/types';
@@ -51,7 +51,7 @@ async function main() {
     }
 
     // 5. Initialize Kernel Router, Memory & Registry
-    const router = new ModelRouter(identityManager, ollamaManager, getFallbackPreference);
+    const router = new ModelRouter(identityManager, ollamaManager, getFallbackPreference, getFallbackLocalPreference);
     const registry = new PromptRegistry();
 
     // Memory
