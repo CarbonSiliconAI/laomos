@@ -2176,13 +2176,36 @@ Rules:
 
         this.app.post('/api/task-chain/log', async (req, res) => {
             try {
-                const { name, log } = req.body;
+                const { name, log, status } = req.body;
                 if (!name || !log) return res.status(400).json({ error: 'name and log are required' });
                 const chainDir = path.join(taskChainsDir, name);
                 await fs.ensureDir(chainDir);
                 const logPath = path.join(chainDir, 'experience.log');
                 const timestamp = new Date().toISOString();
                 await fs.appendFile(logPath, `\n[${timestamp}]\n${log}\n`);
+
+                // Persist structured run record to runs.json
+                if (status) {
+                    const runsPath = path.join(chainDir, 'runs.json');
+                    let runs: any[] = [];
+                    if (await fs.pathExists(runsPath)) {
+                        try { runs = await fs.readJson(runsPath); } catch { runs = []; }
+                    }
+                    // Build a short summary from the first few lines or error
+                    const lines = log.split('\n').filter((l: string) => l.trim());
+                    const summaryLine = status === 'failed'
+                        ? (lines.find((l: string) => /error|fail|stopped/i.test(l)) || lines[lines.length - 1] || '')
+                        : (lines[lines.length - 1] || '');
+                    runs.push({
+                        id: `run_${Date.now()}`,
+                        timestamp,
+                        status,  // 'success' | 'failed' | 'stopped'
+                        summary: summaryLine.substring(0, 200),
+                        log,
+                    });
+                    await fs.writeFile(runsPath, JSON.stringify(runs, null, 2));
+                }
+
                 res.json({ success: true });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
@@ -2215,7 +2238,26 @@ Rules:
                 if (await fs.pathExists(logPath)) {
                     experience = await fs.readFile(logPath, 'utf-8');
                 }
-                res.json({ chain, experience });
+                let runs: any[] = [];
+                const runsPath = path.join(chainDir, 'runs.json');
+                if (await fs.pathExists(runsPath)) {
+                    try { runs = await fs.readJson(runsPath); } catch { runs = []; }
+                }
+                res.json({ chain, experience, runs });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/task-chain/runs/:name', async (req, res) => {
+            try {
+                const chainDir = path.join(taskChainsDir, req.params.name);
+                const runsPath = path.join(chainDir, 'runs.json');
+                let runs: any[] = [];
+                if (await fs.pathExists(runsPath)) {
+                    try { runs = await fs.readJson(runsPath); } catch { runs = []; }
+                }
+                res.json({ runs });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
             }

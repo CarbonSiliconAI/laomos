@@ -1,0 +1,60 @@
+{
+  "name": "穿衣指南",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Provide clothing guide based on local weather",
+      "type": "goal",
+      "x": 1100,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Current weather data obtained",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "cond_2",
+      "label": "Clothing recommendations generated",
+      "type": "condition",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Fetch current weather and forecast",
+      "type": "action",
+      "skill": "weather",
+      "x": 60,
+      "y": 135
+    },
+    {
+      "id": "act_2",
+      "label": "Generate personalized clothing guide",
+      "type": "action",
+      "skill": "llm-chat",
+      "x": 580,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_1",
+      "to": "act_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    }
+  ]
+}

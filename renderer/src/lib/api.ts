@@ -168,11 +168,11 @@ export const api = {
     taskChainSave: (name: string, nodes: any[], edges: any[]) => apiFetch<{ success: boolean; name: string }>('/api/task-chain/save', {
         method: 'POST', body: JSON.stringify({ name, nodes, edges }),
     }),
-    taskChainLog: (name: string, log: string) => apiFetch<{ success: boolean }>('/api/task-chain/log', {
-        method: 'POST', body: JSON.stringify({ name, log }),
+    taskChainLog: (name: string, log: string, status?: 'success' | 'failed' | 'stopped') => apiFetch<{ success: boolean }>('/api/task-chain/log', {
+        method: 'POST', body: JSON.stringify({ name, log, status }),
     }),
     taskChainList: () => apiFetch<{ chains: string[] }>('/api/task-chain/list'),
-    taskChainLoad: (name: string) => apiFetch<{ chain: TaskChainResult & { name: string }; experience: string }>(`/api/task-chain/load/${encodeURIComponent(name)}`),
+    taskChainLoad: (name: string) => apiFetch<{ chain: TaskChainResult & { name: string }; experience: string; runs: RunLogEntry[] }>(`/api/task-chain/load/${encodeURIComponent(name)}`),
     taskChainRunStep: (body: { nodeId: string; nodeLabel: string; nodeType: string; skill?: string; previousOutput?: string }) =>
         apiFetch<{ output: string; passed?: boolean; executionLog?: string[]; status: string }>('/api/task-chain/run-step', {
             method: 'POST', body: JSON.stringify(body),
@@ -360,4 +360,12 @@ export interface ChainEdge {
 export interface TaskChainResult {
     nodes: ChainNode[];
     edges: ChainEdge[];
+}
+
+export interface RunLogEntry {
+    id: string;
+    timestamp: string;
+    status: 'success' | 'failed' | 'stopped';
+    summary: string;
+    log: string;
 }

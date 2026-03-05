@@ -662,3 +662,107 @@
     margin: 0;
     line-height: 1.5;
 }
+
+/* ── Run History ── */
+.taskchain-experience--runs {
+    border-color: rgba(0, 122, 255, 0.15);
+    background: rgba(0, 122, 255, 0.03);
+}
+
+.taskchain-run-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.taskchain-run-item {
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+}
+
+.taskchain-run-item--success {
+    border-left-color: #28A745;
+}
+
+.taskchain-run-item--failed {
+    border-left-color: #FF3B30;
+}
+
+.taskchain-run-item--stopped {
+    border-left-color: #888;
+}
+
+.taskchain-run-item+.taskchain-run-item {
+    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+}
+
+.taskchain-run-item__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    transition: background 0.15s;
+}
+
+.taskchain-run-item__header:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.taskchain-run-item__status {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+}
+
+.taskchain-run-item__time {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--text, #333);
+    font-size: 0.75rem;
+}
+
+.taskchain-run-item__summary {
+    flex: 1;
+    color: var(--text-muted, #666);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.72rem;
+}
+
+.taskchain-run-item__chevron {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    color: var(--text-muted, #999);
+    transition: transform 0.2s;
+}
+
+.taskchain-run-item__log {
+    padding: 10px 16px 10px 24px;
+    margin: 0;
+    font-size: 0.72rem;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-muted, #555);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 250px;
+    overflow-y: auto;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.04));
+    animation: tc-slide-down 0.15s ease-out;
+}
+
+@keyframes tc-slide-down {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+
+    to {
+        max-height: 250px;
+        opacity: 1;
+    }
+}

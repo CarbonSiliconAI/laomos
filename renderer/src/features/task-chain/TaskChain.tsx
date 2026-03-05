@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { api } from '../../lib/api';
-import type { ChainNode, ChainEdge } from '../../lib/api';
+import type { ChainNode, ChainEdge, RunLogEntry } from '../../lib/api';
 import './TaskChain.css';
 
 // ── Layout helpers ──────────────────────────────────────────
@@ -97,6 +97,8 @@ export default function TaskChain() {
     const [systemExperience, setSystemExperience] = useState('');
     const [improving, setImproving] = useState(false);
     const [improveResult, setImproveResult] = useState<{ iterations: number; improved: string[]; results: any[]; summary: string } | null>(null);
+    const [runs, setRuns] = useState<RunLogEntry[]>([]);
+    const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
 
@@ -205,6 +207,8 @@ export default function TaskChain() {
             setChainName(res.chain.name || name);
             setGoal(res.chain.name || name);
             setExperience(res.experience || '');
+            setRuns(res.runs || []);
+            setExpandedRunId(null);
             setShowLoadPanel(false);
             setJobStatus(null);
             setSaveMsg('');
@@ -313,19 +317,34 @@ export default function TaskChain() {
             }
         }
 
+        // Determine final run status
+        let runStatus: 'success' | 'failed' | 'stopped' = 'success';
+        if (stopRef.current) {
+            runStatus = 'stopped';
+        } else if (logLines.some(l => /ERROR|STOPPED|❌|FAIL/i.test(l))) {
+            runStatus = 'failed';
+        }
+
         if (!stopRef.current) {
             const allDone = order.every(id => {
                 const o = nodeOutputs[id]; // this won't see latest, but jobStatus tells the story
                 return true; // we already broke on failure
             });
-            if (!jobStatus?.includes('❌') && !jobStatus?.includes('⏹')) {
+            if (runStatus === 'success') {
                 setJobStatus('✅ All steps completed');
             }
         }
 
-        // Save experience log
+        // Save experience log with status
         if (chainName.trim() && logLines.length > 0) {
-            try { await api.taskChainLog(chainName.trim(), logLines.join('\n')); } catch { /* ignore */ }
+            try {
+                await api.taskChainLog(chainName.trim(), logLines.join('\n'), runStatus);
+                // Refresh runs list
+                try {
+                    const loadRes = await api.taskChainLoad(chainName.trim());
+                    setRuns(loadRes.runs || []);
+                } catch { /* ignore */ }
+            } catch { /* ignore */ }
         }
         setRunning(false);
     };
@@ -545,6 +564,30 @@ export default function TaskChain() {
                 <div className="taskchain-experience">
                     <div className="taskchain-experience__title">📋 Experience Log</div>
                     <pre className="taskchain-experience__content">{experience}</pre>
+                </div>
+            )}
+
+            {/* Run History */}
+            {runs.length > 0 && (
+                <div className="taskchain-experience taskchain-experience--runs">
+                    <div className="taskchain-experience__title">📜 Run History ({runs.length})</div>
+                    <div className="taskchain-run-list">
+                        {[...runs].reverse().map(run => (
+                            <div key={run.id} className={`taskchain-run-item taskchain-run-item--${run.status}`}>
+                                <div className="taskchain-run-item__header" onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}>
+                                    <span className="taskchain-run-item__status">
+                                        {run.status === 'success' ? '✅' : run.status === 'failed' ? '❌' : '⏹'}
+                                    </span>
+                                    <span className="taskchain-run-item__time">{new Date(run.timestamp).toLocaleString()}</span>
+                                    <span className="taskchain-run-item__summary">{run.summary}</span>
+                                    <span className="taskchain-run-item__chevron">{expandedRunId === run.id ? '▼' : '▶'}</span>
+                                </div>
+                                {expandedRunId === run.id && (
+                                    <pre className="taskchain-run-item__log">{run.log}</pre>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
