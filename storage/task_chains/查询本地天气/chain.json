@@ -1,0 +1,37 @@
+{
+  "name": "查询本地天气",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "查询本地天气",
+      "type": "goal",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Weather information for local area is retrieved",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Get current weather for local location",
+      "type": "action",
+      "skill": "weather",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    }
+  ]
+}

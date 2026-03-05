@@ -20,6 +20,7 @@ export const AVAILABLE_MODELS = [
     { id: 'mistral-small3.2', name: 'Mistral Small 3.2 (24B)', size: '15GB', desc: "Mistral's latest small model", cloud: false },
     { id: 'deepseek-coder-v2', name: 'DeepSeek Coder V2', size: '8.9GB', desc: 'Top-tier coding model', cloud: false },
     // Cloud models (require API keys)
+    { id: 'qwen3.5', name: 'Qwen 3.5 (Cloud)', size: 'Cloud', desc: "Alibaba's flagship cloud model", cloud: true },
     { id: 'gpt-5.2', name: 'GPT-5.2', size: 'Cloud', desc: "OpenAI's latest flagship model", cloud: true },
     { id: 'gpt-5.2-pro', name: 'GPT-5.2 Pro', size: 'Cloud', desc: "OpenAI's highest precision model", cloud: true },
     { id: 'gpt-5-mini', name: 'GPT-5 Mini', size: 'Cloud', desc: "OpenAI's fast and efficient model", cloud: true },

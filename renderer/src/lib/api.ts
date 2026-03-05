@@ -160,6 +160,23 @@ export const api = {
     }),
     cacheStats: () => apiFetch<CacheStats>('/api/cache/stats'),
     cacheClear: () => apiFetch('/api/cache', { method: 'DELETE' }),
+
+    // ── Task Chain ──────────────────────────
+    taskChainDecompose: (goal: string) => apiFetch<TaskChainResult>('/api/task-chain/decompose', {
+        method: 'POST', body: JSON.stringify({ goal }),
+    }),
+    taskChainSave: (name: string, nodes: any[], edges: any[]) => apiFetch<{ success: boolean; name: string }>('/api/task-chain/save', {
+        method: 'POST', body: JSON.stringify({ name, nodes, edges }),
+    }),
+    taskChainLog: (name: string, log: string) => apiFetch<{ success: boolean }>('/api/task-chain/log', {
+        method: 'POST', body: JSON.stringify({ name, log }),
+    }),
+    taskChainList: () => apiFetch<{ chains: string[] }>('/api/task-chain/list'),
+    taskChainLoad: (name: string) => apiFetch<{ chain: TaskChainResult & { name: string }; experience: string }>(`/api/task-chain/load/${encodeURIComponent(name)}`),
+    taskChainRunStep: (body: { nodeId: string; nodeLabel: string; nodeType: string; skill?: string; previousOutput?: string }) =>
+        apiFetch<{ output: string; passed?: boolean; status: string }>('/api/task-chain/run-step', {
+            method: 'POST', body: JSON.stringify(body),
+        }),
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────
@@ -323,4 +340,21 @@ export interface HardwareMetrics {
     cpu: number;
     ram: number;
     disk: number;
+}
+
+export interface ChainNode {
+    id: string;
+    label: string;
+    type: 'goal' | 'condition' | 'action';
+    skill?: string;
+}
+
+export interface ChainEdge {
+    from: string;
+    to: string;
+}
+
+export interface TaskChainResult {
+    nodes: ChainNode[];
+    edges: ChainEdge[];
 }

@@ -2029,6 +2029,198 @@ Instructions:
             }
         });
 
+        // ── Task Chain Decomposition ──────────────────────────
+        this.app.post('/api/task-chain/decompose', async (req, res) => {
+            try {
+                const { goal } = req.body;
+                if (!goal) return res.status(400).json({ error: 'goal is required' });
+
+                // Fetch installed skills for context
+                const activeSkills = this.skillLoader.loadSkills();
+                const skillList = activeSkills.map((s: any) => `- "${s.name}": ${s.description || 'No description'}`).join('\n');
+
+                const systemPrompt = `You are a task decomposition engine. Given a high-level goal, break it down into smaller prerequisite conditions and actionable steps using top-down reasoning. Start from the GOAL and work backwards to determine what conditions must be met.
+
+The user has the following skills/tools installed:
+${skillList || '(none)'}
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):
+{
+  "nodes": [
+    { "id": "goal_1", "label": "The final goal", "type": "goal" },
+    { "id": "cond_1", "label": "A prerequisite condition", "type": "condition" },
+    { "id": "act_1", "label": "A concrete action step", "type": "action", "skill": "skill-name" }
+  ],
+  "edges": [
+    { "from": "act_1", "to": "cond_1" },
+    { "from": "cond_1", "to": "goal_1" }
+  ]
+}
+
+Rules:
+- There should be exactly ONE node with type "goal" (the final target).
+- "condition" nodes are intermediate prerequisites that must be satisfied.
+- "action" nodes are leaf-level concrete steps the user needs to take.
+- Edges flow FROM prerequisites TO the things they enable (action → condition → goal).
+- Use 4-8 total nodes for a reasonable decomposition. Do not over-decompose.
+- IDs must be unique strings like goal_1, cond_1, cond_2, act_1, act_2, etc.
+- Labels should be concise (under 60 characters).
+- If an action node can be fulfilled by one of the installed skills, set the "skill" field to the exact skill name. Otherwise omit the "skill" field.
+- Only assign skills that genuinely match the action. Do not force skill assignments.`;
+
+                const userPrompt = `Decompose this goal: "${goal}"`;
+
+                const result = await this.modelRouter.routeChat(
+                    `${systemPrompt}\n\n${userPrompt}`,
+                    'cloud'
+                );
+
+                const responseText = result.response || '';
+
+                // Extract JSON from the response
+                let parsed: any;
+                try {
+                    // Try direct parse first
+                    parsed = JSON.parse(responseText);
+                } catch {
+                    // Try extracting JSON from markdown code blocks
+                    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                    if (jsonMatch) {
+                        parsed = JSON.parse(jsonMatch[1].trim());
+                    } else {
+                        // Try finding raw JSON object
+                        const braceMatch = responseText.match(/\{[\s\S]*\}/);
+                        if (braceMatch) {
+                            parsed = JSON.parse(braceMatch[0]);
+                        } else {
+                            throw new Error('Could not extract JSON from LLM response');
+                        }
+                    }
+                }
+
+                if (!parsed.nodes || !parsed.edges) {
+                    throw new Error('Invalid decomposition structure: missing nodes or edges');
+                }
+
+                res.json(parsed);
+            } catch (error: any) {
+                console.error('[TaskChain] Decomposition error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Task Chain Step Executor ─────────────────────────────
+        this.app.post('/api/task-chain/run-step', async (req, res) => {
+            try {
+                const { nodeId, nodeLabel, nodeType, skill, previousOutput } = req.body;
+                if (!nodeId || !nodeLabel || !nodeType) {
+                    return res.status(400).json({ error: 'nodeId, nodeLabel, and nodeType are required' });
+                }
+
+                if (nodeType === 'action') {
+                    // Execute via skill or plain chat
+                    if (skill) {
+                        // Find the skill context
+                        const allSkills = this.skillLoader.loadSkills();
+                        const matched = allSkills.find((s: any) => s.name === skill || s.name.includes(skill));
+                        if (matched) {
+                            const result = await this.executeSkill(matched.instructions || matched.description || '', nodeLabel, 'cloud', null, matched.name);
+                            return res.json({ output: result.response, status: 'done' });
+                        }
+                    }
+                    // Fallback to plain chat
+                    const prompt = previousOutput
+                        ? `Previous step result:\n${previousOutput}\n\nNow execute this task: ${nodeLabel}`
+                        : `Execute this task: ${nodeLabel}`;
+                    const result = await this.modelRouter.routeChat(prompt, 'cloud');
+                    return res.json({ output: result.response, status: 'done' });
+
+                } else if (nodeType === 'condition' || nodeType === 'goal') {
+                    // Simple LLM condition check
+                    const checkPrompt = previousOutput
+                        ? `You are a condition evaluator. Given the following action result:\n---\n${previousOutput}\n---\nDoes it satisfy this condition: "${nodeLabel}"?\n\nRespond with exactly "YES" or "NO" on the first line, then a brief explanation.`
+                        : `You are a condition evaluator. Has this condition been met: "${nodeLabel}"?\nRespond with exactly "YES" or "NO" on the first line, then a brief explanation.`;
+
+                    const result = await this.modelRouter.routeChat(checkPrompt, 'cloud');
+                    const text = result.response || '';
+                    const firstLine = text.split('\n')[0].toUpperCase().trim();
+                    const passed = firstLine.includes('YES');
+                    return res.json({ output: text, passed, status: 'done' });
+                }
+
+                res.status(400).json({ error: `Unknown node type: ${nodeType}` });
+            } catch (error: any) {
+                console.error('[TaskChain] Step execution error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Task Chain Persistence ──────────────────────────────
+        const taskChainsDir = path.join(this.fsManager.getRootDir(), 'task_chains');
+
+        this.app.post('/api/task-chain/save', async (req, res) => {
+            try {
+                const { name, nodes, edges } = req.body;
+                if (!name || !nodes || !edges) return res.status(400).json({ error: 'name, nodes, and edges are required' });
+                const sanitized = name.replace(/[^a-zA-Z0-9_\-\u4e00-\u9fff\s]/g, '').trim();
+                if (!sanitized) return res.status(400).json({ error: 'Invalid chain name' });
+                const chainDir = path.join(taskChainsDir, sanitized);
+                await fs.ensureDir(chainDir);
+                await fs.writeFile(path.join(chainDir, 'chain.json'), JSON.stringify({ name: sanitized, nodes, edges }, null, 2));
+                console.log(`[TaskChain] Saved chain "${sanitized}" to ${chainDir}`);
+                res.json({ success: true, name: sanitized });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/task-chain/log', async (req, res) => {
+            try {
+                const { name, log } = req.body;
+                if (!name || !log) return res.status(400).json({ error: 'name and log are required' });
+                const chainDir = path.join(taskChainsDir, name);
+                await fs.ensureDir(chainDir);
+                const logPath = path.join(chainDir, 'experience.log');
+                const timestamp = new Date().toISOString();
+                await fs.appendFile(logPath, `\n[${timestamp}]\n${log}\n`);
+                res.json({ success: true });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/task-chain/list', async (_req, res) => {
+            try {
+                await fs.ensureDir(taskChainsDir);
+                const dirs = await fs.readdir(taskChainsDir);
+                const chains: string[] = [];
+                for (const d of dirs) {
+                    const stat = await fs.stat(path.join(taskChainsDir, d));
+                    if (stat.isDirectory()) chains.push(d);
+                }
+                res.json({ chains });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/task-chain/load/:name', async (req, res) => {
+            try {
+                const chainDir = path.join(taskChainsDir, req.params.name);
+                const chainPath = path.join(chainDir, 'chain.json');
+                if (!await fs.pathExists(chainPath)) return res.status(404).json({ error: 'Chain not found' });
+                const chain = JSON.parse(await fs.readFile(chainPath, 'utf-8'));
+                let experience = '';
+                const logPath = path.join(chainDir, 'experience.log');
+                if (await fs.pathExists(logPath)) {
+                    experience = await fs.readFile(logPath, 'utf-8');
+                }
+                res.json({ chain, experience });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Mock Search API Endpoint for AI Flow Testing
         this.app.post('/api/ai/search', async (req, res) => {
             try {
