@@ -5,7 +5,7 @@ import { IdentityManager } from '../../identity_manager';
 export class GeminiProvider implements ModelProvider {
     public id = 'google';
     private identityManager: IdentityManager;
-    private defaultModel = 'gemini-2.5-pro';
+    private defaultModel = 'gemini-3.1-flash-lite-preview';
 
     constructor(identityManager: IdentityManager) {
         this.identityManager = identityManager;

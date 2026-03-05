@@ -5,7 +5,7 @@ import { IdentityManager } from '../../identity_manager';
 export class OpenAIProvider implements ModelProvider {
     public id = 'openai';
     private identityManager: IdentityManager;
-    private defaultModel = 'gpt-4o';
+    private defaultModel = 'gpt-4.1-nano';
 
     constructor(identityManager: IdentityManager) {
         this.identityManager = identityManager;

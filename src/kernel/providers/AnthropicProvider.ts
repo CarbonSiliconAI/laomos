@@ -5,7 +5,7 @@ import { IdentityManager } from '../../identity_manager';
 export class AnthropicProvider implements ModelProvider {
     public id = 'anthropic';
     private identityManager: IdentityManager;
-    private defaultModel = 'claude-sonnet-4-20250514';
+    private defaultModel = 'claude-haiku-4-5-20251001';
 
     constructor(identityManager: IdentityManager) {
         this.identityManager = identityManager;
