@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { api } from '../../lib/api';
-import type { ChainNode, ChainEdge, RunLogEntry } from '../../lib/api';
+import type { ChainNode, ChainEdge, RunLogEntry, DiagnoseResult, DiagnoseFix } from '../../lib/api';
 import './TaskChain.css';
 
 // ── Layout helpers ──────────────────────────────────────────
@@ -99,6 +99,11 @@ export default function TaskChain() {
     const [improveResult, setImproveResult] = useState<{ iterations: number; improved: string[]; results: any[]; summary: string } | null>(null);
     const [runs, setRuns] = useState<RunLogEntry[]>([]);
     const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [linkFrom, setLinkFrom] = useState<string | null>(null);
+    const [diagnosing, setDiagnosing] = useState(false);
+    const [diagNodeId, setDiagNodeId] = useState<string | null>(null);
+    const [diagResult, setDiagResult] = useState<DiagnoseResult | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
 
@@ -173,11 +178,82 @@ export default function TaskChain() {
 
     // ── Toggle node selection ───────────────────────────────
     const toggleNode = (id: string) => {
+        if (editMode) {
+            // Edit mode: two-click edge creation
+            if (!linkFrom) {
+                setLinkFrom(id);
+            } else if (linkFrom === id) {
+                // Clicked same node, cancel
+                setLinkFrom(null);
+            } else {
+                // Create edge from linkFrom -> id
+                const exists = edges.some(e => e.from === linkFrom && e.to === id);
+                if (!exists) {
+                    const newEdges = [...edges, { from: linkFrom, to: id }];
+                    setEdges(newEdges);
+                    // Re-layout nodes with new edges
+                    const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
+                    setNodes(layoutNodes(baseNodes, newEdges));
+                }
+                setLinkFrom(null);
+            }
+            return;
+        }
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id); else next.add(id);
             return next;
         });
+    };
+
+    // ── Remove edge (edit mode) ─────────────────────────────
+    const removeEdge = (index: number) => {
+        const newEdges = edges.filter((_, i) => i !== index);
+        setEdges(newEdges);
+        const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
+        setNodes(layoutNodes(baseNodes, newEdges));
+    };
+
+    // ── Diagnose node (right-click) ─────────────────────────
+    const handleDiagnose = async (nodeId: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        if (editMode || running || diagnosing) return;
+        setDiagNodeId(nodeId);
+        setDiagResult(null);
+        setDiagnosing(true);
+        try {
+            const result = await api.taskChainDiagnose({
+                chainName: chainName.trim(),
+                nodeId,
+                nodes,
+                edges,
+                nodeOutputs,
+            });
+            setDiagResult(result);
+        } catch (err: any) {
+            setDiagResult({ diagnosis: `Error: ${err.message}`, fixes: [] });
+        }
+        setDiagnosing(false);
+    };
+
+    // ── Apply a single fix ──────────────────────────────────
+    const applyFix = (fix: DiagnoseFix) => {
+        if (fix.type === 'update_label' && fix.nodeId && fix.newLabel) {
+            setNodes(prev => prev.map(n => n.id === fix.nodeId ? { ...n, label: fix.newLabel! } : n));
+        } else if (fix.type === 'add_edge' && fix.from && fix.to) {
+            const exists = edges.some(e => e.from === fix.from && e.to === fix.to);
+            if (!exists) {
+                const newEdges = [...edges, { from: fix.from!, to: fix.to! }];
+                setEdges(newEdges);
+                const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
+                setNodes(layoutNodes(baseNodes, newEdges));
+            }
+        } else if (fix.type === 'remove_edge' && fix.from && fix.to) {
+            const newEdges = edges.filter(e => !(e.from === fix.from && e.to === fix.to));
+            setEdges(newEdges);
+            const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
+            setNodes(layoutNodes(baseNodes, newEdges));
+        }
     };
 
     // ── Save chain ──────────────────────────────────────────
@@ -256,7 +332,10 @@ export default function TaskChain() {
         selectedNodes.forEach(n => { if (!order.includes(n.id)) order.push(n.id); });
 
         const logLines: string[] = [];
-        let lastOutput = '';
+        let accumulatedContext = '';
+        // Find the goal node's label to use as chainGoal
+        const goalNode = selectedNodes.find(n => n.type === 'goal');
+        const chainGoalText = goalNode?.label || goal || chainName;
 
         for (const nodeId of order) {
             if (stopRef.current) {
@@ -266,15 +345,6 @@ export default function TaskChain() {
 
             const node = selectedNodes.find(n => n.id === nodeId);
             if (!node) continue;
-
-            // Find the previous output from parents
-            const parentEdges = edges.filter(e => e.to === nodeId && selectedIds.has(e.from));
-            const parentOutputs = parentEdges.map(e => {
-                const po = nodeOutputs;
-                // Use the most recent nodeOutputs via closure — we build up as we go
-                return lastOutput; // Simplification: use the chain's rolling output
-            });
-            const prevOut = parentOutputs.length > 0 ? parentOutputs[0] : lastOutput;
 
             // Mark as running
             setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: '⏳ Running...', status: 'running' } }));
@@ -286,10 +356,11 @@ export default function TaskChain() {
                     nodeLabel: node.label,
                     nodeType: node.type,
                     skill: node.skill,
-                    previousOutput: prevOut || undefined,
+                    previousOutput: accumulatedContext || undefined,
+                    chainGoal: chainGoalText,
+                    accumulatedContext: accumulatedContext || undefined,
                 });
 
-                lastOutput = result.output;
                 // Capture detailed execution log
                 if (result.executionLog && result.executionLog.length > 0) {
                     logLines.push(`\n========== [${node.type.toUpperCase()}] ${node.label} ==========`);
@@ -306,8 +377,16 @@ export default function TaskChain() {
                         break;
                     }
                     setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, passed: true, status: 'done' } }));
+                    // For conditions: restore passthrough as accumulated context
+                    if ((result as any).passthrough) {
+                        accumulatedContext = (result as any).passthrough;
+                    }
+                    // For goals: output is the final summary
                 } else {
                     setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, status: 'done' } }));
+                    // Build accumulated context from action node summaries
+                    const summary = (result as any).summary || result.output.substring(0, 300);
+                    accumulatedContext += (accumulatedContext ? '\n\n' : '') + `[${node.label}]: ${summary}`;
                 }
             } catch (e: any) {
                 setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: e.message, status: 'failed' } }));
@@ -417,6 +496,12 @@ export default function TaskChain() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
                     Load
                 </button>
+                {nodes.length > 0 && (
+                    <button className={`taskchain-edit-btn ${editMode ? 'taskchain-edit-btn--active' : ''}`} onClick={() => { setEditMode(!editMode); setLinkFrom(null); }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                        {editMode ? 'Done' : 'Edit'}
+                    </button>
+                )}
                 <button className="taskchain-learn-btn" onClick={async () => {
                     setLearning(true);
                     try {
@@ -499,7 +584,18 @@ export default function TaskChain() {
                         </marker>
                     </defs>
                     {svgPaths.map((d, i) => (
-                        <path key={i} d={d} stroke="rgba(0,0,0,0.25)" strokeWidth="2" fill="none" markerEnd="url(#tc-arrowhead)" />
+                        <g key={i}>
+                            {editMode && (
+                                <path d={d} stroke="transparent" strokeWidth="14" fill="none" style={{ cursor: 'pointer' }}
+                                    onClick={() => removeEdge(i)} />
+                            )}
+                            <path d={d}
+                                stroke={editMode ? 'rgba(0,122,255,0.4)' : 'rgba(0,0,0,0.25)'}
+                                strokeWidth="2" fill="none" markerEnd="url(#tc-arrowhead)"
+                                className={editMode ? 'taskchain-edge--editable' : ''}
+                                style={editMode ? { pointerEvents: 'none' } : undefined}
+                            />
+                        </g>
                     ))}
                 </svg>
 
@@ -523,9 +619,16 @@ export default function TaskChain() {
                         <div
                             key={node.id}
                             id={`tc-${node.id}`}
-                            className={`taskchain-node taskchain-node--${node.type} ${selected.has(node.id) ? 'taskchain-node--selected' : 'taskchain-node--unselected'}`}
+                            className={[
+                                'taskchain-node',
+                                `taskchain-node--${node.type}`,
+                                selected.has(node.id) ? 'taskchain-node--selected' : 'taskchain-node--unselected',
+                                editMode ? 'taskchain-node--edit' : '',
+                                linkFrom === node.id ? 'taskchain-node--link-from' : '',
+                            ].filter(Boolean).join(' ')}
                             style={{ left: node.x, top: node.y }}
                             onClick={() => toggleNode(node.id)}
+                            onContextMenu={(e) => handleDiagnose(node.id, e)}
                         >
                             <div className="taskchain-node__check">
                                 {selected.has(node.id) ? (
@@ -558,6 +661,53 @@ export default function TaskChain() {
                     ))}
                 </div>
             </div>
+
+            {/* Diagnose Fix Panel */}
+            {(diagnosing || diagResult) && (
+                <div className="taskchain-fix-panel">
+                    <div className="taskchain-fix-panel__header">
+                        <span className="taskchain-fix-panel__title">
+                            🔍 {diagnosing ? 'Diagnosing...' : 'Diagnosis'}
+                            {diagNodeId && !diagnosing && (
+                                <span className="taskchain-fix-panel__node"> — {nodes.find(n => n.id === diagNodeId)?.label}</span>
+                            )}
+                        </span>
+                        {!diagnosing && (
+                            <button className="taskchain-fix-panel__close" onClick={() => { setDiagResult(null); setDiagNodeId(null); }}>✕</button>
+                        )}
+                    </div>
+                    {diagnosing ? (
+                        <div className="taskchain-fix-panel__loading">
+                            <div className="taskchain-spinner" /> Analyzing node execution and run history...
+                        </div>
+                    ) : diagResult && (
+                        <div className="taskchain-fix-panel__body">
+                            <div className="taskchain-fix-panel__diagnosis">{diagResult.diagnosis}</div>
+                            {diagResult.fixes.length > 0 && (
+                                <div className="taskchain-fix-panel__fixes">
+                                    <div className="taskchain-fix-panel__fixes-title">Suggested Fixes:</div>
+                                    {diagResult.fixes.map((fix, i) => (
+                                        <div key={i} className="taskchain-fix-item">
+                                            <div className="taskchain-fix-item__desc">
+                                                {fix.type === 'update_label' && (
+                                                    <><span className="taskchain-fix-item__tag taskchain-fix-item__tag--label">Label</span> Update <strong>{fix.nodeId}</strong> → "{fix.newLabel}"</>
+                                                )}
+                                                {fix.type === 'add_edge' && (
+                                                    <><span className="taskchain-fix-item__tag taskchain-fix-item__tag--edge">+ Edge</span> {fix.from} → {fix.to}</>
+                                                )}
+                                                {fix.type === 'remove_edge' && (
+                                                    <><span className="taskchain-fix-item__tag taskchain-fix-item__tag--remove">− Edge</span> {fix.from} → {fix.to}</>
+                                                )}
+                                            </div>
+                                            <button className="taskchain-fix-item__apply" onClick={() => applyFix(fix)}>Apply</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Experience Log */}
             {experience && (

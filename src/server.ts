@@ -2112,40 +2112,85 @@ Rules:
         // ── Task Chain Step Executor ─────────────────────────────
         this.app.post('/api/task-chain/run-step', async (req, res) => {
             try {
-                const { nodeId, nodeLabel, nodeType, skill, previousOutput } = req.body;
+                const { nodeId, nodeLabel, nodeType, skill, previousOutput, chainGoal, accumulatedContext } = req.body;
                 if (!nodeId || !nodeLabel || !nodeType) {
                     return res.status(400).json({ error: 'nodeId, nodeLabel, and nodeType are required' });
                 }
 
+                // Build context header with goal
+                const goalCtx = chainGoal ? `OVERALL GOAL: ${chainGoal}\n\n` : '';
+                const prevCtx = accumulatedContext
+                    ? `ACCUMULATED CONTEXT FROM PREVIOUS STEPS:\n${accumulatedContext}\n\n`
+                    : (previousOutput ? `Previous step result:\n${previousOutput}\n\n` : '');
+
                 if (nodeType === 'action') {
                     // Execute via skill or plain chat
                     if (skill) {
-                        // Find the skill context
                         const allSkills = this.skillLoader.loadSkills();
                         const matched = allSkills.find((s: any) => s.name === skill || s.name.includes(skill));
                         if (matched) {
-                            const result = await this.executeSkill(matched.instructions || matched.description || '', nodeLabel, 'cloud', null, matched.name);
-                            return res.json({ output: result.response, executionLog: result.executionLog, status: 'done' });
+                            const taskPrompt = chainGoal
+                                ? `${goalCtx}${prevCtx}Now execute this specific step: ${nodeLabel}\n\nIMPORTANT: Focus your output on information relevant to the overall goal.`
+                                : nodeLabel;
+                            const result = await this.executeSkill(matched.instructions || matched.description || '', taskPrompt, 'cloud', null, matched.name);
+                            // Summarize for downstream context
+                            const summaryPrompt = `Given this task output, provide a 2-3 sentence summary of the key findings relevant to the goal "${chainGoal || nodeLabel}":\n\n${(result.response || '').substring(0, 2000)}`;
+                            const summaryResult = await this.modelRouter.routeChat(summaryPrompt, 'cloud');
+                            return res.json({
+                                output: result.response,
+                                summary: summaryResult.response || result.response.substring(0, 300),
+                                executionLog: result.executionLog,
+                                status: 'done',
+                            });
                         }
                     }
-                    // Fallback to llm-chat (direct LLM conversation)
-                    const prompt = previousOutput
-                        ? `Previous step result:\n${previousOutput}\n\nNow execute this task: ${nodeLabel}`
-                        : `Execute this task: ${nodeLabel}`;
+                    // Fallback to llm-chat
+                    const prompt = `${goalCtx}${prevCtx}Now execute this task: ${nodeLabel}\n\nIMPORTANT: Focus your output on information relevant to the overall goal. At the end, provide a brief summary of your key findings.`;
                     const result = await this.modelRouter.routeChat(prompt, 'cloud');
-                    return res.json({ output: result.response, executionLog: [`[LLM Chat Fallback]\nPrompt: ${prompt.substring(0, 500)}\nResponse: ${result.response}`], status: 'done' });
+                    // Extract or generate a short summary
+                    const summaryPrompt = `Given this task output, provide a 2-3 sentence summary of the key findings relevant to the goal "${chainGoal || nodeLabel}":\n\n${(result.response || '').substring(0, 2000)}`;
+                    const summaryResult = await this.modelRouter.routeChat(summaryPrompt, 'cloud');
+                    return res.json({
+                        output: result.response,
+                        summary: summaryResult.response || result.response.substring(0, 300),
+                        executionLog: [`[LLM Chat Fallback]\nPrompt: ${prompt.substring(0, 500)}\nResponse: ${result.response}`],
+                        status: 'done',
+                    });
 
-                } else if (nodeType === 'condition' || nodeType === 'goal') {
-                    // Simple LLM condition check
-                    const checkPrompt = previousOutput
-                        ? `You are a condition evaluator. Given the following action result:\n---\n${previousOutput}\n---\nDoes it satisfy this condition: "${nodeLabel}"?\n\nRespond with exactly "YES" or "NO" on the first line, then a brief explanation.`
-                        : `You are a condition evaluator. Has this condition been met: "${nodeLabel}"?\nRespond with exactly "YES" or "NO" on the first line, then a brief explanation.`;
+                } else if (nodeType === 'condition') {
+                    const inputData = accumulatedContext || previousOutput || '';
+                    const checkPrompt = inputData
+                        ? `You are a condition evaluator.${chainGoal ? ` The overall goal is: "${chainGoal}".` : ''}\n\nGiven the following accumulated data:\n---\n${inputData}\n---\nDoes this data satisfy the condition: "${nodeLabel}"?\n\nRespond with exactly "YES" or "NO" on the first line, then a one-line explanation. Do NOT summarize or restate the input data.`
+                        : `You are a condition evaluator. Has this condition been met: "${nodeLabel}"?\nRespond with exactly "YES" or "NO" on the first line, then a one-line explanation.`;
 
                     const result = await this.modelRouter.routeChat(checkPrompt, 'cloud');
                     const text = result.response || '';
                     const firstLine = text.split('\n')[0].toUpperCase().trim();
                     const passed = firstLine.includes('YES');
-                    return res.json({ output: text, passed, executionLog: [`[Condition Check]\nPrompt: ${checkPrompt.substring(0, 500)}\nResult: ${passed ? 'PASSED' : 'FAILED'}\nResponse: ${text}`], status: 'done' });
+                    return res.json({
+                        output: text,
+                        passed,
+                        passthrough: passed ? inputData : undefined,
+                        executionLog: [`[Condition Check]\nPrompt: ${checkPrompt.substring(0, 500)}\nResult: ${passed ? 'PASSED' : 'FAILED'}\nResponse: ${text}`],
+                        status: 'done',
+                    });
+
+                } else if (nodeType === 'goal') {
+                    const inputData = accumulatedContext || previousOutput || '';
+                    const checkPrompt = inputData
+                        ? `You are a goal evaluator. Given the following accumulated results from all previous steps:\n---\n${inputData}\n---\nDoes it satisfy this goal: "${nodeLabel}"?\n\nRespond in this exact format:\nLine 1: exactly "YES" or "NO"\nLine 2+: If YES, provide a comprehensive final answer that combines all the relevant data to fulfill the goal "${nodeLabel}". If NO, explain what is missing.`
+                        : `You are a goal evaluator. Has this goal been achieved: "${nodeLabel}"?\nRespond with exactly "YES" or "NO" on the first line, then explain.`;
+
+                    const result = await this.modelRouter.routeChat(checkPrompt, 'cloud');
+                    const text = result.response || '';
+                    const firstLine = text.split('\n')[0].toUpperCase().trim();
+                    const passed = firstLine.includes('YES');
+                    return res.json({
+                        output: text,
+                        passed,
+                        executionLog: [`[Goal Check]\nPrompt: ${checkPrompt.substring(0, 500)}\nResult: ${passed ? 'PASSED' : 'FAILED'}\nResponse: ${text}`],
+                        status: 'done',
+                    });
                 }
 
                 res.status(400).json({ error: `Unknown node type: ${nodeType}` });
@@ -2538,6 +2583,106 @@ Return ONLY the complete updated SKILL.md content (including the YAML frontmatte
                 res.json({ iterations: totalIter, improved, results, summary });
             } catch (error: any) {
                 console.error('[AutoImprove] Error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Task Chain Diagnose & Fix ───────────────────────────────
+        this.app.post('/api/task-chain/diagnose', async (req, res) => {
+            try {
+                const { chainName, nodeId, nodes: chainNodes, edges: chainEdges, nodeOutputs } = req.body;
+                if (!nodeId || !chainNodes) {
+                    return res.status(400).json({ error: 'nodeId and nodes are required' });
+                }
+
+                const targetNode = chainNodes.find((n: any) => n.id === nodeId);
+                if (!targetNode) return res.status(400).json({ error: 'Node not found' });
+
+                // Read run history for context
+                let runLogs = '';
+                if (chainName) {
+                    const runsPath = path.join(taskChainsDir, chainName, 'runs.json');
+                    if (await fs.pathExists(runsPath)) {
+                        try {
+                            const runs = await fs.readJson(runsPath);
+                            // Get the last 2 failed runs for context
+                            const failedRuns = runs.filter((r: any) => r.status === 'failed').slice(-2);
+                            runLogs = failedRuns.map((r: any) => `[Run ${r.timestamp} - ${r.status}]\n${r.log}`).join('\n\n---\n\n');
+                        } catch { /* ignore */ }
+                    }
+                }
+
+                // Build context about all nodes and their outputs
+                const nodesContext = chainNodes.map((n: any) => {
+                    const output = nodeOutputs?.[n.id];
+                    const outputStr = output ? `\n  Output: ${output.output?.substring(0, 300) || '(none)'}\n  Status: ${output.status || 'unknown'}${output.passed !== undefined ? `\n  Passed: ${output.passed}` : ''}` : '\n  (not executed yet)';
+                    return `- [${n.type.toUpperCase()}] "${n.label}" (id: ${n.id})${n.skill ? ` [skill: ${n.skill}]` : ''}${outputStr}`;
+                }).join('\n');
+
+                const edgesContext = chainEdges.map((e: any) => `  ${e.from} → ${e.to}`).join('\n');
+
+                const diagPrompt = `You are a task chain debugger. Analyze a failing task chain and suggest concrete fixes.
+
+CHAIN GRAPH:
+Nodes:
+${nodesContext}
+
+Edges (from → to):
+${edgesContext}
+
+TARGET NODE (the user wants to fix):
+ID: ${targetNode.id}
+Label: "${targetNode.label}"
+Type: ${targetNode.type}
+${targetNode.skill ? `Skill: ${targetNode.skill}` : ''}
+
+${runLogs ? `RECENT FAILED RUN LOGS:\n${runLogs.substring(0, 8000)}` : '(no run history available)'}
+
+INSTRUCTIONS:
+1. Analyze why this node (or nodes connected to it) is failing.
+2. Consider the data flow between nodes — does the right data get passed downstream?
+3. Look for issues like: missing context in prompts, disconnected data flow, overly strict conditions, wrong edge connections.
+4. Suggest specific fixes.
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no explanation outside the JSON):
+{
+  "diagnosis": "A clear explanation of the root cause in 1-3 sentences",
+  "fixes": [
+    { "type": "update_label", "nodeId": "id_here", "newLabel": "improved label/prompt" },
+    { "type": "add_edge", "from": "node_id", "to": "node_id" },
+    { "type": "remove_edge", "from": "node_id", "to": "node_id" }
+  ]
+}
+
+Rules for fixes:
+- "update_label": Change a node's label to be more specific. For action nodes, the label IS the prompt.
+- "add_edge" / "remove_edge": Modify connections between nodes.
+- Be conservative: suggest 1-3 fixes maximum.
+- Fix the actual root cause, not symptoms.`;
+
+                const result = await this.modelRouter.routeChat(diagPrompt, 'cloud');
+                const responseText = result.response || '';
+
+                let parsed: any;
+                try {
+                    parsed = JSON.parse(responseText);
+                } catch {
+                    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                    if (jsonMatch) {
+                        parsed = JSON.parse(jsonMatch[1].trim());
+                    } else {
+                        const braceMatch = responseText.match(/\{[\s\S]*\}/);
+                        if (braceMatch) {
+                            parsed = JSON.parse(braceMatch[0]);
+                        } else {
+                            throw new Error('Could not extract JSON from LLM diagnosis');
+                        }
+                    }
+                }
+
+                res.json(parsed);
+            } catch (error: any) {
+                console.error('[TaskChain] Diagnose error:', error);
                 res.status(500).json({ error: error.message });
             }
         });

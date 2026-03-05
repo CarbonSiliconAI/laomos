@@ -173,13 +173,17 @@ export const api = {
     }),
     taskChainList: () => apiFetch<{ chains: string[] }>('/api/task-chain/list'),
     taskChainLoad: (name: string) => apiFetch<{ chain: TaskChainResult & { name: string }; experience: string; runs: RunLogEntry[] }>(`/api/task-chain/load/${encodeURIComponent(name)}`),
-    taskChainRunStep: (body: { nodeId: string; nodeLabel: string; nodeType: string; skill?: string; previousOutput?: string }) =>
+    taskChainRunStep: (body: { nodeId: string; nodeLabel: string; nodeType: string; skill?: string; previousOutput?: string; chainGoal?: string; accumulatedContext?: string }) =>
         apiFetch<{ output: string; passed?: boolean; executionLog?: string[]; status: string }>('/api/task-chain/run-step', {
             method: 'POST', body: JSON.stringify(body),
         }),
     taskChainLearn: () => apiFetch<{ summary: string; saved: boolean }>('/api/task-chain/learn', { method: 'POST' }),
     taskChainExperience: () => apiFetch<{ experience: string }>('/api/task-chain/experience'),
     taskChainAutoImprove: () => apiFetch<{ iterations: number; improved: string[]; results: any[]; summary: string }>('/api/task-chain/auto-improve', { method: 'POST' }),
+    taskChainDiagnose: (body: { chainName: string; nodeId: string; nodes: any[]; edges: any[]; nodeOutputs: Record<string, any> }) =>
+        apiFetch<DiagnoseResult>('/api/task-chain/diagnose', {
+            method: 'POST', body: JSON.stringify(body),
+        }),
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────
@@ -368,4 +372,17 @@ export interface RunLogEntry {
     status: 'success' | 'failed' | 'stopped';
     summary: string;
     log: string;
+}
+
+export interface DiagnoseFix {
+    type: 'update_label' | 'add_edge' | 'remove_edge';
+    nodeId?: string;
+    newLabel?: string;
+    from?: string;
+    to?: string;
+}
+
+export interface DiagnoseResult {
+    diagnosis: string;
+    fixes: DiagnoseFix[];
 }
