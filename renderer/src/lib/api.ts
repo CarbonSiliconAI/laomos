@@ -59,6 +59,13 @@ export const api = {
             method: 'POST', body: JSON.stringify(body),
         }),
 
+    // ── Company Organization ─────────────────
+    companyGet: () => apiFetch<CompanyData>('/api/company'),
+    companyAction: (body: { action: string; id?: string; name?: string; x?: number; y?: number; from?: string; to?: string; label?: string }) =>
+        apiFetch<{ success: boolean; id?: string }>('/api/company', {
+            method: 'POST', body: JSON.stringify(body),
+        }),
+
     // ── Files ───────────────────────────────
     filesList: (p?: string) => apiFetch<{ files: FileEntry[] }>(`/api/files/list${p ? `?path=${encodeURIComponent(p)}` : ''}`),
     filesRead: (p: string) => apiFetch<{ content: string }>(`/api/files/read?path=${encodeURIComponent(p)}`),
@@ -404,4 +411,23 @@ export interface DepartmentsData {
     departments: Department[];
     activeDept: string | null;
     availableChains: string[];
+}
+
+export interface OrgDept {
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+}
+
+export interface OrgLink {
+    from: string;
+    to: string;
+    label: string;
+}
+
+export interface CompanyData {
+    departments: OrgDept[];
+    links: OrgLink[];
+    savedDepartments: string[];
 }

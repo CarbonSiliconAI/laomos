@@ -1,0 +1,298 @@
+/* ── Company Organization Page ─────────────────── */
+.org-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.org-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid #2a2d36;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.org-header__left h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    color: #e0e0e0;
+}
+
+.org-header__left p {
+    margin: 0;
+    font-size: 13px;
+    color: #888;
+}
+
+.org-header__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.org-btn {
+    background: #2a2d36;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.org-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.org-btn--active {
+    background: rgba(77, 166, 255, 0.15);
+    color: #4da6ff;
+    border-color: #4da6ff;
+}
+
+.org-btn--primary {
+    background: #2a6df0;
+    color: #fff;
+    border-color: #2a6df0;
+}
+
+.org-btn--primary:hover {
+    background: #3b7df5;
+}
+
+.org-btn--primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.org-dept-select {
+    background: #1e2028;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    min-width: 180px;
+}
+
+/* Link hint bar */
+.org-link-hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 24px;
+    background: rgba(77, 166, 255, 0.08);
+    color: #4da6ff;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(77, 166, 255, 0.2);
+}
+
+.org-link-hint__cancel {
+    background: none;
+    border: none;
+    color: #888;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Canvas */
+.org-canvas {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background:
+        radial-gradient(circle at 1px 1px, #222 1px, transparent 0) 0 0 / 20px 20px,
+        #13151a;
+}
+
+.org-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.org-svg g {
+    pointer-events: auto;
+}
+
+/* Link lines */
+.org-link-line {
+    stroke: #4da6ff;
+    stroke-width: 2;
+    stroke-opacity: 0.6;
+}
+
+.org-link-arrow {
+    fill: #4da6ff;
+    opacity: 0.8;
+}
+
+.org-link-label-bg {
+    fill: #1e2028;
+    stroke: #444;
+    stroke-width: 1;
+}
+
+.org-link-label-text {
+    fill: #aaa;
+    font-size: 11px;
+}
+
+.org-link-label-group:hover .org-link-label-bg {
+    stroke: #4da6ff;
+}
+
+.org-link-label-group:hover .org-link-label-text {
+    fill: #fff;
+}
+
+.org-link-label-input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #4da6ff;
+    color: #fff;
+    font-size: 11px;
+    border-radius: 4px;
+    padding: 4px 6px;
+    text-align: center;
+    outline: none;
+}
+
+.org-link-delete {
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.org-svg g:hover .org-link-delete {
+    opacity: 1;
+}
+
+.org-link-delete-bg {
+    fill: #c62828;
+}
+
+.org-link-delete-text {
+    fill: #fff;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Department nodes */
+.org-node {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    background: linear-gradient(135deg, #1e2028 0%, #252830 100%);
+    border: 2px solid #3a3e4a;
+    border-radius: 12px;
+    color: #ddd;
+    font-size: 13px;
+    cursor: grab;
+    z-index: 2;
+    user-select: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.org-node:hover {
+    border-color: #5a5e6a;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.org-node--dragging {
+    cursor: grabbing;
+    border-color: #4da6ff;
+    box-shadow: 0 6px 24px rgba(77, 166, 255, 0.3);
+    z-index: 10;
+}
+
+.org-node--link-mode {
+    cursor: pointer;
+}
+
+.org-node--link-source {
+    border-color: #4da6ff;
+    background: linear-gradient(135deg, rgba(77, 166, 255, 0.12) 0%, rgba(77, 166, 255, 0.06) 100%);
+    animation: org-pulse 1.2s infinite;
+}
+
+@keyframes org-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(77, 166, 255, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(77, 166, 255, 0);
+    }
+}
+
+.org-node__name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.org-node__input {
+    flex: 1;
+    background: #111;
+    border: 1px solid #4da6ff;
+    color: #fff;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    outline: none;
+}
+
+.org-node__del {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 0 0 6px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.org-node:hover .org-node__del {
+    opacity: 1;
+}
+
+.org-node__del:hover {
+    color: #e55;
+}
+
+/* Empty state */
+.org-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #555;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.org-empty__icon {
+    font-size: 56px;
+    opacity: 0.25;
+}

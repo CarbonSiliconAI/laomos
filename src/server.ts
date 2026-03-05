@@ -2877,6 +2877,86 @@ Rules for fixes:
             }
         });
 
+        // ── Company Organization Graph ──────────────────────────────
+        const companyFile = path.join(taskChainsDir, '..', 'company.json');
+
+        const loadCompany = async () => {
+            if (await fs.pathExists(companyFile)) return await fs.readJson(companyFile);
+            return { departments: [], links: [] };
+        };
+        const saveCompany = async (data: any) => {
+            await fs.writeJson(companyFile, data, { spaces: 2 });
+        };
+
+        this.app.get('/api/company', async (_req, res) => {
+            try {
+                const data = await loadCompany();
+                // Also return saved department names for linking
+                const deptData = await loadDepts();
+                res.json({ ...data, savedDepartments: (deptData.departments || []).map((d: any) => d.name) });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/company', async (req, res) => {
+            try {
+                const { action, id, name, x, y, from, to, label } = req.body;
+                const data = await loadCompany();
+
+                if (action === 'add-dept') {
+                    const newId = `org-${Date.now()}`;
+                    data.departments.push({ id: newId, name: name || 'New Department', x: x || 300, y: y || 200 });
+                    await saveCompany(data);
+                    return res.json({ success: true, id: newId });
+                }
+                if (action === 'rename-dept') {
+                    const dept = data.departments.find((d: any) => d.id === id);
+                    if (!dept) return res.status(404).json({ error: 'Not found' });
+                    dept.name = name;
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'remove-dept') {
+                    data.departments = data.departments.filter((d: any) => d.id !== id);
+                    data.links = data.links.filter((l: any) => l.from !== id && l.to !== id);
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'move-dept') {
+                    const dept = data.departments.find((d: any) => d.id === id);
+                    if (!dept) return res.status(404).json({ error: 'Not found' });
+                    dept.x = x; dept.y = y;
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'add-link') {
+                    const exists = data.links.some((l: any) =>
+                        (l.from === from && l.to === to) || (l.from === to && l.to === from)
+                    );
+                    if (!exists) {
+                        data.links.push({ from, to, label: label || '' });
+                    }
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'remove-link') {
+                    data.links = data.links.filter((l: any) => !(l.from === from && l.to === to));
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'update-link-label') {
+                    const link = data.links.find((l: any) => l.from === from && l.to === to);
+                    if (link) link.label = label;
+                    await saveCompany(data);
+                    return res.json({ success: true });
+                }
+                res.status(400).json({ error: `Unknown action: ${action}` });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Mock Search API Endpoint for AI Flow Testing
         this.app.post('/api/ai/search', async (req, res) => {
             try {

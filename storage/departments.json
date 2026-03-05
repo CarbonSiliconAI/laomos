@@ -10,9 +10,14 @@
     },
     {
       "id": "dept-1772739697687",
-      "name": "New Dept",
+      "name": "Engineer",
+      "tasks": []
+    },
+    {
+      "id": "dept-1772740472819",
+      "name": "Marketing",
       "tasks": []
     }
   ],
-  "activeDept": "dept-1772739533884"
+  "activeDept": "dept-1772740472819"
 }
