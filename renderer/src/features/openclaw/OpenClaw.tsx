@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api, ClawApp, SkillDef } from '../../lib/api';
 import './OpenClaw.css';
 
@@ -7,6 +7,7 @@ type Tab = 'local' | 'hub';
 
 export default function OpenClaw() {
     const [tab, setTab] = useState<Tab>('local');
+    const navigate = useNavigate();
 
     // Local Skills
     const [localSkills, setLocalSkills] = useState<SkillDef[]>([]);
@@ -230,6 +231,12 @@ export default function OpenClaw() {
                                                 }}>
                                                 {app.installed ? 'Installed' : installingSlug === (app.slug || app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) ? 'Installing...' : 'Install'}
                                             </button>
+                                            {app.installed && (
+                                                <button className="btn btn-primary claw-card__install" style={{ marginLeft: 4, fontSize: 11 }}
+                                                    onClick={e => { e.stopPropagation(); navigate(`/workforce/skill-onboard?skill=${encodeURIComponent(app.name)}`); }}>
+                                                    🚀 Onboard
+                                                </button>
+                                            )}
                                         </div>
                                         <p className="claw-card__desc">{app.description}</p>
 

@@ -1,0 +1,302 @@
+/* ── Skill Onboarding ─────────────────────────── */
+.onboard-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.onboard-header {
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid #2a2d36;
+}
+
+.onboard-header h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    color: #e0e0e0;
+}
+
+.onboard-header p {
+    margin: 0;
+    font-size: 13px;
+    color: #888;
+}
+
+.onboard-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.onboard-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.onboard-select {
+    background: #181a20;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: 200px;
+}
+
+.onboard-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+
+.onboard-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.onboard-btn--init {
+    background: #2a6df0;
+    color: #fff;
+}
+
+.onboard-btn--init:hover:not(:disabled) {
+    background: #3b7df5;
+}
+
+.onboard-btn--run {
+    background: #2e7d32;
+    color: #fff;
+}
+
+.onboard-btn--run:hover:not(:disabled) {
+    background: #388e3c;
+}
+
+.onboard-mode-switch {
+    display: flex;
+    gap: 2px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-left: auto;
+}
+
+.onboard-mode {
+    background: #1e2028;
+    color: #888;
+    border: none;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.onboard-mode:hover {
+    color: #ccc;
+}
+
+.onboard-mode--active {
+    background: rgba(77, 166, 255, 0.12);
+    color: #4da6ff;
+}
+
+.onboard-error {
+    padding: 10px 14px;
+    background: rgba(198, 40, 40, 0.1);
+    border: 1px solid rgba(198, 40, 40, 0.3);
+    border-radius: 8px;
+    color: #ef5350;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+/* Preview panels */
+.onboard-preview {
+    margin-bottom: 16px;
+}
+
+.onboard-details {
+    margin-bottom: 4px;
+}
+
+.onboard-details__toggle {
+    background: #1e2028;
+    color: #aaa;
+    border: 1px solid #2a2d36;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+.onboard-details__toggle:hover {
+    background: #252830;
+    color: #ddd;
+}
+
+.onboard-details__content {
+    background: #13151a;
+    border: 1px solid #2a2d36;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 12px;
+    font-size: 11px;
+    color: #bbb;
+    max-height: 250px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: 'SF Mono', monospace;
+    margin: 0;
+}
+
+/* Auto mode */
+.onboard-auto__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #aaa;
+}
+
+.onboard-input--small {
+    width: 60px;
+    background: #181a20;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 13px;
+}
+
+.onboard-iterations h4 {
+    margin: 0 0 10px;
+    color: #ddd;
+    font-size: 14px;
+}
+
+.onboard-improved {
+    color: #4caf50;
+    font-weight: 500;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.onboard-iter {
+    background: #1a1c24;
+    border: 1px solid #2a2d36;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.onboard-iter--good {
+    border-left: 3px solid #4caf50;
+}
+
+.onboard-iter--warn {
+    border-left: 3px solid #f59e0b;
+}
+
+.onboard-iter--error {
+    border-left: 3px solid #ef5350;
+}
+
+.onboard-iter__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+    margin-bottom: 8px;
+}
+
+.onboard-iter__score {
+    font-weight: 500;
+    color: #4da6ff;
+    font-size: 12px;
+}
+
+.onboard-iter__badge {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.onboard-iter__input,
+.onboard-iter__output,
+.onboard-iter__error,
+.onboard-iter__issues {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+.onboard-iter__output {
+    max-height: 100px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.onboard-iter__error {
+    color: #ef5350;
+}
+
+.onboard-iter__issues {
+    color: #f59e0b;
+}
+
+/* Manual mode */
+.onboard-manual__section {
+    margin-bottom: 12px;
+}
+
+.onboard-manual__section label {
+    display: block;
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.onboard-textarea {
+    width: 100%;
+    background: #13151a;
+    color: #ccc;
+    border: 1px solid #2a2d36;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-family: 'SF Mono', monospace;
+    resize: vertical;
+}
+
+.onboard-textarea:focus {
+    outline: none;
+    border-color: #4da6ff;
+}
+
+.onboard-manual__result {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(46, 125, 50, 0.1);
+    border: 1px solid rgba(46, 125, 50, 0.3);
+    border-radius: 8px;
+    color: #4caf50;
+    font-size: 13px;
+}

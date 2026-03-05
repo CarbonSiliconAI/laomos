@@ -39,6 +39,18 @@ export const api = {
     skillsCancel: (executionId: string) => apiFetch<{ success: boolean; message: string }>('/api/skills/cancel', {
         method: 'POST', body: JSON.stringify({ executionId }),
     }),
+    onboardInit: (skillName: string) =>
+        apiFetch<{ success: boolean; skillDir: string; skillMd: string; selfDebug: string; analysis: string }>('/api/skills/onboard/init', {
+            method: 'POST', body: JSON.stringify({ skillName }),
+        }),
+    onboardAuto: (skillName: string, maxIterations = 3) =>
+        apiFetch<{ success: boolean; iterations: any[]; improved: boolean; skillMd: string }>('/api/skills/onboard/auto', {
+            method: 'POST', body: JSON.stringify({ skillName, maxIterations }),
+        }),
+    onboardManual: (skillName: string, selectedContent: string, userInstruction: string) =>
+        apiFetch<{ success: boolean; updated: boolean; skillMd: string }>('/api/skills/onboard/manual', {
+            method: 'POST', body: JSON.stringify({ skillName, selectedContent, userInstruction }),
+        }),
     kernelTools: () => apiFetch<{ tools: ToolDef[] }>('/api/kernel/tools'),
     kernelRun: (body: object) => apiFetch('/api/kernel/run', {
         method: 'POST', body: JSON.stringify(body),

@@ -949,6 +949,253 @@ export class Server {
             }
         });
 
+        // ── Skill Onboarding ────────────────────────────────────────
+        this.app.post('/api/skills/onboard/init', async (req, res) => {
+            try {
+                const { skillName } = req.body;
+                if (!skillName) return res.status(400).json({ error: 'skillName required' });
+
+                const allSkills = this.skillLoader.loadSkills();
+                const matched = allSkills.find((s: any) => s.name === skillName || s.name.includes(skillName));
+                if (!matched?.metadata?.skillDir) return res.status(404).json({ error: 'Skill not found' });
+
+                const skillDir = matched.metadata.skillDir;
+                const skillMdPath = path.join(skillDir, 'SKILL.md');
+                const skillMd = await fs.pathExists(skillMdPath) ? await fs.readFile(skillMdPath, 'utf-8') : '';
+
+                const selfDebugPath = path.join(skillDir, 'self-debug.md');
+                const analysisPath = path.join(skillDir, 'analysis.md');
+
+                // Generate self-debug prompt via LLM
+                const debugPrompt = `Based on this skill definition, create a self-debug prompt that will be used to diagnose and fix issues when this skill fails during execution.
+Skill SKILL.md:
+${skillMd}
+
+Create a comprehensive self-debug.md that includes:
+1. Common failure modes for this type of skill
+2. Step-by-step debugging checklist
+3. Input/output validation rules
+4. Environment requirements
+5. Fallback strategies
+
+Return ONLY the markdown content.`;
+
+                const debugRes = await this.modelRouter.routeChat(debugPrompt, 'cloud');
+                await fs.writeFile(selfDebugPath, debugRes.response || '# Self-Debug Guide\n\n(Auto-generated)');
+
+                // Generate analysis prompt via LLM
+                const analysisPrompt = `Based on this skill definition, create an analysis criteria document for evaluating this skill's performance.
+Skill SKILL.md:
+${skillMd}
+
+Create an analysis.md that includes:
+1. Performance metrics to track
+2. Quality criteria for outputs
+3. Success/failure indicators
+4. Optimization targets
+5. Benchmark test cases (with sample inputs)
+
+Return ONLY the markdown content.`;
+
+                const analysisRes = await this.modelRouter.routeChat(analysisPrompt, 'cloud');
+                await fs.writeFile(analysisPath, analysisRes.response || '# Analysis Criteria\n\n(Auto-generated)');
+
+                res.json({
+                    success: true,
+                    skillDir,
+                    skillMd,
+                    selfDebug: debugRes.response || '',
+                    analysis: analysisRes.response || '',
+                });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/skills/onboard/auto', async (req, res) => {
+            try {
+                const { skillName, maxIterations = 3 } = req.body;
+                if (!skillName) return res.status(400).json({ error: 'skillName required' });
+
+                const allSkills = this.skillLoader.loadSkills();
+                const matched = allSkills.find((s: any) => s.name === skillName || s.name.includes(skillName));
+                if (!matched?.metadata?.skillDir) return res.status(404).json({ error: 'Skill not found' });
+
+                const skillDir = matched.metadata.skillDir;
+                const skillMdPath = path.join(skillDir, 'SKILL.md');
+                const analysisPath = path.join(skillDir, 'analysis.md');
+                const selfDebugPath = path.join(skillDir, 'self-debug.md');
+                const runsPath = path.join(skillDir, 'onboard_runs.json');
+
+                let skillMd = await fs.readFile(skillMdPath, 'utf-8');
+                const analysis = await fs.pathExists(analysisPath) ? await fs.readFile(analysisPath, 'utf-8') : '';
+                const selfDebug = await fs.pathExists(selfDebugPath) ? await fs.readFile(selfDebugPath, 'utf-8') : '';
+
+                // Load existing runs
+                let runs: any[] = [];
+                if (await fs.pathExists(runsPath)) { try { runs = await fs.readJson(runsPath); } catch { runs = []; } }
+
+                // Generate test inputs based on analysis
+                const testGenPrompt = `Based on this skill analysis, generate ${maxIterations} diverse test inputs as a JSON array of strings. Each should test different aspects.
+Skill: ${skillName}
+Analysis: ${analysis.substring(0, 2000)}
+Return ONLY a JSON array like ["input1", "input2", "input3"]`;
+
+                const testGenRes = await this.modelRouter.routeChat(testGenPrompt, 'cloud');
+                let testInputs: string[];
+                try {
+                    const match = (testGenRes.response || '').match(/\[[\s\S]*\]/);
+                    testInputs = match ? JSON.parse(match[0]) : [`Test ${skillName} with default input`];
+                } catch { testInputs = [`Test ${skillName} with default input`]; }
+
+                const iterations: any[] = [];
+                let improved = false;
+
+                for (let i = 0; i < Math.min(testInputs.length, maxIterations); i++) {
+                    const input = testInputs[i];
+                    console.log(`[Onboard] Iteration ${i + 1}/${maxIterations}: Testing "${input.substring(0, 50)}..."`);
+
+                    // Execute the skill
+                    let output = '';
+                    let error = '';
+                    try {
+                        const result = await this.executeSkill(skillMd, input, 'cloud', null, skillName);
+                        output = result.response || '';
+                    } catch (e: any) {
+                        error = e.message || String(e);
+                    }
+
+                    // Analyze the result
+                    const evalPrompt = `Evaluate this skill execution result.
+Skill: ${skillName}
+Input: ${input}
+Output: ${output || '(empty)'}
+Error: ${error || '(none)'}
+Analysis criteria: ${analysis.substring(0, 1500)}
+Self-debug guide: ${selfDebug.substring(0, 1000)}
+
+Respond with JSON: {"score": 0-10, "issues": ["issue1"], "suggestions": ["suggestion1"], "needsImprovement": true/false}`;
+
+                    const evalRes = await this.modelRouter.routeChat(evalPrompt, 'cloud');
+                    let evaluation: any = { score: 5, issues: [], suggestions: [], needsImprovement: false };
+                    try {
+                        const m = (evalRes.response || '').match(/\{[\s\S]*\}/);
+                        if (m) evaluation = JSON.parse(m[0]);
+                    } catch { /* use defaults */ }
+
+                    const iterResult: any = {
+                        iteration: i + 1,
+                        input: input.substring(0, 200),
+                        output: output.substring(0, 500),
+                        error,
+                        evaluation,
+                        timestamp: new Date().toISOString(),
+                    };
+                    iterations.push(iterResult);
+
+                    // If needs improvement, rewrite SKILL.md
+                    if (evaluation.needsImprovement && evaluation.issues?.length > 0) {
+                        const improvePrompt = `Improve this SKILL.md to fix issues found during testing.
+Current SKILL.md:
+${skillMd}
+
+Issues: ${evaluation.issues.join('; ')}
+Suggestions: ${(evaluation.suggestions || []).join('; ')}
+Test input that revealed issues: ${input}
+Error/Output: ${error || output.substring(0, 500)}
+
+Rewrite the SKILL.md maintaining the same YAML frontmatter format. Return ONLY the updated SKILL.md.`;
+
+                        const improveRes = await this.modelRouter.routeChat(improvePrompt, 'cloud');
+                        let newContent = (improveRes.response || '').replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+                        if (newContent.length > 50 && newContent.includes('---')) {
+                            await fs.writeFile(skillMdPath, newContent + '\n');
+                            skillMd = newContent;
+                            improved = true;
+                            iterResult.improved = true;
+                        }
+                    }
+                }
+
+                // Save run record
+                runs.push({
+                    type: 'auto',
+                    timestamp: new Date().toISOString(),
+                    iterations,
+                    improved,
+                });
+                await fs.writeJson(runsPath, runs, { spaces: 2 });
+
+                // Update experience log
+                const expPath = path.join(skillDir, 'experience.log');
+                const expEntry = `\n[${new Date().toISOString()}] Auto-onboard: ${iterations.length} iterations, ${improved ? 'SKILL.md improved' : 'no changes needed'}\n` +
+                    iterations.map(it => `  Iter ${it.iteration}: score=${it.evaluation?.score || '?'}, issues=${(it.evaluation?.issues || []).length}`).join('\n') + '\n';
+                await fs.appendFile(expPath, expEntry);
+
+                res.json({ success: true, iterations, improved, skillMd: await fs.readFile(skillMdPath, 'utf-8') });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/skills/onboard/manual', async (req, res) => {
+            try {
+                const { skillName, selectedContent, userInstruction } = req.body;
+                if (!skillName) return res.status(400).json({ error: 'skillName required' });
+
+                const allSkills = this.skillLoader.loadSkills();
+                const matched = allSkills.find((s: any) => s.name === skillName || s.name.includes(skillName));
+                if (!matched?.metadata?.skillDir) return res.status(404).json({ error: 'Skill not found' });
+
+                const skillDir = matched.metadata.skillDir;
+                const skillMdPath = path.join(skillDir, 'SKILL.md');
+                const runsPath = path.join(skillDir, 'onboard_runs.json');
+
+                const skillMd = await fs.readFile(skillMdPath, 'utf-8');
+
+                const improvePrompt = `Optimize this section of a SKILL.md based on the user's instructions.
+
+Full SKILL.md:
+${skillMd}
+
+Section to optimize:
+${selectedContent}
+
+User instruction: ${userInstruction || 'Improve this section for better reliability and output quality.'}
+
+Rewrite the ENTIRE SKILL.md with the selected section improved. Keep YAML frontmatter format. Return ONLY the updated SKILL.md.`;
+
+                const result = await this.modelRouter.routeChat(improvePrompt, 'cloud');
+                let newContent = (result.response || '').replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+
+                let updated = false;
+                if (newContent.length > 50 && newContent.includes('---')) {
+                    await fs.writeFile(skillMdPath, newContent + '\n');
+                    updated = true;
+                }
+
+                // Save run record
+                let runs: any[] = [];
+                if (await fs.pathExists(runsPath)) { try { runs = await fs.readJson(runsPath); } catch { runs = []; } }
+                runs.push({
+                    type: 'manual',
+                    timestamp: new Date().toISOString(),
+                    selectedContent: selectedContent?.substring(0, 300),
+                    userInstruction: userInstruction?.substring(0, 300),
+                    updated,
+                });
+                await fs.writeJson(runsPath, runs, { spaces: 2 });
+
+                // Update experience log
+                const expPath = path.join(skillDir, 'experience.log');
+                await fs.appendFile(expPath, `\n[${new Date().toISOString()}] Manual onboard: ${updated ? 'SKILL.md updated' : 'no changes'}, instruction: ${(userInstruction || '').substring(0, 100)}\n`);
+
+                res.json({ success: true, updated, skillMd: updated ? newContent : skillMd });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Helper function to extract SKILL.md from a zip buffer
         const extractSkillMdFromZip = (buffer: Buffer): Promise<string> => {
             return new Promise((resolve, reject) => {
