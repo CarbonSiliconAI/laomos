@@ -2357,11 +2357,10 @@ ${skillContext}
 ${runtimeBlock ? '\n--- RUNTIME ENVIRONMENT ---\n' + runtimeBlock : ''}
 
 EXECUTION RULES:
-1. Use the EXACT commands shown in the "Available Scripts" or "Example Commands" sections above.
-2. For Python scripts with inline dependencies (marked "uv run"), ALWAYS prefer "uv run script.py" over "python3 script.py".
-3. If a binary is marked ✓, it is installed and ready to use. If marked ✗, it is NOT installed.
-4. The working directory for bash commands is: ${skillDir}
-5. Follow the skill documentation closely — it tells you the correct commands and arguments.
+1. Use the EXACT commands shown in the "Available Scripts", "Example Commands", or "Usage" sections above.
+2. If a binary is marked ✓, it is installed and ready to use. If marked ✗, it is NOT installed.
+3. The working directory for bash commands is: ${skillDir}
+4. Follow the skill documentation closely — it tells you the correct commands and arguments.
 
 To execute commands, use these XML tools (do NOT wrap in markdown code blocks):
 

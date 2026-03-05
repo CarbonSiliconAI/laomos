@@ -317,6 +317,9 @@ export class AgentScheduler {
             } else if (task.type === 'search') {
                 result = `Processed ${task.type}`;
                 model = 'mock';
+            } else if (task.type === 'display') {
+                result = inputData;
+                model = 'native';
             }
         } catch (e: any) {
             succeeded = false;

@@ -22,12 +22,40 @@ A witty, punchy LinkedIn CLI inspired by the `bird` CLI. It uses session cookies
 
 ## Usage
 
-- `lk whoami`: Display your current profile details.
-- `lk search "query"`: Search for people by keywords.
-- `lk profile <public_id>`: Get a detailed summary of a specific profile.
-- `lk feed -n 10`: Summarize the top N posts from your timeline.
-- `lk messages`: Quick peek at your recent conversations.
-- `lk check`: Combined whoami and messages check.
+Display your current profile details:
+```bash
+lk whoami
+```
+
+Search for people by keywords:
+```bash
+lk search "query"
+```
+
+Get a detailed summary of a specific profile:
+```bash
+lk profile <public_id>
+```
+
+Summarize the top N posts from your timeline:
+```bash
+lk feed -n 10
+```
+
+Send a private message to a user by name:
+```bash
+lk send "Recipient Name" "The message text to send"
+```
+
+Quick peek at your recent conversations:
+```bash
+lk messages
+```
+
+Combined whoami and messages check:
+```bash
+lk check
+```
 
 ## Dependencies
 

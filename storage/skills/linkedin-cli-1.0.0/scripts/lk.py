@@ -84,6 +84,31 @@ def feed(api, count=10):
         content = post.get('content', 'No content').replace('\n', ' ')
         print(f"• {BOLD}{author}{RESET} ({time}): {content[:200]}...")
 
+def send_msg(api, name, message):
+    print(f"Searching for '{BOLD}{name}{RESET}'...")
+    results = api.search_people(keywords=name, limit=1)
+    
+    if not results:
+        print(f"Error: Could not find any LinkedIn profile matching '{name}'.")
+        return
+        
+    top_hit = results[0]
+    recipient_urn = top_hit.get('urn_id')
+    recipient_name = top_hit.get('name', 'Unknown')
+    
+    if not recipient_urn:
+        print(f"Error: Profile for '{recipient_name}' is missing a valid URN.")
+        return
+        
+    print(f"Sending message to {BOLD}{recipient_name}{RESET} ({recipient_urn})...")
+    
+    error = api.send_message(message_body=message, recipients=[recipient_urn])
+    
+    if error:
+        print(f"{BOLD}Error:{RESET} Failed to send message to {recipient_name}.")
+    else:
+        print(f"{GREEN}✓ Message successfully sent to {recipient_name}!{RESET}")
+
 def main():
     parser = argparse.ArgumentParser(description="lk - LinkedIn CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -100,6 +125,10 @@ def main():
     
     feed_parser = subparsers.add_parser("feed", help="Summarize your timeline")
     feed_parser.add_argument("-n", "--count", type=int, default=10, help="Number of posts to fetch")
+    
+    send_parser = subparsers.add_parser("send", help="Send a private message to a user by name")
+    send_parser.add_argument("name", help="Name of the person to message")
+    send_parser.add_argument("message", help="The message text to send")
     
     subparsers.add_parser("check", help="Quick status check")
 
@@ -122,6 +151,8 @@ def main():
             check_messages(api)
         elif args.command == "feed":
             feed(api, args.count)
+        elif args.command == "send":
+            send_msg(api, args.name, args.message)
         elif args.command == "check":
             whoami(api)
             print("-" * 10)
