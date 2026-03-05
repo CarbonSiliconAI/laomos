@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import crypto from 'crypto';
 
-export type JobType = 'skill' | 'flow';
+export type JobType = 'skill' | 'flow' | 'task-chain';
 export type JobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
 export interface ScheduledJob {
@@ -26,15 +26,18 @@ export class CalendarManager {
     // Dependencies to trigger the actual work
     private executeSkill: (targetId: string, inputPayload: any) => Promise<string>;
     private executeFlow: (targetId: string, inputPayload: any) => Promise<string>;
+    private executeTaskChain: (targetId: string, inputPayload: any) => Promise<string>;
 
     constructor(
         systemDir: string,
         executeSkill: (targetId: string, inputPayload: any) => Promise<string>,
-        executeFlow: (targetId: string, inputPayload: any) => Promise<string>
+        executeFlow: (targetId: string, inputPayload: any) => Promise<string>,
+        executeTaskChain: (targetId: string, inputPayload: any) => Promise<string>
     ) {
         this.checkPointPath = path.join(systemDir, '.laomos_state', 'calendar.json');
         this.executeSkill = executeSkill;
         this.executeFlow = executeFlow;
+        this.executeTaskChain = executeTaskChain;
     }
 
     async init() {
@@ -131,6 +134,8 @@ export class CalendarManager {
                 result = await this.executeSkill(job.targetId, job.inputPayload);
             } else if (job.type === 'flow') {
                 result = await this.executeFlow(job.targetId, job.inputPayload);
+            } else if (job.type === 'task-chain') {
+                result = await this.executeTaskChain(job.targetId, job.inputPayload);
             } else {
                 throw new Error(`Unknown job type: ${job.type}`);
             }

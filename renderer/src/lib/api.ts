@@ -47,7 +47,7 @@ export const api = {
 
     // ── Calendar ─────────────────────────────
     calendarJobs: () => apiFetch<{ jobs: ScheduledJob[] }>('/api/calendar/jobs'),
-    calendarCreateJob: (body: { type: 'skill' | 'flow'; targetId: string; inputPayload: any; scheduledTime: string }) => apiFetch<{ success: boolean; job: ScheduledJob }>('/api/calendar/jobs', {
+    calendarCreateJob: (body: { type: 'skill' | 'flow' | 'task-chain'; targetId: string; inputPayload: any; scheduledTime: string }) => apiFetch<{ success: boolean; job: ScheduledJob }>('/api/calendar/jobs', {
         method: 'POST', body: JSON.stringify(body),
     }),
     calendarDeleteJob: (id: string) => apiFetch<{ success: boolean }>(`/api/calendar/jobs/${id}`, { method: 'DELETE' }),
@@ -211,7 +211,7 @@ export interface ToolDef {
 
 export interface ScheduledJob {
     id: string;
-    type: 'skill' | 'flow';
+    type: 'skill' | 'flow' | 'task-chain';
     targetId: string;
     inputPayload: any;
     scheduledTime: string; // ISO format

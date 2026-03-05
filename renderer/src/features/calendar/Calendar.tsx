@@ -5,9 +5,10 @@ import './Calendar.css';
 export default function CalendarPage() {
     const [jobs, setJobs] = useState<ScheduledJob[]>([]);
     const [loading, setLoading] = useState(false);
+    const [savedChains, setSavedChains] = useState<string[]>([]);
 
     // Form state
-    const [type, setType] = useState<'skill' | 'flow'>('skill');
+    const [type, setType] = useState<'skill' | 'flow' | 'task-chain'>('skill');
     const [targetId, setTargetId] = useState('');
     const [payloadInput, setPayloadInput] = useState('');
     const [scheduleDate, setScheduleDate] = useState('');
@@ -24,8 +25,21 @@ export default function CalendarPage() {
     useEffect(() => {
         fetchJobs();
         const intv = setInterval(fetchJobs, 10000);
+        // Load saved chains for the dropdown
+        api.taskChainList().then(res => setSavedChains(res.chains || [])).catch(() => { });
         return () => clearInterval(intv);
     }, []);
+
+    // When switching to task-chain type, load chains and reset targetId
+    useEffect(() => {
+        if (type === 'task-chain') {
+            api.taskChainList().then(res => {
+                const chains = res.chains || [];
+                setSavedChains(chains);
+                if (chains.length > 0 && !targetId) setTargetId(chains[0]);
+            }).catch(() => { });
+        }
+    }, [type]);
 
     const handleCreateJob = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,6 +50,8 @@ export default function CalendarPage() {
             let finalPayload: any;
             if (type === 'skill') {
                 finalPayload = { userInput: payloadInput, preferredProvider: 'cloud' };
+            } else if (type === 'task-chain') {
+                finalPayload = { chainName: targetId };
             } else {
                 try {
                     finalPayload = JSON.parse(payloadInput);
@@ -68,11 +84,13 @@ export default function CalendarPage() {
         }
     };
 
+    const typeIcon = (t: string) => t === 'skill' ? '🔧' : t === 'flow' ? '🔀' : '⛓';
+
     return (
         <div className="calendar-container">
             <header className="calendar-header">
                 <h2>Job Calendar</h2>
-                <p>Schedule backend skills or flows to run at specific times.</p>
+                <p>Schedule backend skills, flows, or task chains to run at specific times.</p>
             </header>
 
             <div className="calendar-content">
@@ -82,31 +100,43 @@ export default function CalendarPage() {
                         <div className="form-group">
                             <label>Run Type</label>
                             <select value={type} onChange={e => setType(e.target.value as any)}>
-                                <option value="skill">Skill</option>
-                                <option value="flow">Flow</option>
+                                <option value="skill">🔧 Skill</option>
+                                <option value="flow">🔀 Flow</option>
+                                <option value="task-chain">⛓ Task Chain</option>
                             </select>
                         </div>
 
                         <div className="form-group">
-                            <label>Target ID (Skill Name or Flow ID)</label>
-                            <input
-                                type="text"
-                                value={targetId}
-                                onChange={e => setTargetId(e.target.value)}
-                                required
-                                placeholder="e.g. Weather or flow-123"
-                            />
+                            <label>{type === 'task-chain' ? 'Select Task Chain' : 'Target ID (Skill Name or Flow ID)'}</label>
+                            {type === 'task-chain' ? (
+                                <select value={targetId} onChange={e => setTargetId(e.target.value)} required>
+                                    {savedChains.length === 0 && <option value="">No saved chains</option>}
+                                    {savedChains.map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={targetId}
+                                    onChange={e => setTargetId(e.target.value)}
+                                    required
+                                    placeholder="e.g. Weather or flow-123"
+                                />
+                            )}
                         </div>
 
-                        <div className="form-group">
-                            <label>Human Language Task</label>
-                            <textarea
-                                value={payloadInput}
-                                onChange={e => setPayloadInput(e.target.value)}
-                                rows={4}
-                                placeholder="e.g. Check the weather in Tokyo and notify me"
-                            />
-                        </div>
+                        {type !== 'task-chain' && (
+                            <div className="form-group">
+                                <label>Human Language Task</label>
+                                <textarea
+                                    value={payloadInput}
+                                    onChange={e => setPayloadInput(e.target.value)}
+                                    rows={4}
+                                    placeholder="e.g. Check the weather in Tokyo and notify me"
+                                />
+                            </div>
+                        )}
 
                         <div className="form-row">
                             <div className="form-group">
@@ -142,7 +172,7 @@ export default function CalendarPage() {
                             {jobs.map(job => (
                                 <li key={job.id} className="job-card">
                                     <div className="job-header">
-                                        <h4>{job.type.toUpperCase()}: {job.targetId}</h4>
+                                        <h4>{typeIcon(job.type)} {job.type.toUpperCase()}: {job.targetId}</h4>
                                         <span className={`job-status status-${job.status.toLowerCase()}`}>{job.status}</span>
                                     </div>
                                     <div className="job-details">

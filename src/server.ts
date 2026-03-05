@@ -135,6 +135,113 @@ export class Server {
                 const { nodes, edges } = inputPayload;
                 const jobId = await this.scheduler.submitJob(nodes, edges);
                 return `Flow Job Submitted: ${jobId}`;
+            },
+            async (chainName, _inputPayload) => {
+                // Load the saved task chain
+                const chainDir = path.join(this.fsManager.getRootDir(), 'task_chains', chainName);
+                const chainFile = path.join(chainDir, 'chain.json');
+                if (!await fs.pathExists(chainFile)) {
+                    throw new Error(`Task chain "${chainName}" not found`);
+                }
+                const chainData = await fs.readJson(chainFile);
+                const chainNodes = chainData.nodes || [];
+                const chainEdges = chainData.edges || [];
+
+                // Topological sort
+                const inDeg = new Map<string, number>();
+                const adj = new Map<string, string[]>();
+                chainNodes.forEach((n: any) => { inDeg.set(n.id, 0); adj.set(n.id, []); });
+                chainEdges.forEach((e: any) => {
+                    adj.get(e.from)?.push(e.to);
+                    inDeg.set(e.to, (inDeg.get(e.to) || 0) + 1);
+                });
+                const queue = chainNodes.filter((n: any) => (inDeg.get(n.id) || 0) === 0).map((n: any) => n.id);
+                const order: string[] = [];
+                while (queue.length > 0) {
+                    const id = queue.shift()!;
+                    order.push(id);
+                    for (const next of (adj.get(id) || [])) {
+                        const d = (inDeg.get(next) || 1) - 1;
+                        inDeg.set(next, d);
+                        if (d === 0) queue.push(next);
+                    }
+                }
+                chainNodes.forEach((n: any) => { if (!order.includes(n.id)) order.push(n.id); });
+
+                // Find goal
+                const goalNode = chainNodes.find((n: any) => n.type === 'goal');
+                const chainGoal = goalNode?.label || chainName;
+                let accumulatedContext = '';
+                const results: string[] = [];
+
+                for (const nodeId of order) {
+                    const node = chainNodes.find((n: any) => n.id === nodeId);
+                    if (!node) continue;
+
+                    const goalCtx = `OVERALL GOAL: ${chainGoal}\n\n`;
+                    const prevCtx = accumulatedContext ? `ACCUMULATED CONTEXT FROM PREVIOUS STEPS:\n${accumulatedContext}\n\n` : '';
+
+                    if (node.type === 'action') {
+                        let output = '';
+                        if (node.skill) {
+                            const allSkills = this.skillLoader.loadSkills();
+                            const matched = allSkills.find((s: any) => s.name === node.skill || s.name.includes(node.skill));
+                            if (matched) {
+                                const taskPrompt = `${goalCtx}${prevCtx}Now execute this specific step: ${node.label}`;
+                                const result = await this.executeSkill(matched.instructions || matched.description || '', taskPrompt, 'cloud', null, matched.name);
+                                output = result.response;
+                            }
+                        }
+                        if (!output) {
+                            const prompt = `${goalCtx}${prevCtx}Now execute this task: ${node.label}`;
+                            const result = await this.modelRouter.routeChat(prompt, 'cloud');
+                            output = result.response;
+                        }
+                        // Summarize for context
+                        const sumResult = await this.modelRouter.routeChat(
+                            `Provide a 2-3 sentence summary of key findings relevant to "${chainGoal}":\n\n${output.substring(0, 2000)}`, 'cloud'
+                        );
+                        const summary = sumResult.response || output.substring(0, 300);
+                        accumulatedContext += (accumulatedContext ? '\n\n' : '') + `[${node.label}]: ${summary}`;
+                        results.push(`[ACTION] ${node.label}: ${summary}`);
+                    } else if (node.type === 'condition') {
+                        const checkPrompt = accumulatedContext
+                            ? `You are a condition evaluator. The overall goal is: "${chainGoal}".\n\nGiven:\n---\n${accumulatedContext}\n---\nDoes this satisfy: "${node.label}"?\n\nRespond YES or NO on the first line, then explain.`
+                            : `You are a condition evaluator. Has this condition been met: "${node.label}"?\nRespond YES or NO.`;
+                        const result = await this.modelRouter.routeChat(checkPrompt, 'cloud');
+                        const passed = result.response.split('\n')[0].toUpperCase().includes('YES');
+                        if (!passed) {
+                            results.push(`[CONDITION FAILED] ${node.label}: ${result.response}`);
+                            break;
+                        }
+                        results.push(`[CONDITION PASSED] ${node.label}`);
+                    } else if (node.type === 'goal') {
+                        const checkPrompt = accumulatedContext
+                            ? `You are a goal evaluator. Given:\n---\n${accumulatedContext}\n---\nDoes it satisfy: "${node.label}"?\n\nLine 1: YES or NO\nLine 2+: Comprehensive summary.`
+                            : `Has this goal been achieved: "${node.label}"?\nYES or NO.`;
+                        const result = await this.modelRouter.routeChat(checkPrompt, 'cloud');
+                        const passed = result.response.split('\n')[0].toUpperCase().includes('YES');
+                        results.push(`[GOAL ${passed ? 'PASSED' : 'FAILED'}] ${node.label}: ${result.response}`);
+                    }
+                }
+
+                // Log the run
+                const runsPath = path.join(chainDir, 'runs.json');
+                let runs: any[] = [];
+                if (await fs.pathExists(runsPath)) {
+                    try { runs = await fs.readJson(runsPath); } catch { /* ignore */ }
+                }
+                const hasFail = results.some(r => /FAILED/i.test(r));
+                runs.push({
+                    id: `run-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    status: hasFail ? 'failed' : 'success',
+                    summary: `Scheduled run of ${chainName}`,
+                    log: results.join('\n'),
+                });
+                await fs.writeJson(runsPath, runs, { spaces: 2 });
+
+                return results.join('\n');
             }
         );
 
