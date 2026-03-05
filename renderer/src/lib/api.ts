@@ -174,9 +174,12 @@ export const api = {
     taskChainList: () => apiFetch<{ chains: string[] }>('/api/task-chain/list'),
     taskChainLoad: (name: string) => apiFetch<{ chain: TaskChainResult & { name: string }; experience: string }>(`/api/task-chain/load/${encodeURIComponent(name)}`),
     taskChainRunStep: (body: { nodeId: string; nodeLabel: string; nodeType: string; skill?: string; previousOutput?: string }) =>
-        apiFetch<{ output: string; passed?: boolean; status: string }>('/api/task-chain/run-step', {
+        apiFetch<{ output: string; passed?: boolean; executionLog?: string[]; status: string }>('/api/task-chain/run-step', {
             method: 'POST', body: JSON.stringify(body),
         }),
+    taskChainLearn: () => apiFetch<{ summary: string; saved: boolean }>('/api/task-chain/learn', { method: 'POST' }),
+    taskChainExperience: () => apiFetch<{ experience: string }>('/api/task-chain/experience'),
+    taskChainAutoImprove: () => apiFetch<{ iterations: number; improved: string[]; results: any[]; summary: string }>('/api/task-chain/auto-improve', { method: 'POST' }),
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────

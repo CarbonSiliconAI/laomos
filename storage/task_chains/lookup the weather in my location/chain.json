@@ -1,0 +1,59 @@
+{
+  "name": "lookup the weather in my location",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Lookup the weather in my location",
+      "type": "goal",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Weather information for user's location is obtained",
+      "type": "condition",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_2",
+      "label": "User's location is determined",
+      "type": "condition",
+      "x": 320,
+      "y": 80
+    },
+    {
+      "id": "act_1",
+      "label": "Get current weather data for the location",
+      "type": "action",
+      "skill": "weather",
+      "x": 320,
+      "y": 190
+    },
+    {
+      "id": "act_2",
+      "label": "Determine user's current location",
+      "type": "action",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_2",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    }
+  ]
+}

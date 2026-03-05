@@ -2125,15 +2125,15 @@ Rules:
                         const matched = allSkills.find((s: any) => s.name === skill || s.name.includes(skill));
                         if (matched) {
                             const result = await this.executeSkill(matched.instructions || matched.description || '', nodeLabel, 'cloud', null, matched.name);
-                            return res.json({ output: result.response, status: 'done' });
+                            return res.json({ output: result.response, executionLog: result.executionLog, status: 'done' });
                         }
                     }
-                    // Fallback to plain chat
+                    // Fallback to llm-chat (direct LLM conversation)
                     const prompt = previousOutput
                         ? `Previous step result:\n${previousOutput}\n\nNow execute this task: ${nodeLabel}`
                         : `Execute this task: ${nodeLabel}`;
                     const result = await this.modelRouter.routeChat(prompt, 'cloud');
-                    return res.json({ output: result.response, status: 'done' });
+                    return res.json({ output: result.response, executionLog: [`[LLM Chat Fallback]\nPrompt: ${prompt.substring(0, 500)}\nResponse: ${result.response}`], status: 'done' });
 
                 } else if (nodeType === 'condition' || nodeType === 'goal') {
                     // Simple LLM condition check
@@ -2145,7 +2145,7 @@ Rules:
                     const text = result.response || '';
                     const firstLine = text.split('\n')[0].toUpperCase().trim();
                     const passed = firstLine.includes('YES');
-                    return res.json({ output: text, passed, status: 'done' });
+                    return res.json({ output: text, passed, executionLog: [`[Condition Check]\nPrompt: ${checkPrompt.substring(0, 500)}\nResult: ${passed ? 'PASSED' : 'FAILED'}\nResponse: ${text}`], status: 'done' });
                 }
 
                 res.status(400).json({ error: `Unknown node type: ${nodeType}` });
@@ -2217,6 +2217,285 @@ Rules:
                 }
                 res.json({ chain, experience });
             } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/task-chain/learn', async (_req, res) => {
+            try {
+                await fs.ensureDir(taskChainsDir);
+                const dirs = await fs.readdir(taskChainsDir);
+                const allLogs: string[] = [];
+
+                for (const d of dirs) {
+                    const logPath = path.join(taskChainsDir, d, 'experience.log');
+                    if (await fs.pathExists(logPath)) {
+                        const content = await fs.readFile(logPath, 'utf-8');
+                        if (content.trim()) {
+                            allLogs.push(`=== Chain: ${d} ===\n${content.trim()}`);
+                        }
+                    }
+                }
+
+                if (allLogs.length === 0) {
+                    return res.json({ summary: 'No experience logs found. Run some task chains first.', saved: false });
+                }
+
+                const combinedLogs = allLogs.join('\n\n').substring(0, 30000); // Cap at 30k chars
+
+                // Read existing experience to preserve prior learnings
+                const systemDir = path.join(this.fsManager.getRootDir(), 'system');
+                await fs.ensureDir(systemDir);
+                const experiencePath = path.join(systemDir, 'experience.md');
+                let existingExperience = '';
+                if (await fs.pathExists(experiencePath)) {
+                    existingExperience = await fs.readFile(experiencePath, 'utf-8');
+                }
+
+                const priorKnowledge = existingExperience
+                    ? `\n\nPRIOR LEARNED KNOWLEDGE (preserve and build upon this):\n---\n${existingExperience.substring(0, 10000)}\n---\n`
+                    : '';
+
+                const prompt = `You are an AI system learning from execution logs. Analyze the following task chain execution logs and extract:
+
+1. **Common Problems** — What errors or failures occurred frequently? What commands failed?
+2. **Solutions Found** — What workarounds or fixes resolved issues?
+3. **Execution Patterns** — What approaches worked reliably?
+4. **Improvement Suggestions** — How can future executions be more reliable?
+${priorKnowledge}
+IMPORTANT: If prior learned knowledge exists above, you MUST preserve all previously learned insights and merge them with any new findings from the logs below. Do NOT discard old knowledge — expand and refine it.
+
+Format your response as a well-organized Markdown document with clear sections.
+
+---
+NEW EXECUTION LOGS:
+${combinedLogs}
+---
+
+Produce a concise, actionable summary that combines prior knowledge with new learnings.`;
+
+                const result = await this.modelRouter.routeChat(prompt, 'cloud');
+                const summary = result.response || '';
+
+                // Save to system experience file (systemDir and experiencePath already declared above)
+                const timestamp = new Date().toISOString();
+                const header = `# System Experience Summary\n_Last updated: ${timestamp}_\n_Analyzed ${allLogs.length} chain logs_\n\n`;
+                await fs.writeFile(experiencePath, header + summary);
+                console.log(`[TaskChain] Auto-learning summary saved to ${experiencePath}`);
+
+                res.json({ summary: header + summary, saved: true });
+            } catch (error: any) {
+                console.error('[TaskChain] Learn error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/task-chain/experience', async (_req, res) => {
+            try {
+                const experiencePath = path.join(this.fsManager.getRootDir(), 'system', 'experience.md');
+                if (await fs.pathExists(experiencePath)) {
+                    const content = await fs.readFile(experiencePath, 'utf-8');
+                    res.json({ experience: content });
+                } else {
+                    res.json({ experience: '' });
+                }
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/task-chain/auto-improve', async (_req, res) => {
+            try {
+                const maxIterations = 3;
+                const results: any[] = [];
+                const improvedSkills = new Set<string>();
+
+                // 1. Read system experience
+                const experiencePath = path.join(this.fsManager.getRootDir(), 'system', 'experience.md');
+                let systemExp = '';
+                if (await fs.pathExists(experiencePath)) {
+                    systemExp = await fs.readFile(experiencePath, 'utf-8');
+                }
+
+                // 2. Scan all chain logs for failures
+                await fs.ensureDir(taskChainsDir);
+                const dirs = await fs.readdir(taskChainsDir);
+                interface FailedChain { name: string; chainData: any; log: string; skills: string[] }
+                const failedChains: FailedChain[] = [];
+
+                for (const d of dirs) {
+                    const chainPath = path.join(taskChainsDir, d, 'chain.json');
+                    const logPath = path.join(taskChainsDir, d, 'experience.log');
+                    if (!(await fs.pathExists(chainPath)) || !(await fs.pathExists(logPath))) continue;
+
+                    const log = await fs.readFile(logPath, 'utf-8');
+                    const hasErrors = /error|fail|bash error|command not found|timeout|syntaxerror/i.test(log);
+                    if (!hasErrors) continue;
+
+                    const chainData = await fs.readJson(chainPath);
+                    const skills: string[] = (chainData.nodes || [])
+                        .filter((n: any) => n.skill)
+                        .map((n: any) => String(n.skill));
+                    const uniqueSkills: string[] = [...new Set(skills)];
+
+                    failedChains.push({ name: d, chainData, log, skills: uniqueSkills });
+                }
+
+                if (failedChains.length === 0) {
+                    return res.json({
+                        iterations: 0, improved: [], results: [],
+                        summary: 'No failed chains found. All chains are running successfully! 🎉',
+                    });
+                }
+
+                console.log(`[AutoImprove] Found ${failedChains.length} chains with errors.`);
+
+                // 3. Iterate improvements
+                for (let iter = 1; iter <= maxIterations; iter++) {
+                    console.log(`[AutoImprove] === Iteration ${iter} ===`);
+                    let anyFailedThisRound = false;
+
+                    for (const chain of failedChains) {
+                        // Skip chains that already succeeded in previous iterations
+                        const prevSuccess = results.find(r => r.chain === chain.name && r.status === 'success');
+                        if (prevSuccess) continue;
+
+                        // 3a. Improve each linked skill
+                        for (const skillName of chain.skills) {
+                            const allSkills = this.skillLoader.loadSkills();
+                            const matched = allSkills.find((s: any) => s.name === skillName || s.name.includes(skillName));
+                            if (!matched?.metadata?.skillDir) continue;
+
+                            const skillMdPath = path.join(matched.metadata.skillDir, 'SKILL.md');
+                            if (!(await fs.pathExists(skillMdPath))) continue;
+
+                            const currentSkillMd = await fs.readFile(skillMdPath, 'utf-8');
+
+                            const improvePrompt = `You are improving an OpenClaw skill definition to fix execution errors.
+
+SYSTEM EXPERIENCE (known problems and solutions):
+${systemExp.substring(0, 5000)}
+
+EXECUTION ERRORS from chain "${chain.name}":
+${chain.log.substring(0, 8000)}
+
+CURRENT SKILL.MD:
+\`\`\`
+${currentSkillMd}
+\`\`\`
+
+Based on the errors above, rewrite the SKILL.md to fix the issues. Common fixes include:
+- Adding timeout flags (--connect-timeout 5)
+- Using more reliable API endpoints
+- Adding fallback commands
+- Fixing command syntax
+- Adding error handling instructions
+
+Return ONLY the complete updated SKILL.md content (including the YAML frontmatter). Do not wrap in code blocks.`;
+
+                            const improveResult = await this.modelRouter.routeChat(improvePrompt, 'cloud');
+                            let newContent = improveResult.response || '';
+
+                            // Strip markdown code blocks if the LLM wrapped it
+                            newContent = newContent.replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+
+                            if (newContent.length > 50 && newContent.includes('---')) {
+                                await fs.writeFile(skillMdPath, newContent + '\n');
+                                improvedSkills.add(skillName);
+                                console.log(`[AutoImprove] Improved SKILL.md for ${skillName}`);
+
+                                // Force skill cache reload
+                                this.skillLoader.loadSkills(true);
+                            }
+                        }
+
+                        // 3b. Re-run the chain's action nodes to verify
+                        const actionNodes = (chain.chainData.nodes || []).filter((n: any) => n.type === 'action');
+                        let chainSuccess = true;
+                        const runLog: string[] = [`[AutoImprove] Iteration ${iter} - Re-running chain "${chain.name}"`];
+
+                        for (const node of actionNodes) {
+                            try {
+                                if (node.skill) {
+                                    const allSkills = this.skillLoader.loadSkills();
+                                    const matched = allSkills.find((s: any) => s.name === node.skill || s.name.includes(node.skill));
+                                    if (matched) {
+                                        const result = await this.executeSkill(
+                                            matched.instructions || matched.description || '',
+                                            node.label, 'cloud', null, matched.name
+                                        );
+                                        runLog.push(`[ACTION OK] ${node.label}: ${result.response.substring(0, 200)}`);
+                                        if (result.executionLog) {
+                                            result.executionLog.forEach(entry => {
+                                                if (/error|fail/i.test(entry)) {
+                                                    chainSuccess = false;
+                                                }
+                                            });
+                                        }
+                                        continue;
+                                    }
+                                }
+                                // Plain chat fallback
+                                const chatResult = await this.modelRouter.routeChat(`Execute: ${node.label}`, 'cloud');
+                                runLog.push(`[ACTION OK] ${node.label}: ${chatResult.response.substring(0, 200)}`);
+                            } catch (e: any) {
+                                chainSuccess = false;
+                                runLog.push(`[ACTION FAIL] ${node.label}: ${e.message}`);
+                            }
+                        }
+
+                        results.push({
+                            chain: chain.name,
+                            iteration: iter,
+                            status: chainSuccess ? 'success' : 'failed',
+                            skills: chain.skills,
+                            log: runLog.join('\n'),
+                        });
+
+                        // Append to chain's experience.log
+                        const logPath = path.join(taskChainsDir, chain.name, 'experience.log');
+                        await fs.appendFile(logPath, `\n\n--- Auto-Improve Iteration ${iter} (${new Date().toISOString()}) ---\n${runLog.join('\n')}\n`);
+
+                        if (!chainSuccess) anyFailedThisRound = true;
+                    }
+
+                    if (!anyFailedThisRound) {
+                        console.log(`[AutoImprove] All chains passed on iteration ${iter}!`);
+                        break;
+                    }
+                }
+
+                // 4. Generate summary
+                const improved = [...improvedSkills];
+                const totalIter = results.length > 0 ? Math.max(...results.map(r => r.iteration)) : 0;
+                const successCount = new Set(results.filter(r => r.status === 'success').map(r => r.chain)).size;
+                const summary = `Auto-improvement completed in ${totalIter} iteration(s).\n` +
+                    `Improved ${improved.length} skill(s): ${improved.join(', ') || 'none'}\n` +
+                    `${successCount}/${failedChains.length} failed chains now passing.\n` +
+                    results.map(r => `- [${r.status.toUpperCase()}] "${r.chain}" (iter ${r.iteration})`).join('\n');
+
+                // 5. Trigger a learn cycle to update system experience
+                try {
+                    const dirs2 = await fs.readdir(taskChainsDir);
+                    const allLogs: string[] = [];
+                    for (const d of dirs2) {
+                        const lp = path.join(taskChainsDir, d, 'experience.log');
+                        if (await fs.pathExists(lp)) {
+                            const c = await fs.readFile(lp, 'utf-8');
+                            if (c.trim()) allLogs.push(`=== Chain: ${d} ===\n${c.trim()}`);
+                        }
+                    }
+                    if (allLogs.length > 0) {
+                        const learnPrompt = `You are an AI system learning from execution logs. Summarize:\n1. Common Problems\n2. Solutions Found\n3. Execution Patterns\n4. Improvement Suggestions\n\nPRIOR KNOWLEDGE:\n${systemExp.substring(0, 8000)}\n\nNEW LOGS:\n${allLogs.join('\n\n').substring(0, 20000)}`;
+                        const learnResult = await this.modelRouter.routeChat(learnPrompt, 'cloud');
+                        const timestamp = new Date().toISOString();
+                        await fs.writeFile(experiencePath, `# System Experience Summary\n_Last updated: ${timestamp}_\n_Post auto-improvement analysis_\n\n${learnResult.response}`);
+                    }
+                } catch { /* ignore learn errors */ }
+
+                res.json({ iterations: totalIter, improved, results, summary });
+            } catch (error: any) {
+                console.error('[AutoImprove] Error:', error);
                 res.status(500).json({ error: error.message });
             }
         });
@@ -2518,7 +2797,7 @@ Rules:
         });
     }
 
-    public async executeSkill(skillContext: string, userInput: string, modelPreference: string = 'cloud', controller: AbortController | null = null, skillName?: string): Promise<{ response: string; levelUsed: string; providerUsed: string }> {
+    public async executeSkill(skillContext: string, userInput: string, modelPreference: string = 'cloud', controller: AbortController | null = null, skillName?: string): Promise<{ response: string; levelUsed: string; providerUsed: string; executionLog: string[] }> {
         // ── Resolve skill metadata & build universal runtime ─────────
         let skillDir = this.fsManager.getRootDir();
         let runtimeBlock = '';
@@ -2584,6 +2863,7 @@ You can use tools multiple times. When done, provide a final summary without too
         const maxIterations = 20;
         let levelUsed = '1';
         let providerUsed = 'local';
+        const executionLog: string[] = [];
 
         const execAsync = util.promisify(require('child_process').exec);
 
@@ -2593,7 +2873,8 @@ You can use tools multiple times. When done, provide a final summary without too
         while (iterations < maxIterations) {
             if (controller?.signal.aborted) {
                 console.log(`[Skill Execution] Loop aborted by user.`);
-                return { response: "Skill execution was cancelled by the user.", levelUsed, providerUsed };
+                executionLog.push('[ABORTED] Skill execution was cancelled by the user.');
+                return { response: "Skill execution was cancelled by the user.", levelUsed, providerUsed, executionLog };
             }
 
             iterations++;
@@ -2607,6 +2888,7 @@ You can use tools multiple times. When done, provide a final summary without too
 
             messages.push({ role: 'assistant', content: aiMessage });
             console.log(`\n\n[Skill Execution] ========== AI RESPONSE START ==========\n${aiMessage}\n========== AI RESPONSE END ==========\n\n`);
+            executionLog.push(`[LLM Response #${iterations}]\n${aiMessage}`);
 
             let requiresNextTurn = false;
             let nextUserMessage = '';
@@ -2628,10 +2910,12 @@ You can use tools multiple times. When done, provide a final summary without too
                     const { stdout, stderr } = await execAsync(shellCmd, execOpts);
                     const output = (stdout || '') + (stderr || '');
                     nextUserMessage += `\n[Result of bash command: ${command}]\n${output.substring(0, 4000)}\n`;
+                    executionLog.push(`[BASH] $ ${command}\n${output.substring(0, 4000)}`);
                 } catch (error: any) {
                     if (error.name === 'AbortError') throw error;
                     console.error(`[Skill Execution] Bash error:`, error.message);
                     nextUserMessage += `\n[Error executing bash command: ${command}]\n${error.message}\n`;
+                    executionLog.push(`[BASH ERROR] $ ${command}\n${error.message}`);
                 }
                 requiresNextTurn = true;
             }
@@ -2646,6 +2930,7 @@ You can use tools multiple times. When done, provide a final summary without too
                     const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(skillDir, filePath);
                     const content = require('fs').readFileSync(resolvedPath, 'utf8');
                     nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
+                    executionLog.push(`[READ FILE] ${filePath}\n${content.substring(0, 2000)}`);
                 } catch (error: any) {
                     console.error(`[Skill Execution] Read file error:`, error.message);
                     nextUserMessage += `\n[Error reading file: ${filePath}]\n${error.message}\n`;
@@ -2682,7 +2967,7 @@ You can use tools multiple times. When done, provide a final summary without too
             finalResponse += "\n\n*(Note: Agent reached maximum iterations and stopped automatically)*";
         }
 
-        return { response: finalResponse, levelUsed, providerUsed };
+        return { response: finalResponse, levelUsed, providerUsed, executionLog };
     }
 
     public async start() {

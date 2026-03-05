@@ -93,6 +93,10 @@ export default function TaskChain() {
     const [savedChains, setSavedChains] = useState<string[]>([]);
     const [showLoadPanel, setShowLoadPanel] = useState(false);
     const [experience, setExperience] = useState('');
+    const [learning, setLearning] = useState(false);
+    const [systemExperience, setSystemExperience] = useState('');
+    const [improving, setImproving] = useState(false);
+    const [improveResult, setImproveResult] = useState<{ iterations: number; improved: string[]; results: any[]; summary: string } | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
 
@@ -282,7 +286,13 @@ export default function TaskChain() {
                 });
 
                 lastOutput = result.output;
-                logLines.push(`[${node.type}] ${node.label}: ${result.output.slice(0, 200)}`);
+                // Capture detailed execution log
+                if (result.executionLog && result.executionLog.length > 0) {
+                    logLines.push(`\n========== [${node.type.toUpperCase()}] ${node.label} ==========`);
+                    result.executionLog.forEach(entry => logLines.push(entry));
+                } else {
+                    logLines.push(`[${node.type}] ${node.label}:\n${result.output}`);
+                }
 
                 if (node.type === 'condition' || node.type === 'goal') {
                     if (result.passed === false) {
@@ -387,6 +397,37 @@ export default function TaskChain() {
                 <button className="taskchain-load-btn" onClick={() => { setShowLoadPanel(!showLoadPanel); fetchChainList(); }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
                     Load
+                </button>
+                <button className="taskchain-learn-btn" onClick={async () => {
+                    setLearning(true);
+                    try {
+                        const res = await api.taskChainLearn();
+                        setSystemExperience(res.summary);
+                    } catch (e: any) {
+                        setSystemExperience(`Error: ${e.message}`);
+                    }
+                    setLearning(false);
+                }} disabled={learning}>
+                    {learning ? <><div className="taskchain-spinner taskchain-spinner--dark" /> Learning...</> : <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+                        Learn
+                    </>}
+                </button>
+                <button className="taskchain-improve-btn" onClick={async () => {
+                    setImproving(true);
+                    setImproveResult(null);
+                    try {
+                        const res = await api.taskChainAutoImprove();
+                        setImproveResult(res);
+                    } catch (e: any) {
+                        setImproveResult({ iterations: 0, improved: [], results: [], summary: `Error: ${e.message}` });
+                    }
+                    setImproving(false);
+                }} disabled={improving || running}>
+                    {improving ? <><div className="taskchain-spinner taskchain-spinner--dark" /> Improving...</> : <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                        Auto-Improve
+                    </>}
                 </button>
             </div>
 
@@ -504,6 +545,29 @@ export default function TaskChain() {
                 <div className="taskchain-experience">
                     <div className="taskchain-experience__title">📋 Experience Log</div>
                     <pre className="taskchain-experience__content">{experience}</pre>
+                </div>
+            )}
+
+            {/* System Experience (auto-learned) */}
+            {systemExperience && (
+                <div className="taskchain-experience taskchain-experience--system">
+                    <div className="taskchain-experience__title">🧠 System Experience</div>
+                    <pre className="taskchain-experience__content">{systemExperience}</pre>
+                </div>
+            )}
+
+            {/* Auto-Improvement Results */}
+            {(improving || improveResult) && (
+                <div className="taskchain-experience taskchain-experience--improve">
+                    <div className="taskchain-experience__title">🔄 Auto-Improvement</div>
+                    {improving ? (
+                        <div className="taskchain-improve-progress">
+                            <div className="taskchain-spinner" />
+                            <span>Analyzing failures, improving skills, re-running chains... This may take a few minutes.</span>
+                        </div>
+                    ) : improveResult && (
+                        <pre className="taskchain-experience__content">{improveResult.summary}</pre>
+                    )}
                 </div>
             )}
         </div>

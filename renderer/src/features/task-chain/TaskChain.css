@@ -557,6 +557,83 @@
     background: rgba(0, 122, 255, 0.08);
 }
 
+/* ── Learn button ── */
+.taskchain-learn-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: rgba(124, 58, 237, 0.08);
+    color: #7C3AED;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.taskchain-learn-btn:hover:not(:disabled) {
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.taskchain-learn-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── System Experience ── */
+.taskchain-experience--system {
+    border-color: rgba(124, 58, 237, 0.15);
+    background: rgba(124, 58, 237, 0.04);
+}
+
+.taskchain-experience--system .taskchain-experience__content {
+    max-height: 300px;
+}
+
+/* ── Auto-Improve button ── */
+.taskchain-improve-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.taskchain-improve-btn:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.18);
+}
+
+.taskchain-improve-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Auto-Improve results panel ── */
+.taskchain-experience--improve {
+    border-color: rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.taskchain-improve-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    font-size: 0.82rem;
+    color: #D97706;
+}
+
 /* ── Experience log ── */
 .taskchain-experience {
     margin: 0 28px 20px;
