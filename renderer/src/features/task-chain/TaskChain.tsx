@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { ChainNode, ChainEdge, RunLogEntry, DiagnoseResult, DiagnoseFix } from '../../lib/api';
 import './TaskChain.css';
@@ -76,6 +77,7 @@ function layoutNodes(nodes: ChainNode[], edges: ChainEdge[]): PositionedNode[] {
 
 // ── Component ───────────────────────────────────────────────
 export default function TaskChain() {
+    const navigate = useNavigate();
     const [goal, setGoal] = useState('');
     const [chainName, setChainName] = useState('');
     const [nodes, setNodes] = useState<PositionedNode[]>([]);
@@ -646,6 +648,14 @@ export default function TaskChain() {
                                     <div className="taskchain-skill-badge">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg>
                                         {node.skill}
+                                    </div>
+                                )}
+                                {node.type === 'action' && !node.skill && (
+                                    <div className="taskchain-skill-missing" onClick={e => {
+                                        e.stopPropagation();
+                                        navigate(`/workforce/openclaw?search=${encodeURIComponent(node.label)}`);
+                                    }}>
+                                        🔍 Find Skill
                                     </div>
                                 )}
                                 {/* Per-node output */}

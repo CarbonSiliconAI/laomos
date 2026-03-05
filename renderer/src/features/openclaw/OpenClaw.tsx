@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, ClawApp, SkillDef } from '../../lib/api';
 import './OpenClaw.css';
 
@@ -62,6 +63,18 @@ export default function OpenClaw() {
 
     useEffect(() => { fetchLocalSkills(); }, []);
     useEffect(() => { if (tab === 'hub') searchHub(''); }, [tab]);
+
+    // Auto-search from query param (e.g. from Task Chain "Find Skill" link)
+    const [searchParams] = useSearchParams();
+    useEffect(() => {
+        const q = searchParams.get('search');
+        if (q) {
+            setTab('hub');
+            setQuery(q);
+            // Delay so the hub tab renders first
+            setTimeout(() => searchHub(q), 100);
+        }
+    }, [searchParams]);
 
     function openInspector(skill: SkillDef) {
         setSelectedSkill(skill);

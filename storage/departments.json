@@ -17,7 +17,12 @@
       "id": "dept-1772740472819",
       "name": "Marketing",
       "tasks": []
+    },
+    {
+      "id": "dept-1772742742399",
+      "name": "Board",
+      "tasks": []
     }
   ],
-  "activeDept": "dept-1772740472819"
+  "activeDept": "dept-1772742742399"
 }
