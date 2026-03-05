@@ -87,6 +87,7 @@ export default function OpenClaw() {
         try {
             const res = await api.skillsExecute({
                 executionId: execId,
+                skillName: (selectedSkill as any).name ?? '',
                 skillContext: (selectedSkill as any).instructions ?? (selectedSkill as any).skill_markdown ?? '',
                 userInput: inspectorInput.trim(),
                 preferredProvider: selectedProvider,

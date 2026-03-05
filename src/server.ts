@@ -798,7 +798,7 @@ export class Server {
             }
 
             try {
-                const { skillContext, userInput, preferredProvider } = req.body;
+                const { skillContext, userInput, preferredProvider, skillName } = req.body;
 
                 if (!skillContext || !userInput) {
                     return res.status(400).json({ error: 'skillContext and userInput are required' });
@@ -807,7 +807,7 @@ export class Server {
                 // Default to cloud models for faster iteration
                 const modelPreference = preferredProvider || 'cloud';
 
-                const resultObj = await this.executeSkill(skillContext, userInput, modelPreference, controller);
+                const resultObj = await this.executeSkill(skillContext, userInput, modelPreference, controller, skillName);
 
                 res.json({
                     response: resultObj.response,
@@ -2326,32 +2326,62 @@ Instructions:
         });
     }
 
-    public async executeSkill(skillContext: string, userInput: string, modelPreference: string = 'cloud', controller: AbortController | null = null): Promise<{ response: string; levelUsed: string; providerUsed: string }> {
+    public async executeSkill(skillContext: string, userInput: string, modelPreference: string = 'cloud', controller: AbortController | null = null, skillName?: string): Promise<{ response: string; levelUsed: string; providerUsed: string }> {
+        // ── Resolve skill metadata & build universal runtime ─────────
+        let skillDir = this.fsManager.getRootDir();
+        let runtimeBlock = '';
+        let matchedSkill: any = null;
+
+        // Try to find the matching skill for richer context
+        if (skillName) {
+            const allSkills = this.skillLoader.loadSkills();
+            matchedSkill = allSkills.find(s => s.name.toLowerCase() === skillName.toLowerCase());
+        }
+
+        if (matchedSkill?.runtime) {
+            // Use pre-built runtime from skill loader
+            skillDir = matchedSkill.runtime.skillDir;
+            runtimeBlock = this.skillLoader.formatRuntimeContext(matchedSkill.runtime);
+        } else if (matchedSkill?.metadata?.skillDir) {
+            // Fallback: build runtime on the fly
+            skillDir = matchedSkill.metadata.skillDir;
+            const runtime = this.skillLoader.buildRuntime(skillDir, skillContext, matchedSkill.metadata || {});
+            runtimeBlock = this.skillLoader.formatRuntimeContext(runtime);
+        }
+
+        const laomosBinDir = path.join(os.homedir(), '.laomos', 'bin');
         const systemInstruction = `<Register_SystemPrompt>
 You are an advanced OpenClaw AI agent running inside the AiOS environment on the user's local machine.
-You have been granted access to the following skills:
+You have been granted access to the following skill:
 ${skillContext}
+${runtimeBlock ? '\n--- RUNTIME ENVIRONMENT ---\n' + runtimeBlock : ''}
 
-To execute these skills, you have access to the following XML tools.You MUST use these exact formats. 
-Do NOT wrap the XML tags in markdown code blocks.
+EXECUTION RULES:
+1. Use the EXACT commands shown in the "Available Scripts" or "Example Commands" sections above.
+2. For Python scripts with inline dependencies (marked "uv run"), ALWAYS prefer "uv run script.py" over "python3 script.py".
+3. If a binary is marked ✓, it is installed and ready to use. If marked ✗, it is NOT installed.
+4. The working directory for bash commands is: ${skillDir}
+5. Follow the skill documentation closely — it tells you the correct commands and arguments.
+
+To execute commands, use these XML tools (do NOT wrap in markdown code blocks):
 
 1. Execute a shell command:
 <bash>
 your command here
 </bash>
 
-2. Read a file from the file system:
+2. Read a file:
 <read_file>
-/absolute/path/or/relative/path/to/file.txt
+/path/to/file
 </read_file>
 
-3. Save content to a file in the user's personal directory:
-<save_file path="output.txt">
-File content here
+3. Save a file:
+<save_file path="filename.ext">
+content
 </save_file>
 
-When you output a <bash> or <read_file> tag, the system will execute it and reply with the results. 
-You can use tools multiple times in a row.Once you have fully completed the user's request, provide a final conversational response summarizing what you did, without any tool tags.
+When you output a <bash> or <read_file> tag, the system executes it and returns results.
+You can use tools multiple times. When done, provide a final summary without tool tags.
 </Register_SystemPrompt>`;
 
         let messages: any[] = [
@@ -2365,6 +2395,9 @@ You can use tools multiple times in a row.Once you have fully completed the user
         let providerUsed = 'local';
 
         const execAsync = util.promisify(require('child_process').exec);
+
+        // Build an enhanced PATH that includes ~/.laomos/bin and brew paths
+        const enhancedPath = `${laomosBinDir}${path.delimiter}/opt/homebrew/bin${path.delimiter}/usr/local/bin${path.delimiter}${process.env.PATH}`;
 
         while (iterations < maxIterations) {
             if (controller?.signal.aborted) {
@@ -2395,7 +2428,11 @@ You can use tools multiple times in a row.Once you have fully completed the user
                 try {
                     console.log(`[Skill Execution] Executing bash: ${command}`);
                     const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;
-                    const execOpts: any = { cwd: this.fsManager.getRootDir(), timeout: 120000 };
+                    const execOpts: any = {
+                        cwd: skillDir,
+                        timeout: 120000,
+                        env: { ...process.env, PATH: enhancedPath },
+                    };
                     if (controller) { execOpts.signal = controller.signal; }
                     const { stdout, stderr } = await execAsync(shellCmd, execOpts);
                     const output = (stdout || '') + (stderr || '');
@@ -2415,7 +2452,7 @@ You can use tools multiple times in a row.Once you have fully completed the user
                 const filePath = readMatch[1].trim();
                 try {
                     console.log(`[Skill Execution] Reading file: ${filePath}`);
-                    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(this.fsManager.getRootDir(), filePath);
+                    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(skillDir, filePath);
                     const content = require('fs').readFileSync(resolvedPath, 'utf8');
                     nextUserMessage += `\n[Content of file: ${filePath}]\n${content.substring(0, 8000)}\n`;
                 } catch (error: any) {
