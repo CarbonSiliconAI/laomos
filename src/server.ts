@@ -2794,6 +2794,89 @@ Rules for fixes:
             }
         });
 
+        // ── Departments ─────────────────────────────────────────────
+        const departmentsFile = path.join(taskChainsDir, '..', 'departments.json');
+
+        const loadDepts = async () => {
+            if (await fs.pathExists(departmentsFile)) {
+                return await fs.readJson(departmentsFile);
+            }
+            return { departments: [], activeDept: null };
+        };
+        const saveDepts = async (data: any) => {
+            await fs.writeJson(departmentsFile, data, { spaces: 2 });
+        };
+
+        this.app.get('/api/departments', async (_req, res) => {
+            try {
+                const data = await loadDepts();
+                // Also return available chains for the add-task dropdown
+                const chains: string[] = [];
+                if (await fs.pathExists(taskChainsDir)) {
+                    const dirs = await fs.readdir(taskChainsDir);
+                    for (const d of dirs) {
+                        const chainFile = path.join(taskChainsDir, d, 'chain.json');
+                        if (await fs.pathExists(chainFile)) chains.push(d);
+                    }
+                }
+                res.json({ ...data, availableChains: chains });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/departments', async (req, res) => {
+            try {
+                const { action, id, name, task } = req.body;
+                const data = await loadDepts();
+
+                if (action === 'create') {
+                    const newId = `dept-${Date.now()}`;
+                    data.departments.push({ id: newId, name: name || 'New Department', tasks: [] });
+                    if (!data.activeDept) data.activeDept = newId;
+                    await saveDepts(data);
+                    return res.json({ success: true, id: newId });
+                }
+                if (action === 'rename') {
+                    const dept = data.departments.find((d: any) => d.id === id);
+                    if (!dept) return res.status(404).json({ error: 'Department not found' });
+                    dept.name = name;
+                    await saveDepts(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'delete') {
+                    data.departments = data.departments.filter((d: any) => d.id !== id);
+                    if (data.activeDept === id) {
+                        data.activeDept = data.departments.length > 0 ? data.departments[0].id : null;
+                    }
+                    await saveDepts(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'set-active') {
+                    data.activeDept = id;
+                    await saveDepts(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'add-task') {
+                    const dept = data.departments.find((d: any) => d.id === id);
+                    if (!dept) return res.status(404).json({ error: 'Department not found' });
+                    if (!dept.tasks.includes(task)) dept.tasks.push(task);
+                    await saveDepts(data);
+                    return res.json({ success: true });
+                }
+                if (action === 'remove-task') {
+                    const dept = data.departments.find((d: any) => d.id === id);
+                    if (!dept) return res.status(404).json({ error: 'Department not found' });
+                    dept.tasks = dept.tasks.filter((t: string) => t !== task);
+                    await saveDepts(data);
+                    return res.json({ success: true });
+                }
+                res.status(400).json({ error: `Unknown action: ${action}` });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Mock Search API Endpoint for AI Flow Testing
         this.app.post('/api/ai/search', async (req, res) => {
             try {

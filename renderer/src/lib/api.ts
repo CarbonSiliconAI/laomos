@@ -52,6 +52,13 @@ export const api = {
     }),
     calendarDeleteJob: (id: string) => apiFetch<{ success: boolean }>(`/api/calendar/jobs/${id}`, { method: 'DELETE' }),
 
+    // ── Departments ──────────────────────────
+    departmentsGet: () => apiFetch<DepartmentsData>('/api/departments'),
+    departmentsAction: (body: { action: string; id?: string; name?: string; task?: string }) =>
+        apiFetch<{ success: boolean; id?: string }>('/api/departments', {
+            method: 'POST', body: JSON.stringify(body),
+        }),
+
     // ── Files ───────────────────────────────
     filesList: (p?: string) => apiFetch<{ files: FileEntry[] }>(`/api/files/list${p ? `?path=${encodeURIComponent(p)}` : ''}`),
     filesRead: (p: string) => apiFetch<{ content: string }>(`/api/files/read?path=${encodeURIComponent(p)}`),
@@ -385,4 +392,16 @@ export interface DiagnoseFix {
 export interface DiagnoseResult {
     diagnosis: string;
     fixes: DiagnoseFix[];
+}
+
+export interface Department {
+    id: string;
+    name: string;
+    tasks: string[];
+}
+
+export interface DepartmentsData {
+    departments: Department[];
+    activeDept: string | null;
+    availableChains: string[];
 }

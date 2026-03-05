@@ -104,6 +104,7 @@ export default function TaskChain() {
     const [diagnosing, setDiagnosing] = useState(false);
     const [diagNodeId, setDiagNodeId] = useState<string | null>(null);
     const [diagResult, setDiagResult] = useState<DiagnoseResult | null>(null);
+
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
 
@@ -255,6 +256,7 @@ export default function TaskChain() {
             setNodes(layoutNodes(baseNodes, newEdges));
         }
     };
+
 
     // ── Save chain ──────────────────────────────────────────
     const handleSave = async () => {
@@ -763,6 +765,7 @@ export default function TaskChain() {
                     )}
                 </div>
             )}
+
         </div>
     );
 }

@@ -1,0 +1,18 @@
+{
+  "departments": [
+    {
+      "id": "dept-1772739533884",
+      "name": "HR",
+      "tasks": [
+        "查询本地天气",
+        "穿衣指南"
+      ]
+    },
+    {
+      "id": "dept-1772739697687",
+      "name": "New Dept",
+      "tasks": []
+    }
+  ],
+  "activeDept": "dept-1772739533884"
+}

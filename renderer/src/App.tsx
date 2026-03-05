@@ -21,6 +21,7 @@ import BrowserPage from './features/browser/Browser';
 import AnalyzerPage from './features/analyzer/Analyzer';
 import ChatPage from './features/chat/Chat';
 import TaskChainPage from './features/task-chain/TaskChain';
+import DepartmentPage from './features/department/Department';
 import FilesPage from './features/files/Files';
 import ModelsPage from './features/models/Models';
 import ApiKeysPage from './features/api-keys/ApiKeys';
@@ -55,6 +56,7 @@ export default function App() {
                     <Route path="/operations/browser" element={<BrowserPage />} />
                     <Route path="/operations/analyzer" element={<AnalyzerPage />} />
                     <Route path="/operations/task-chain" element={<TaskChainPage />} />
+                    <Route path="/operations/department" element={<DepartmentPage />} />
 
                     <Route path="/workforce" element={<WorkforcePage />} />
                     <Route path="/workforce/chat" element={<ChatPage />} />
