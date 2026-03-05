@@ -14,6 +14,9 @@ export default function DepartmentPage() {
     const [renameValue, setRenameValue] = useState('');
     const [addChainValue, setAddChainValue] = useState('');
     const deptStopRefs = useRef<Record<string, boolean>>({});
+    // Manager review state
+    const [reviewingTask, setReviewingTask] = useState<string | null>(null);
+    const [reviewResults, setReviewResults] = useState<Record<string, { review: string; improveResult?: any; timestamp: string }>>({});
 
     const fetchDepartments = useCallback(async () => {
         try {
@@ -110,6 +113,17 @@ export default function DepartmentPage() {
         } else {
             setDeptTaskSelected(new Set(activeDept.tasks));
         }
+    };
+
+    const handleReview = async (taskName: string, autoImprove: boolean) => {
+        setReviewingTask(taskName);
+        try {
+            const res = await api.departmentsReview(taskName, autoImprove);
+            setReviewResults(prev => ({ ...prev, [taskName]: res }));
+        } catch (e: any) {
+            setReviewResults(prev => ({ ...prev, [taskName]: { review: `Error: ${e.message}`, timestamp: new Date().toISOString() } }));
+        }
+        setReviewingTask(null);
     };
 
     return (
@@ -211,6 +225,16 @@ export default function DepartmentPage() {
                                                     {status === 'running' && (
                                                         <button className="dept-task__stop" onClick={() => { deptStopRefs.current[taskName] = true; }}>Stop</button>
                                                     )}
+                                                    <button className="dept-task__review-btn" title="Manager Review"
+                                                        disabled={reviewingTask === taskName}
+                                                        onClick={() => handleReview(taskName, false)}>
+                                                        {reviewingTask === taskName ? '⏳' : '📋'}
+                                                    </button>
+                                                    <button className="dept-task__improve-btn" title="Review & Auto-Fix"
+                                                        disabled={reviewingTask === taskName}
+                                                        onClick={() => handleReview(taskName, true)}>
+                                                        {reviewingTask === taskName ? '⏳' : '🔄'}
+                                                    </button>
                                                     <button className="dept-task__remove" onClick={() => deptAction({ action: 'remove-task', id: activeDeptId!, task: taskName })}>×</button>
                                                 </div>
                                             );
@@ -226,6 +250,28 @@ export default function DepartmentPage() {
                                         )}
                                     </div>
                                 </>
+                            )}
+
+                            {/* Manager Review Results */}
+                            {Object.keys(reviewResults).length > 0 && (
+                                <div className="dept-reviews">
+                                    <h4 className="dept-reviews__title">📋 Manager Reviews</h4>
+                                    {Object.entries(reviewResults).map(([taskName, result]) => (
+                                        <div key={taskName} className="dept-review-card">
+                                            <div className="dept-review-card__header">
+                                                <span>⛓ {taskName}</span>
+                                                <span className="dept-review-card__time">{new Date(result.timestamp).toLocaleString()}</span>
+                                                <button className="dept-review-card__close" onClick={() => setReviewResults(prev => { const n = { ...prev }; delete n[taskName]; return n; })}>×</button>
+                                            </div>
+                                            <pre className="dept-review-card__body">{result.review}</pre>
+                                            {result.improveResult && result.improveResult.count > 0 && (
+                                                <div className="dept-review-card__improved">
+                                                    🔄 Auto-improved {result.improveResult.count} skill(s): {result.improveResult.improved.join(', ')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </>
                     )}

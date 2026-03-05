@@ -1,0 +1,83 @@
+{
+  "name": "整理每日新闻并打印出来",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Daily news organized and printed",
+      "type": "goal",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "News content collected and summarized",
+      "type": "condition",
+      "x": 320,
+      "y": 80
+    },
+    {
+      "id": "act_3",
+      "label": "Format and prepare document for print",
+      "type": "action",
+      "skill": "gog",
+      "x": 320,
+      "y": 190
+    },
+    {
+      "id": "cond_2",
+      "label": "Organized news formatted for printing",
+      "type": "condition",
+      "x": 580,
+      "y": 80
+    },
+    {
+      "id": "act_4",
+      "label": "Print the organized news document",
+      "type": "action",
+      "x": 580,
+      "y": 190
+    },
+    {
+      "id": "act_1",
+      "label": "Fetch and analyze market/news sources",
+      "type": "action",
+      "skill": "market-news-analyst",
+      "x": 60,
+      "y": 80
+    },
+    {
+      "id": "act_2",
+      "label": "Summarize collected news articles",
+      "type": "action",
+      "skill": "summarize",
+      "x": 60,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "cond_2"
+    },
+    {
+      "from": "act_3",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    },
+    {
+      "from": "act_4",
+      "to": "goal_1"
+    }
+  ]
+}

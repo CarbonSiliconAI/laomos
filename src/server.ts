@@ -2877,6 +2877,118 @@ Rules for fixes:
             }
         });
 
+        // ── Department Manager Review ─────────────────────────────
+        this.app.post('/api/departments/review', async (req, res) => {
+            try {
+                const { chainName, autoImprove } = req.body;
+                if (!chainName) return res.status(400).json({ error: 'chainName required' });
+
+                const chainDir = path.join(taskChainsDir, chainName);
+                const chainPath = path.join(chainDir, 'chain.json');
+                const logPath = path.join(chainDir, 'experience.log');
+                const runsPath = path.join(chainDir, 'runs.json');
+
+                if (!(await fs.pathExists(chainPath))) {
+                    return res.status(404).json({ error: `Chain "${chainName}" not found` });
+                }
+
+                const chainData = await fs.readJson(chainPath);
+                let log = '';
+                if (await fs.pathExists(logPath)) log = await fs.readFile(logPath, 'utf-8');
+                let runs: any[] = [];
+                if (await fs.pathExists(runsPath)) {
+                    try { runs = await fs.readJson(runsPath); } catch { runs = []; }
+                }
+
+                // Build review prompt
+                const nodesSummary = (chainData.nodes || []).map((n: any) =>
+                    `- [${n.type}] ${n.label}${n.skill ? ` (skill: ${n.skill})` : ''}`
+                ).join('\n');
+
+                const recentRuns = runs.slice(-5).map((r: any) =>
+                    `Run ${r.timestamp || 'unknown'}: status=${r.status || 'unknown'}, nodes=${(r.nodeResults || []).length}`
+                ).join('\n');
+
+                const logTail = log.length > 3000 ? '...\n' + log.slice(-3000) : log;
+
+                const reviewPrompt = `You are a department manager reviewing a task chain named "${chainName}".
+
+Task Chain Structure:
+${nodesSummary}
+
+Recent Run History:
+${recentRuns || '(no run records)'}
+
+Execution Log (tail):
+${logTail || '(no log)'}
+
+Please provide:
+1. **Overall Assessment**: Rate the task quality (Excellent/Good/Needs Improvement/Failed)
+2. **Execution Summary**: Brief summary of what this chain does and its recent performance
+3. **Issues Found**: Any errors, inefficiencies, or failure patterns
+4. **Improvement Suggestions**: Specific actionable suggestions to improve this task chain
+5. **Skill Gaps**: Any skills that are missing or need upgrading
+
+Keep your response concise and actionable.`;
+
+                const reviewResult = await this.modelRouter.routeChat(
+                    reviewPrompt, 'cloud'
+                );
+
+                const review = reviewResult.response;
+
+                // If autoImprove requested, try to improve skills
+                let improveResult = null;
+                if (autoImprove && log) {
+                    const skills: string[] = (chainData.nodes || [])
+                        .filter((n: any) => n.skill)
+                        .map((n: any) => String(n.skill));
+                    const uniqueSkills = [...new Set(skills)];
+
+                    const hasErrors = /error|fail|bash error|command not found|timeout/i.test(log);
+                    if (hasErrors && uniqueSkills.length > 0) {
+                        const improved: string[] = [];
+                        for (const skillName of uniqueSkills) {
+                            const allSkills = this.skillLoader.loadSkills();
+                            const matched = allSkills.find((s: any) => s.name === skillName || s.name.includes(skillName));
+                            if (!matched) continue;
+
+                            if (!matched?.metadata?.skillDir) continue;
+
+                            const skillMdPath = path.join(matched.metadata.skillDir, 'SKILL.md');
+                            if (!(await fs.pathExists(skillMdPath))) continue;
+
+                            const currentSkillMd = await fs.readFile(skillMdPath, 'utf-8');
+
+                            const improvePrompt = `The skill "${skillName}" had issues during execution. Error log:\n${logTail}\n\nCurrent SKILL.md:\n${currentSkillMd}\n\nPlease rewrite the SKILL.md with improvements to fix the errors. Keep the same YAML frontmatter format but improve the instructions. Return ONLY the updated SKILL.md content.`;
+
+                            const improveRes = await this.modelRouter.routeChat(
+                                improvePrompt, 'cloud'
+                            );
+
+                            let newContent = improveRes.response || '';
+                            newContent = newContent.replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+
+                            if (newContent.length > 50 && newContent.includes('---')) {
+                                await fs.writeFile(skillMdPath, newContent + '\n');
+                                improved.push(skillName);
+                            }
+                        }
+                        improveResult = { improved, count: improved.length };
+                    }
+                }
+
+                // Save the review to the chain directory
+                const reviewPath = path.join(chainDir, 'manager_review.md');
+                const timestamp = new Date().toISOString();
+                await fs.writeFile(reviewPath, `# Manager Review\n_${timestamp}_\n\n${review}`);
+
+                res.json({ review, improveResult, timestamp });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // ── Company Organization Graph ──────────────────────────────
         const companyFile = path.join(taskChainsDir, '..', 'company.json');
 

@@ -58,6 +58,10 @@ export const api = {
         apiFetch<{ success: boolean; id?: string }>('/api/departments', {
             method: 'POST', body: JSON.stringify(body),
         }),
+    departmentsReview: (chainName: string, autoImprove = false) =>
+        apiFetch<{ review: string; improveResult: any; timestamp: string }>('/api/departments/review', {
+            method: 'POST', body: JSON.stringify({ chainName, autoImprove }),
+        }),
 
     // ── Company Organization ─────────────────
     companyGet: () => apiFetch<CompanyData>('/api/company'),

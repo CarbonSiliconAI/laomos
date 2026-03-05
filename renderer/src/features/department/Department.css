@@ -406,3 +406,112 @@
 .dept-actions__stop-all:hover {
     background: #d32f2f;
 }
+
+/* ── Manager Review buttons ── */
+.dept-task__review-btn,
+.dept-task__improve-btn {
+    background: none;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0;
+}
+
+.dept-task:hover .dept-task__review-btn,
+.dept-task:hover .dept-task__improve-btn {
+    opacity: 1;
+}
+
+.dept-task__review-btn:hover {
+    background: rgba(77, 166, 255, 0.12);
+    border-color: #4da6ff;
+}
+
+.dept-task__improve-btn:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: #f59e0b;
+}
+
+.dept-task__review-btn:disabled,
+.dept-task__improve-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: wait;
+}
+
+/* ── Review Results ── */
+.dept-reviews {
+    margin-top: 20px;
+    border-top: 1px solid #2a2d36;
+    padding-top: 16px;
+}
+
+.dept-reviews__title {
+    margin: 0 0 12px;
+    font-size: 15px;
+    color: #ddd;
+    font-weight: 600;
+}
+
+.dept-review-card {
+    background: #1a1c24;
+    border: 1px solid #2a2d36;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.dept-review-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #1e2028;
+    border-bottom: 1px solid #2a2d36;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+}
+
+.dept-review-card__time {
+    flex: 1;
+    text-align: right;
+    font-size: 11px;
+    color: #666;
+    font-weight: 400;
+}
+
+.dept-review-card__close {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dept-review-card__close:hover {
+    color: #e55;
+}
+
+.dept-review-card__body {
+    padding: 14px;
+    margin: 0;
+    font-size: 12px;
+    color: #bbb;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-family: inherit;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dept-review-card__improved {
+    padding: 8px 14px;
+    background: rgba(245, 158, 11, 0.08);
+    border-top: 1px solid rgba(245, 158, 11, 0.2);
+    font-size: 12px;
+    color: #f59e0b;
+    font-weight: 500;
+}
