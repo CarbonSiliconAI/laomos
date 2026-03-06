@@ -157,9 +157,18 @@ RATE THE COMPLEXITY: (1, 2, or 3)`},
         const systemMatch = prompt.match(systemRegex);
         let systemContent = "";
 
+        // Inject a strict global Sandbox Security Directive to restrict file access
+        const globalSecurityPrompt = `<Sandbox_Security_Directive>
+CRITICAL SECURITY REQUIREMENT: You are operating within the Laomos AI environment. 
+You are strictly FORBIDDEN from accessing, modifying, or reading any files outside of the application's designated root directory. 
+Any attempts to navigate to parent directories (e.g., using '../../') to access system files or user data outside the sandbox will be considered a security violation.
+</Sandbox_Security_Directive>\n\n`;
+
         if (systemMatch) {
-            systemContent += systemMatch[1].trim() + "\n\n";
+            systemContent += globalSecurityPrompt + systemMatch[1].trim() + "\n\n";
             prompt = prompt.replace(systemMatch[0], '').trim();
+        } else {
+            systemContent += globalSecurityPrompt;
         }
 
         const activeSkillsRegex = /\[Active OpenClaw Skills\]:([\s\S]*)/;
