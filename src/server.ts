@@ -1132,6 +1132,35 @@ Rewrite the SKILL.md maintaining the same YAML frontmatter format. Return ONLY t
                     iterations.map(it => `  Iter ${it.iteration}: score=${it.evaluation?.score || '?'}, issues=${(it.evaluation?.issues || []).length}`).join('\n') + '\n';
                 await fs.appendFile(expPath, expEntry);
 
+                // Update detailed onboard log
+                const onboardLogPath = path.join(skillDir, 'onboard.log');
+                let onboardLogEntry = `\n=========================================\n`;
+                onboardLogEntry += `[${new Date().toISOString()}] Auto-Onboard Cycle Started\n`;
+                onboardLogEntry += `Target Skill: ${skillName}\n`;
+                onboardLogEntry += `Max Iterations Allowed: ${maxIterations}\n`;
+                onboardLogEntry += `Total Iterations Run: ${iterations.length}\n`;
+                onboardLogEntry += `Improved SKILL.md: ${improved ? 'Yes' : 'No'}\n\n`;
+
+                for (const it of iterations) {
+                    onboardLogEntry += `--- Iteration ${it.iteration} ---\n`;
+                    onboardLogEntry += `Test Input:\n${it.input}\n\n`;
+                    onboardLogEntry += `Execution Output:\n${it.output || '(No Output)'}\n\n`;
+                    if (it.error) {
+                        onboardLogEntry += `Execution Error:\n${it.error}\n\n`;
+                    }
+                    onboardLogEntry += `Model Evaluation Score: ${it.evaluation?.score || 'N/A'}\n`;
+                    if (it.evaluation?.issues?.length) {
+                        onboardLogEntry += `Identified Issues:\n- ${it.evaluation.issues.join('\n- ')}\n`;
+                    }
+                    if (it.evaluation?.suggestions?.length) {
+                        onboardLogEntry += `Suggestions:\n- ${it.evaluation.suggestions.join('\n- ')}\n`;
+                    }
+                    onboardLogEntry += `Needs Improvement: ${it.evaluation?.needsImprovement ? 'Yes' : 'No'}\n`;
+                    onboardLogEntry += `\n`;
+                }
+                onboardLogEntry += `=========================================\n`;
+                await fs.appendFile(onboardLogPath, onboardLogEntry);
+
                 res.json({ success: true, iterations, improved, skillMd: await fs.readFile(skillMdPath, 'utf-8') });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
@@ -1190,6 +1219,17 @@ Rewrite the ENTIRE SKILL.md with the selected section improved. Keep YAML frontm
                 const expPath = path.join(skillDir, 'experience.log');
                 await fs.appendFile(expPath, `\n[${new Date().toISOString()}] Manual onboard: ${updated ? 'SKILL.md updated' : 'no changes'}, instruction: ${(userInstruction || '').substring(0, 100)}\n`);
 
+                // Update detailed onboard log
+                const onboardLogPath = path.join(skillDir, 'onboard.log');
+                let onboardLogEntry = `\n=========================================\n`;
+                onboardLogEntry += `[${new Date().toISOString()}] Manual-Onboard Cycle Started\n`;
+                onboardLogEntry += `Target Skill: ${skillName}\n`;
+                onboardLogEntry += `User Instruction:\n${userInstruction || '(None provided)'}\n\n`;
+                onboardLogEntry += `Selected Content Snapshot:\n${selectedContent ? selectedContent.substring(0, 500) + (selectedContent.length > 500 ? '...' : '') : '(None)'}\n\n`;
+                onboardLogEntry += `SKILL.md Updated: ${updated ? 'Yes' : 'No'}\n`;
+                onboardLogEntry += `=========================================\n`;
+                await fs.appendFile(onboardLogPath, onboardLogEntry);
+
                 res.json({ success: true, updated, skillMd: updated ? newContent : skillMd });
             } catch (error: any) {
                 res.status(500).json({ error: error.message });
@@ -1225,6 +1265,98 @@ Rewrite the ENTIRE SKILL.md with the selected section improved. Keep YAML frontm
                 });
             });
         };
+
+        this.app.post('/api/system/onboard-manual', async (req, res) => {
+            try {
+                const os = require('os');
+                const util = require('util');
+                const execAsync = util.promisify(require('child_process').exec);
+
+                // 1. Gather hardware information
+                const platform = os.platform();
+                const release = os.release();
+                const totalMemGb = (os.totalmem() / (1024 ** 3)).toFixed(2);
+                const cpus = os.cpus();
+                const cpuModel = cpus[0]?.model || 'Unknown CPU';
+                const cpuCores = cpus.length;
+
+                // 2. Test Python Version
+                let pyCmd = '';
+                let pyVersion = '';
+                try {
+                    const { stdout } = await execAsync('python3 --version');
+                    pyCmd = 'python3';
+                    pyVersion = stdout.trim();
+                } catch {
+                    try {
+                        const { stdout } = await execAsync('python --version');
+                        pyCmd = 'python';
+                        pyVersion = stdout.trim();
+                    } catch {
+                        pyCmd = 'N/A';
+                        pyVersion = 'Not installed or not in PATH';
+                    }
+                }
+
+                // 3. Test Pip
+                let pipCmd = '';
+                let pipVersion = '';
+                try {
+                    const { stdout } = await execAsync('pip3 --version');
+                    pipCmd = 'pip3';
+                    pipVersion = stdout.split(' ')[1] || stdout.trim();
+                } catch {
+                    try {
+                        const { stdout } = await execAsync('pip --version');
+                        pipCmd = 'pip';
+                        pipVersion = stdout.split(' ')[1] || stdout.trim();
+                    } catch {
+                        pipCmd = 'N/A';
+                        pipVersion = 'Not installed or not in PATH';
+                    }
+                }
+
+                // 4. Construct Markdown
+                const manualMd = `# System Onboard Manual
+
+> Auto-generated on: ${new Date().toISOString()}
+
+## Hardware Parameters
+- **OS Platform:** ${platform} (${release})
+- **CPU:** ${cpuModel} (${cpuCores} cores)
+- **Memory (RAM):** ${totalMemGb} GB
+
+## Python Environment
+These commands have been tested and verified to work on this machine.
+
+- **Verified Python Command:** \`${pyCmd}\`
+- **Python Version:** ${pyVersion}
+- **Verified Pip Command:** \`${pipCmd}\`
+- **Pip Version:** ${pipVersion}
+
+## System Instructions
+When creating or running skills on this machine, use the verified commands above. For example:
+\`\`\`bash
+${pipCmd} install -r requirements.txt
+${pyCmd} script.py
+\`\`\`
+`;
+
+                // 5. Save the file
+                const storagePath = path.join(this.fsManager.getRootDir(), 'system');
+                await fs.ensureDir(storagePath);
+                const manualPath = path.join(storagePath, 'onboard-manual.md');
+                await fs.writeFile(manualPath, manualMd, 'utf8');
+
+                res.json({
+                    success: true,
+                    path: manualPath,
+                    content: manualMd
+                });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
 
         // OpenClaw ClawHub Search Endpoint (Official Registry)
         this.app.get('/api/clawhub/search', async (req, res) => {

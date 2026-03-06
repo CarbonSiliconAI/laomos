@@ -1,0 +1,44 @@
+[
+  {
+    "type": "manual",
+    "timestamp": "2026-03-06T04:37:16.070Z",
+    "selectedContent": "summarize this",
+    "userInstruction": "make it better",
+    "updated": true
+  },
+  {
+    "type": "auto",
+    "timestamp": "2026-03-06T04:37:38.151Z",
+    "iterations": [
+      {
+        "iteration": 1,
+        "input": "Please summarize the following article about climate change and its impact on global agriculture in 2-3 sentences",
+        "output": "I'd be happy to help summarize an article about climate change and global agriculture! However, I need you to provide the article source. \n\nCould you please share one of the following:\n\n1. **A URL/link** to the article (e.g., `https://example.com/article`)\n2. **A file path** to a PDF or document on your computer (e.g., `/path/to/article.pdf`)\n3. **The article text itself** (you can paste it directly)\n\nOnce you provide the source, I'll use the summarize tool to create a concise 2-3 sentence summa",
+        "error": "",
+        "evaluation": {
+          "score": 3,
+          "issues": [
+            "Skill execution failed - did not perform the requested summarization",
+            "Response asks for input that should have been provided in the prompt",
+            "Misinterprets the task: the user asked to summarize 'the following article' implying content should follow, but none was provided",
+            "Incorrectly claims the summarize tool is 'not installed' - this is a hallucination",
+            "Provides troubleshooting steps instead of handling the missing input gracefully",
+            "Does not acknowledge that the actual article text was missing from the original request",
+            "Overly verbose response for a simple input validation issue"
+          ],
+          "suggestions": [
+            "Recognize immediately that no article content was provided and politely request it",
+            "Keep the response concise: 'I don't see an article in your message. Please paste the article text you'd like me to summarize.'",
+            "Do not invent technical limitations (tool installation) that don't apply",
+            "If article content had been provided, directly execute the summarization without additional questions",
+            "Use a simple, direct approach: identify the missing input → request it → wait for user to provide it"
+          ],
+          "needsImprovement": true
+        },
+        "timestamp": "2026-03-06T04:37:34.565Z",
+        "improved": true
+      }
+    ],
+    "improved": true
+  }
+]

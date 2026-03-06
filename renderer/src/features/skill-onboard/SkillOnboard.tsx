@@ -90,6 +90,22 @@ export default function SkillOnboardPage() {
         }
     };
 
+    const handleSystemManual = async () => {
+        setPhase('running');
+        setError('');
+        setSkillMd('');
+        setSelfDebug('');
+        setAnalysis('');
+        try {
+            const res = await api.systemOnboardManual();
+            setSkillMd(res.content); // Use skillMd state to render the output in the same details viewer
+            setPhase('done');
+        } catch (e: any) {
+            setError(e.message);
+            setPhase('done');
+        }
+    };
+
     return (
         <div className="onboard-page">
             <header className="onboard-header">
@@ -108,6 +124,10 @@ export default function SkillOnboardPage() {
                     <button className="onboard-btn onboard-btn--init" onClick={handleInit}
                         disabled={!selectedSkill || phase === 'init'}>
                         {phase === 'init' ? '⏳ Initializing...' : '📋 Initialize Onboarding'}
+                    </button>
+                    <button className="onboard-btn" style={{ marginLeft: '10px', backgroundColor: 'var(--bg-card)' }} onClick={handleSystemManual}
+                        disabled={phase === 'running' || phase === 'init'}>
+                        {phase === 'running' ? '⏳ Generating...' : '📄 Generate System Manual'}
                     </button>
                     <div className="onboard-mode-switch">
                         <button className={`onboard-mode ${mode === 'auto' ? 'onboard-mode--active' : ''}`}

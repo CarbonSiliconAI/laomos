@@ -138,6 +138,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ enabled }),
     }),
     systemAutoConfig: () => apiFetch<{ success: boolean; log?: string }>('/api/system/auto-config', { method: 'POST' }),
+    systemOnboardManual: () => apiFetch<{ success: boolean; path: string; content: string }>('/api/system/onboard-manual', { method: 'POST' }),
     // ── Activity Monitor & Telemetry ───────────────────────────
     telemetryStats: () => apiFetch<TelemetryStats>('/api/telemetry/stats'),
     telemetryRuns: () => apiFetch<{ runs: RunRecord[] }>('/api/telemetry/runs'),

@@ -11,11 +11,19 @@ Fast CLI to summarize URLs, local files, and YouTube links.
 
 ## Quick start
 
-```bash
 summarize "https://example.com" --model google/gemini-3-flash-preview
 summarize "/path/to/file.pdf" --model google/gemini-3-flash-preview
 summarize "https://youtu.be/dQw4w9WgXcQ" --youtube auto
-```
+
+## Input requirements
+
+The summarize skill requires one of the following:
+- **URL**: A web link (http/https)
+- **File path**: Local file (PDF, text, image, audio)
+- **YouTube link**: Direct video URL
+- **Text content**: Pasted article text
+
+If you ask to summarize "the following article" or "the text below" without providing the content, ask the user to paste the article text directly.
 
 ## Model + keys
 
@@ -29,12 +37,12 @@ Default model is `google/gemini-3-flash-preview` if none is set.
 
 ## Useful flags
 
-- `--length short|medium|long|xl|xxl|<chars>`
-- `--max-output-tokens <count>`
-- `--extract-only` (URLs only)
-- `--json` (machine readable)
-- `--firecrawl auto|off|always` (fallback extraction)
-- `--youtube auto` (Apify fallback if `APIFY_API_TOKEN` set)
+- `--length short|medium|long|xl|xxl|<chars>` — Control summary length
+- `--max-output-tokens <count>` — Limit token usage
+- `--extract-only` — Extract content without summarizing (URLs only)
+- `--json` — Output machine-readable format
+- `--firecrawl auto|off|always` — Enable fallback extraction for blocked sites
+- `--youtube auto` — Use Apify fallback for YouTube (requires `APIFY_API_TOKEN`)
 
 ## Config
 
@@ -45,5 +53,5 @@ Optional config file: `~/.summarize/config.json`
 ```
 
 Optional services:
-- `FIRECRAWL_API_KEY` for blocked sites
-- `APIFY_API_TOKEN` for YouTube fallback
+- `FIRECRAWL_API_KEY` — For extracting content from blocked/protected sites
+- `APIFY_API_TOKEN` — For YouTube extraction fallback
