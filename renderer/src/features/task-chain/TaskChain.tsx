@@ -8,6 +8,7 @@ import './TaskChain.css';
 interface PositionedNode extends ChainNode {
     x: number;
     y: number;
+    isLocked?: boolean;
 }
 
 function layoutNodes(nodes: ChainNode[], edges: ChainEdge[]): PositionedNode[] {
@@ -20,7 +21,11 @@ function layoutNodes(nodes: ChainNode[], edges: ChainEdge[]): PositionedNode[] {
     });
 
     const goalNode = nodes.find(n => n.type === 'goal');
-    if (!goalNode) return nodes.map((n, i) => ({ ...n, x: 100, y: 80 + i * 120 }));
+    if (!goalNode) return nodes.map((n, i) => {
+        const existing = nodes.find(en => en.id === n.id) as PositionedNode;
+        if (existing?.isLocked) return existing;
+        return { ...n, x: 100, y: 80 + i * 120 };
+    });
 
     const layers = new Map<string, number>();
     const queue: string[] = [goalNode.id];
@@ -64,6 +69,11 @@ function layoutNodes(nodes: ChainNode[], edges: ChainEdge[]): PositionedNode[] {
         const totalHeight = group.length * rowHeight;
         const startY = paddingY + (300 - totalHeight) / 2;
         group.forEach((node, idx) => {
+            const castNode = node as PositionedNode;
+            if (castNode.isLocked) {
+                positioned.push(castNode);
+                return;
+            }
             positioned.push({
                 ...node,
                 x: paddingX + col * colWidth,
@@ -84,7 +94,7 @@ export default function TaskChain() {
     const [edges, setEdges] = useState<ChainEdge[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [svgPaths, setSvgPaths] = useState<string[]>([]);
+    const [svgPaths, setSvgPaths] = useState<{ d: string, midX: number, midY: number, edge: ChainEdge }[]>([]);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [running, setRunning] = useState(false);
     const [jobStatus, setJobStatus] = useState<string | null>(null);
@@ -110,6 +120,23 @@ export default function TaskChain() {
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
 
+    // Node Dragging State
+    const [draggingNode, setDraggingNode] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+
+    // Active Node Editor State
+    const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+
+    // Pending Link State
+    const [linkPending, setLinkPending] = useState<{ from: string, to: string } | null>(null);
+    const [pendingPath, setPendingPath] = useState<{ d: string, midX: number, midY: number } | null>(null);
+
+    // Available Skills Data
+    const [availableSkills, setAvailableSkills] = useState<any[]>([]);
+
+    useEffect(() => {
+        api.skills().then(res => setAvailableSkills(res.skills || [])).catch(() => { });
+    }, []);
+
     // ── Load saved chains list ──────────────────────────────
     const fetchChainList = useCallback(async () => {
         try {
@@ -125,7 +152,7 @@ export default function TaskChain() {
         const container = canvasRef.current;
         if (!container || nodes.length === 0) { setSvgPaths([]); return; }
         const cRect = container.getBoundingClientRect();
-        const paths: string[] = [];
+        const paths: { d: string, midX: number, midY: number, edge: ChainEdge }[] = [];
         edges.forEach(edge => {
             const fromEl = document.getElementById(`tc-${edge.from}`);
             const toEl = document.getElementById(`tc-${edge.to}`);
@@ -137,10 +164,47 @@ export default function TaskChain() {
             const x2 = tR.left - cRect.left;
             const y2 = tR.top - cRect.top + tR.height / 2;
             const curve = Math.abs(x2 - x1) * 0.45;
-            paths.push(`M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`);
+
+            // Cubic Bezier parameters for halfway point t=0.5
+            // P0 = (x1, y1), P1 = (x1+curve, y1), P2 = (x2-curve, y2), P3 = (x2, y2)
+            // Midpoint shortcut because t=0.5:
+            const midX = 0.125 * x1 + 0.375 * (x1 + curve) + 0.375 * (x2 - curve) + 0.125 * x2;
+            const midY = 0.125 * y1 + 0.375 * y1 + 0.375 * y2 + 0.125 * y2;
+
+            paths.push({
+                d: `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`,
+                midX,
+                midY,
+                edge
+            });
         });
         setSvgPaths(paths);
-    }, [nodes, edges]);
+
+        if (linkPending) {
+            const pFromEl = document.getElementById(`tc-${linkPending.from}`);
+            const pToEl = document.getElementById(`tc-${linkPending.to}`);
+            if (pFromEl && pToEl) {
+                const fR = pFromEl.getBoundingClientRect();
+                const tR = pToEl.getBoundingClientRect();
+                const x1 = fR.right - cRect.left;
+                const y1 = fR.top - cRect.top + fR.height / 2;
+                const x2 = tR.left - cRect.left;
+                const y2 = tR.top - cRect.top + tR.height / 2;
+                const curve = Math.abs(x2 - x1) * 0.45;
+                const midX = 0.125 * x1 + 0.375 * (x1 + curve) + 0.375 * (x2 - curve) + 0.125 * x2;
+                const midY = 0.125 * y1 + 0.375 * y1 + 0.375 * y2 + 0.125 * y2;
+                setPendingPath({
+                    d: `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`,
+                    midX,
+                    midY
+                });
+            } else {
+                setPendingPath(null);
+            }
+        } else {
+            setPendingPath(null);
+        }
+    }, [nodes, edges, linkPending]);
 
     useEffect(() => { recomputeEdges(); }, [recomputeEdges]);
     useEffect(() => {
@@ -158,6 +222,8 @@ export default function TaskChain() {
         setSvgPaths([]);
         setSelected(new Set());
         setNodeOutputs({});
+        setActiveNodeId(null);
+        setLinkPending(null);
         setSaveMsg('');
 
         try {
@@ -189,19 +255,16 @@ export default function TaskChain() {
                 // Clicked same node, cancel
                 setLinkFrom(null);
             } else {
-                // Create edge from linkFrom -> id
+                // Pending link from linkFrom -> id
                 const exists = edges.some(e => e.from === linkFrom && e.to === id);
                 if (!exists) {
-                    const newEdges = [...edges, { from: linkFrom, to: id }];
-                    setEdges(newEdges);
-                    // Re-layout nodes with new edges
-                    const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
-                    setNodes(layoutNodes(baseNodes, newEdges));
+                    setLinkPending({ from: linkFrom, to: id });
                 }
                 setLinkFrom(null);
             }
             return;
         }
+        setActiveNodeId(id);
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id); else next.add(id);
@@ -210,11 +273,14 @@ export default function TaskChain() {
     };
 
     // ── Remove edge (edit mode) ─────────────────────────────
-    const removeEdge = (index: number) => {
-        const newEdges = edges.filter((_, i) => i !== index);
-        setEdges(newEdges);
+    const removeEdge = (edgeToRemove: ChainEdge) => {
+        setEdges(prev => prev.filter(e => !(e.from === edgeToRemove.from && e.to === edgeToRemove.to)));
+    };
+
+    // ── Manual Auto-Layout ──────────────────────────────────
+    const triggerAutoLayout = () => {
         const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
-        setNodes(layoutNodes(baseNodes, newEdges));
+        setNodes(layoutNodes(baseNodes, edges));
     };
 
     // ── Diagnose node (right-click) ─────────────────────────
@@ -254,11 +320,119 @@ export default function TaskChain() {
         } else if (fix.type === 'remove_edge' && fix.from && fix.to) {
             const newEdges = edges.filter(e => !(e.from === fix.from && e.to === fix.to));
             setEdges(newEdges);
-            const baseNodes: ChainNode[] = nodes.map(({ x, y, ...rest }) => rest);
-            setNodes(layoutNodes(baseNodes, newEdges));
         }
     };
 
+    // ── Node Text Editing ──────────────────────────────────
+    const handleNodeLabelChange = (id: string, newLabel: string) => {
+        setNodes(prev => prev.map(n => n.id === id ? { ...n, label: newLabel } : n));
+    };
+
+    const autoResizeTextarea = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+    };
+
+    const handleNodeSkillChange = (id: string, newSkill: string) => {
+        setNodes(prev => prev.map(n => n.id === id ? { ...n, skill: newSkill || undefined } : n));
+    };
+
+    // ── Node Drag Repositioning  ───────────────────────────
+    const handlePointerDown = (id: string, e: React.PointerEvent) => {
+        if (!editMode) return;
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.classList.contains('taskchain-node__lock')) return;
+
+        const node = nodes.find(n => n.id === id);
+        if (node?.isLocked) return;
+
+        e.stopPropagation();
+        const el = document.getElementById(`tc-${id}`);
+        if (!el || !canvasRef.current) return;
+
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(el);
+        const left = parseInt(computedStyle.left, 10);
+        const top = parseInt(computedStyle.top, 10);
+
+        setDraggingNode({
+            id,
+            offsetX: e.clientX - canvasRect.left - left,
+            offsetY: e.clientY - canvasRect.top - top
+        });
+
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    };
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!draggingNode || !canvasRef.current) return;
+
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const newX = e.clientX - canvasRect.left - draggingNode.offsetX;
+        const newY = e.clientY - canvasRect.top - draggingNode.offsetY;
+
+        setNodes(prev => prev.map(n => n.id === draggingNode.id ? { ...n, x: newX, y: newY } : n));
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+        if (draggingNode) {
+            setDraggingNode(null);
+            (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+        }
+    };
+
+    // ── Drag & Drop New Text Nodes ─────────────────────────
+    const handleDragStartBox = (e: React.DragEvent) => {
+        e.dataTransfer.setData('application/tc-node-type', 'text');
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        const type = e.dataTransfer.getData('application/tc-node-type');
+        if (type === 'text' && canvasRef.current) {
+            const canvasRect = canvasRef.current.getBoundingClientRect();
+            const x = e.clientX - canvasRect.left;
+            const y = e.clientY - canvasRect.top;
+            const newNodeId = `text_${Date.now()}`;
+            setNodes(prev => [...prev, {
+                id: newNodeId,
+                label: 'Type some text here...',
+                type: 'text',
+                x: Math.max(0, x - 80),
+                y: Math.max(0, y - 20)
+            }]);
+            setSelected(prev => new Set(prev).add(newNodeId));
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    // ── Node Deletion ──────────────────────────────────────
+    const handleRemoveNode = (nodeId: string, e: React.MouseEvent | React.PointerEvent) => {
+        e.stopPropagation();
+
+        // Remove node
+        setNodes(prev => prev.filter(n => n.id !== nodeId));
+
+        // Remove all edges connected to this node
+        setEdges(prev => prev.filter(edge => edge.from !== nodeId && edge.to !== nodeId));
+
+        // Clear from selection if necessary
+        if (selected.has(nodeId)) {
+            setSelected(prev => {
+                const newSeq = new Set(prev);
+                newSeq.delete(nodeId);
+                return newSeq;
+            });
+        }
+
+        // Clear link creation state if interacting with this node
+        if (linkFrom === nodeId) {
+            setLinkFrom(null);
+        }
+    };
 
     // ── Save chain ──────────────────────────────────────────
     const handleSave = async () => {
@@ -439,13 +613,19 @@ export default function TaskChain() {
     };
 
     const typeEmoji = (type: string) => {
+        if (type === 'text') return '📝';
         if (type === 'goal') return '🎯';
         if (type === 'condition') return '🔗';
         return '⚡';
     };
 
     return (
-        <div className="taskchain-page">
+        <div
+            className="taskchain-page"
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+        >
             {/* Header */}
             <div className="taskchain-header">
                 <h1>Task Chain</h1>
@@ -462,6 +642,9 @@ export default function TaskChain() {
                 </div>
                 <div className="taskchain-legend-item">
                     <div className="taskchain-legend-dot" style={{ background: '#28A745' }} />Action
+                </div>
+                <div className="taskchain-legend-item">
+                    <div className="taskchain-legend-dot" style={{ background: '#9E9E9E' }} />Text Blob
                 </div>
                 <div className="taskchain-legend-item">
                     <div className="taskchain-legend-dot" style={{ background: '#7C3AED' }} />Has Skill
@@ -501,11 +684,29 @@ export default function TaskChain() {
                     Load
                 </button>
                 {nodes.length > 0 && (
-                    <button className={`taskchain-edit-btn ${editMode ? 'taskchain-edit-btn--active' : ''}`} onClick={() => { setEditMode(!editMode); setLinkFrom(null); }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
-                        {editMode ? 'Done' : 'Edit'}
-                    </button>
+                    <>
+                        <button className="taskchain-edit-btn" onClick={triggerAutoLayout}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            Auto Layout
+                        </button>
+                        <button className={`taskchain-edit-btn ${editMode ? 'taskchain-edit-btn--active' : ''}`} onClick={() => { setEditMode(!editMode); setLinkFrom(null); }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                            {editMode ? 'Done' : 'Edit Graph'}
+                        </button>
+                    </>
                 )}
+
+                <div
+                    title="Drag me onto the canvas!"
+                    draggable
+                    onDragStart={handleDragStartBox}
+                    className="taskchain-edit-btn"
+                    style={{ cursor: 'grab', background: '#f5f5f5', border: '1px dashed #ccc' }}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    Drag Text Box
+                </div>
+
                 <button className="taskchain-learn-btn" onClick={async () => {
                     setLearning(true);
                     try {
@@ -579,99 +780,211 @@ export default function TaskChain() {
                 </div>
             )}
 
-            {/* Canvas */}
-            <div className="taskchain-canvas-area" ref={canvasRef}>
-                <svg className="taskchain-svg-edges" width="100%" height="100%">
-                    <defs>
-                        <marker id="tc-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                            <polygon points="0 0, 8 3, 0 6" fill="rgba(0,0,0,0.3)" />
-                        </marker>
-                    </defs>
-                    {svgPaths.map((d, i) => (
-                        <g key={i}>
-                            {editMode && (
-                                <path d={d} stroke="transparent" strokeWidth="14" fill="none" style={{ cursor: 'pointer' }}
-                                    onClick={() => removeEdge(i)} />
-                            )}
-                            <path d={d}
-                                stroke={editMode ? 'rgba(0,122,255,0.4)' : 'rgba(0,0,0,0.25)'}
-                                strokeWidth="2" fill="none" markerEnd="url(#tc-arrowhead)"
-                                className={editMode ? 'taskchain-edge--editable' : ''}
-                                style={editMode ? { pointerEvents: 'none' } : undefined}
-                            />
-                        </g>
-                    ))}
-                </svg>
-
-                <div className="taskchain-canvas">
-                    {nodes.length === 0 && !loading && !error && (
-                        <div className="taskchain-empty">
-                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><circle cx="12" cy="5" r="3" /><line x1="12" y1="8" x2="12" y2="14" /><line x1="12" y1="14" x2="6" y2="20" /><line x1="12" y1="14" x2="18" y2="20" /></svg>
-                            <h3>Top-Down Task Decomposition</h3>
-                            <p>Type your high-level goal above and click Decompose. The AI will break it into prerequisite conditions and actionable steps.</p>
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="taskchain-empty">
-                            <h3 style={{ color: '#FF3B30' }}>Error</h3>
-                            <p>{error}</p>
-                        </div>
-                    )}
-
-                    {nodes.map(node => (
-                        <div
-                            key={node.id}
-                            id={`tc-${node.id}`}
-                            className={[
-                                'taskchain-node',
-                                `taskchain-node--${node.type}`,
-                                selected.has(node.id) ? 'taskchain-node--selected' : 'taskchain-node--unselected',
-                                editMode ? 'taskchain-node--edit' : '',
-                                linkFrom === node.id ? 'taskchain-node--link-from' : '',
-                            ].filter(Boolean).join(' ')}
-                            style={{ left: node.x, top: node.y }}
-                            onClick={() => toggleNode(node.id)}
-                            onContextMenu={(e) => handleDiagnose(node.id, e)}
-                        >
-                            <div className="taskchain-node__check">
-                                {selected.has(node.id) ? (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                                ) : (
-                                    <div className="taskchain-node__check-empty" />
+            {/* Main Area Wrapper */}
+            <div className="taskchain-main-area">
+                {/* Canvas */}
+                <div
+                    className="taskchain-canvas-area"
+                    ref={canvasRef}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onClick={() => setActiveNodeId(null)}
+                >
+                    <svg className="taskchain-svg-edges" width="100%" height="100%">
+                        <defs>
+                            <marker id="tc-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="rgba(0,0,0,0.3)" />
+                            </marker>
+                        </defs>
+                        {svgPaths.map((pathDef, i) => (
+                            <g key={i} className={`taskchain-edge-group ${editMode ? 'taskchain-edge-group--edit' : ''}`}>
+                                {editMode && (
+                                    <path d={pathDef.d} stroke="transparent" strokeWidth="24" fill="none" style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                        onClick={(e) => { e.stopPropagation(); removeEdge(pathDef.edge); }}
+                                        onPointerDown={e => e.stopPropagation()} />
                                 )}
+                                <path d={pathDef.d}
+                                    stroke={editMode ? 'rgba(0,122,255,0.4)' : 'rgba(0,0,0,0.25)'}
+                                    strokeWidth="2" fill="none" markerEnd="url(#tc-arrowhead)"
+                                    className="taskchain-edge-line"
+                                    style={editMode ? { pointerEvents: 'none' } : undefined}
+                                />
+                                {editMode && (
+                                    <g
+                                        className="taskchain-edge-delete-btn"
+                                        transform={`translate(${pathDef.midX}, ${pathDef.midY})`}
+                                        onClick={(e) => { e.stopPropagation(); removeEdge(pathDef.edge); }}
+                                        onPointerDown={e => e.stopPropagation()}
+                                        style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                    >
+                                        <circle r="16" fill="transparent" style={{ pointerEvents: 'all' }} />
+                                        <circle r="8" fill="#FF3B30" className="taskchain-edge-delete-btn__circle" style={{ pointerEvents: 'none' }} />
+                                        <path d="M-3-3 L3 3 M-3 3 L3-3" stroke="white" strokeWidth="2" strokeLinecap="round" className="taskchain-edge-delete-btn__cross" style={{ pointerEvents: 'none' }} />
+                                    </g>
+                                )}
+                            </g>
+                        ))}
+                        {pendingPath && linkPending && (
+                            <g>
+                                <path d={pendingPath.d}
+                                    stroke="#FF9500" strokeWidth="3" strokeDasharray="6,6" fill="none"
+                                    markerEnd="url(#tc-arrowhead)"
+                                    style={{ pointerEvents: 'none' }}
+                                />
+                                <g transform={`translate(${pendingPath.midX}, ${pendingPath.midY})`} style={{ pointerEvents: 'all' }}>
+                                    {/* Confirm Button */}
+                                    <g style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEdges(prev => {
+                                                if (prev.some(edge => edge.from === linkPending.from && edge.to === linkPending.to)) return prev;
+                                                return [...prev, linkPending];
+                                            });
+                                            setLinkPending(null);
+                                        }}
+                                        onPointerDown={e => e.stopPropagation()}>
+                                        <title>Confirm Link</title>
+                                        <circle cx="-16" cy="0" r="16" fill="transparent" style={{ pointerEvents: 'all' }} />
+                                        <circle cx="-16" cy="0" r="12" fill="#34C759" style={{ pointerEvents: 'none' }} />
+                                        <path d="M-21-1 L-17 3 L-11-5" stroke="white" strokeWidth="2.5" fill="none" style={{ pointerEvents: 'none' }} />
+                                    </g>
+                                    {/* Cancel Button */}
+                                    <g style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLinkPending(null);
+                                        }}
+                                        onPointerDown={e => e.stopPropagation()}>
+                                        <title>Cancel Link</title>
+                                        <circle cx="16" cy="0" r="16" fill="transparent" style={{ pointerEvents: 'all' }} />
+                                        <circle cx="16" cy="0" r="12" fill="#FF3B30" style={{ pointerEvents: 'none' }} />
+                                        <path d="M11-5 L21 5 M11 5 L21-5" stroke="white" strokeWidth="2.5" strokeLinecap="round" style={{ pointerEvents: 'none' }} />
+                                    </g>
+                                </g>
+                            </g>
+                        )}
+                    </svg>
+
+                    <div className="taskchain-canvas">
+                        {nodes.length === 0 && !loading && !error && (
+                            <div className="taskchain-empty">
+                                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><circle cx="12" cy="5" r="3" /><line x1="12" y1="8" x2="12" y2="14" /><line x1="12" y1="14" x2="6" y2="20" /><line x1="12" y1="14" x2="18" y2="20" /></svg>
+                                <h3>Top-Down Task Decomposition</h3>
+                                <p>Type your high-level goal above and click Decompose. The AI will break it into prerequisite conditions and actionable steps.</p>
                             </div>
-                            <div className="taskchain-node__content">
-                                <span className="taskchain-node__type-badge">{typeEmoji(node.type)} {node.type}</span>
-                                <div className="taskchain-node__label">{node.label}</div>
-                                {node.skill && (
-                                    <div className="taskchain-skill-badge">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg>
-                                        {node.skill}
-                                    </div>
-                                )}
-                                {node.type === 'action' && !node.skill && (
-                                    <div className="taskchain-skill-missing" onClick={e => {
-                                        e.stopPropagation();
-                                        navigate(`/workforce/openclaw?search=${encodeURIComponent(node.label)}`);
-                                    }}>
-                                        🔍 Find Skill
-                                    </div>
-                                )}
-                                {/* Per-node output */}
-                                {nodeOutputs[node.id] && (
-                                    <div className={`taskchain-node__output taskchain-node__output--${nodeOutputs[node.id].status}`}>
-                                        {nodeOutputs[node.id].status === 'running' && <div className="taskchain-spinner taskchain-spinner--small" />}
-                                        {nodeOutputs[node.id].passed === true && '✅ '}
-                                        {nodeOutputs[node.id].passed === false && '❌ '}
-                                        {nodeOutputs[node.id].output.slice(0, 150)}
-                                        {nodeOutputs[node.id].output.length > 150 && '...'}
-                                    </div>
-                                )}
+                        )}
+
+                        {error && (
+                            <div className="taskchain-empty">
+                                <h3 style={{ color: '#FF3B30' }}>Error</h3>
+                                <p>{error}</p>
                             </div>
-                        </div>
-                    ))}
+                        )}
+
+                        {nodes.map(node => (
+                            <div
+                                key={node.id}
+                                id={`tc-${node.id}`}
+                                className={[
+                                    'taskchain-node',
+                                    `taskchain-node--${node.type}`,
+                                    selected.has(node.id) ? 'taskchain-node--selected' : 'taskchain-node--unselected',
+                                    editMode ? 'taskchain-node--edit' : '',
+                                    linkFrom === node.id ? 'taskchain-node--link-from' : '',
+                                ].filter(Boolean).join(' ')}
+                                style={{ left: node.x, top: node.y }}
+                                onClick={() => toggleNode(node.id)}
+                                onContextMenu={(e) => handleDiagnose(node.id, e)}
+                                onPointerDown={(e) => handlePointerDown(node.id, e)}
+                            >
+                                <div className="taskchain-node__check">
+                                    {selected.has(node.id) ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    ) : (
+                                        <div className="taskchain-node__check-empty" />
+                                    )}
+                                </div>
+                                <div className="taskchain-node__content">
+                                    <span className="taskchain-node__type-badge">{typeEmoji(node.type)} {node.type}</span>
+                                    <textarea
+                                        className="taskchain-node-input"
+                                        value={node.label}
+                                        onChange={(e) => {
+                                            handleNodeLabelChange(node.id, e.target.value);
+                                            autoResizeTextarea(e);
+                                        }}
+                                        onFocus={e => autoResizeTextarea(e as any)}
+                                        rows={2}
+                                        onClick={e => e.stopPropagation()}
+                                    />
+                                    {editMode && (
+                                        <div
+                                            className="taskchain-node__delete"
+                                            onClick={(e) => handleRemoveNode(node.id, e)}
+                                            onPointerDown={(e) => e.stopPropagation()} // Prevent drag conflict
+                                        >
+                                            ✕
+                                        </div>
+                                    )}
+                                    <div
+                                        className={`taskchain-node__lock ${node.isLocked ? 'taskchain-node__lock--locked' : ''}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNodes(prev => prev.map(n => n.id === node.id ? { ...n, isLocked: !n.isLocked } : n));
+                                        }}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        title={node.isLocked ? "Unlock Node" : "Lock Node Position"}
+                                    >
+                                        {node.isLocked ? '🔒' : '🔓'}
+                                    </div>
+                                    {node.type === 'action' && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <select
+                                                className="taskchain-node-skill-select"
+                                                value={node.skill || ''}
+                                                onChange={(e) => handleNodeSkillChange(node.id, e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                title="Assign Skill"
+                                            >
+                                                <option value="">No Skill Assiged</option>
+                                                {availableSkills.map((s) => (
+                                                    <option key={s.id} value={s.id}>{s.name || s.id}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                    {/* Per-node output */}
+                                    {nodeOutputs[node.id] && (
+                                        <div className={`taskchain-node__output taskchain-node__output--${nodeOutputs[node.id].status}`}>
+                                            {nodeOutputs[node.id].status === 'running' && <div className="taskchain-spinner taskchain-spinner--small" />}
+                                            {nodeOutputs[node.id].passed === true && '✅ '}
+                                            {nodeOutputs[node.id].passed === false && '❌ '}
+                                            {nodeOutputs[node.id].output.slice(0, 150)}
+                                            {nodeOutputs[node.id].output.length > 150 && '...'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+
+                {/* Right Sidebar Editor */}
+                {activeNodeId && nodes.find(n => n.id === activeNodeId) && (
+                    <div className="taskchain-node-editor-panel">
+                        <div className="taskchain-node-editor-panel__header">
+                            <h3>Edit Node: {typeEmoji(nodes.find(n => n.id === activeNodeId)!.type)} {nodes.find(n => n.id === activeNodeId)!.type}</h3>
+                            <button className="taskchain-node-editor-panel__close" onClick={() => setActiveNodeId(null)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <textarea
+                            value={nodes.find(n => n.id === activeNodeId)!.label}
+                            onChange={(e) => handleNodeLabelChange(activeNodeId, e.target.value)}
+                            placeholder="Type node instruction here..."
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Diagnose Fix Panel */}

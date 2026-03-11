@@ -1,0 +1,86 @@
+{
+  "name": "summarize market news",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Summarize news from past 12 hours",
+      "type": "goal",
+      "x": 1360,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "News sources identified and accessed",
+      "type": "condition",
+      "x": 840,
+      "y": 80
+    },
+    {
+      "id": "act_2",
+      "label": "Summarize collected news articles",
+      "type": "action",
+      "skill": "summarize",
+      "x": 840,
+      "y": 190
+    },
+    {
+      "id": "cond_2",
+      "label": "News content collected and filtered",
+      "type": "condition",
+      "x": 1100,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Search news",
+      "type": "action",
+      "skill": "market-news-analyst",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "text_1773214674726",
+      "label": "查询新闻",
+      "type": "text",
+      "x": -35.77734375,
+      "y": 322.57421875
+    },
+    {
+      "id": "text_1773214712876",
+      "label": "Type some text here...",
+      "type": "text",
+      "x": 851.12109375,
+      "y": 365.12109375
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "cond_2"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    },
+    {
+      "from": "text_1773214674726",
+      "to": "act_1"
+    },
+    {
+      "from": "act_1",
+      "to": "text_1773214712876"
+    },
+    {
+      "from": "text_1773214674726",
+      "to": "text_1773214712876"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 
 import { FileSystemManager } from './fs_manager';
 import { IdentityManager } from './identity_manager';

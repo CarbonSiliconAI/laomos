@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const http = require('http');
+require('dotenv').config();
 
 const log = require('electron-log/main');
 // AutoUpdater is initialized when app is ready

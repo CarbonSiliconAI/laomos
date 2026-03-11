@@ -1,6 +1,6 @@
 ---
 name: summarize
-description: Summarize URLs or files with the summarize CLI (web, PDFs, images, audio, YouTube).
+description: Summarize URLs or files with the summarize CLI (web, PDFs, images, audio, YouTube). Requires explicit content input - cannot generate summaries without provided sources.
 homepage: https://summarize.sh
 metadata: {"clawdbot":{"emoji":"🧾","requires":{"bins":["summarize"]},"install":[{"id":"brew","kind":"brew","formula":"steipete/tap/summarize","bins":["summarize"],"label":"Install summarize (brew)"}]}}
 ---
@@ -11,19 +11,31 @@ Fast CLI to summarize URLs, local files, and YouTube links.
 
 ## Quick start
 
-summarize "https://example.com" --model google/gemini-3-flash-preview
+summarize "https://example.com" --model google/gemini-3-flash-preview --connect-timeout 10
 summarize "/path/to/file.pdf" --model google/gemini-3-flash-preview
 summarize "https://youtu.be/dQw4w9WgXcQ" --youtube auto
 
-## Input requirements
+## Critical Input Requirements
 
-The summarize skill requires one of the following:
-- **URL**: A web link (http/https)
-- **File path**: Local file (PDF, text, image, audio)
-- **YouTube link**: Direct video URL
-- **Text content**: Pasted article text
+**IMPORTANT**: The summarize skill REQUIRES one of the following explicit inputs:
+- **URL**: A complete web link (http/https) - must be provided by user or retrieved from previous action
+- **File path**: Local file path (PDF, text, image, audio) - must exist and be accessible
+- **YouTube link**: Direct video URL - must be a valid youtube.com or youtu.be link
+- **Text content**: Raw article text pasted directly
 
-If you ask to summarize "the following article" or "the text below" without providing the content, ask the user to paste the article text directly.
+**DO NOT** ask to summarize "the following article" or "the text below" without receiving actual content first.
+
+**WORKFLOW REQUIREMENT**: If this skill is part of a multi-step chain:
+1. Previous action MUST explicitly retrieve or provide content (URLs, file paths, or text)
+2. Pass the retrieved content explicitly to this summarize action
+3. Verify content was obtained in prior steps before attempting summarization
+4. Use explicit variable passing or output redirection from previous actions
+
+**If content is not available**, respond with:
+- Clear request for specific URLs, file paths, or text
+- Example format of what you need
+- Instructions for user to provide the missing content
+- DO NOT proceed to summarization without verified content
 
 ## Model + keys
 
@@ -39,19 +51,30 @@ Default model is `google/gemini-3-flash-preview` if none is set.
 
 - `--length short|medium|long|xl|xxl|<chars>` — Control summary length
 - `--max-output-tokens <count>` — Limit token usage
+- `--connect-timeout 10` — Set connection timeout to 10 seconds (recommended for reliability)
 - `--extract-only` — Extract content without summarizing (URLs only)
 - `--json` — Output machine-readable format
-- `--firecrawl auto|off|always` — Enable fallback extraction for blocked sites
+- `--firecrawl auto` — Enable fallback extraction for blocked sites (REQUIRED for many news sites)
 - `--youtube auto` — Use Apify fallback for YouTube (requires `APIFY_API_TOKEN`)
+- `--retry 3` — Retry failed requests up to 3 times
 
-## Config
+## Reliable API endpoints and best practices
 
-Optional config file: `~/.summarize/config.json`
+For best results with different content types:
+- **Web URLs**: Always use `--firecrawl auto` for news sites and protected content
+- **YouTube**: Use `--youtube auto` with valid APIFY_API_TOKEN
+- **PDFs**: Provide full local file path, ensure file is readable with `ls -la /path/to/file`
+- **Text files**: Use local path or pipe content directly
+- **News articles**: Use `--connect-timeout 10 --firecrawl auto --retry 3` for maximum reliability
 
-```json
-{ "model": "openai/gpt-5.2" }
-```
+## Multi-step workflow pattern
 
-Optional services:
-- `FIRECRAWL_API_KEY` — For extracting content from blocked/protected sites
-- `APIFY_API_TOKEN` — For YouTube extraction fallback
+When summarize is part of a chain requiring news/content retrieval:
+
+**STEP 1: Retrieve content sources**
+# Example: Search and collect URLs
+curl -s "https://news.source.com/api/latest" | jq -r '.articles[].url' > /tmp/news_urls.txt
+
+**STEP 2: Verify content was retrieved**
+```bash
+# Verify file

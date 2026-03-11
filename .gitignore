@@ -20,3 +20,7 @@ storage/system/graph.json
 # Test/debug files
 test_openclaw.js
 test_payload.js
+
+# Environment variables
+.env
+.env.*

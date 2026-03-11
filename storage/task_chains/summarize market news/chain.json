@@ -1,0 +1,52 @@
+{
+  "name": "summarize market news",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Summarize market news",
+      "type": "goal",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "That is news.",
+      "type": "condition",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Search news",
+      "type": "action",
+      "skill": "news-summary",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "text_1773217000266",
+      "label": "Print the news.",
+      "type": "text",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    },
+    {
+      "from": "goal_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "goal_1",
+      "to": "text_1773217000266"
+    }
+  ]
+}

@@ -2609,7 +2609,15 @@ Rules:
                     ? `ACCUMULATED CONTEXT FROM PREVIOUS STEPS:\n${accumulatedContext}\n\n`
                     : (previousOutput ? `Previous step result:\n${previousOutput}\n\n` : '');
 
-                if (nodeType === 'action') {
+                if (nodeType === 'text') {
+                    // Plain text nodes just output their label as the result
+                    return res.json({
+                        output: nodeLabel,
+                        summary: nodeLabel.substring(0, 300),
+                        executionLog: [`[Plain Text Node]\nOutput: ${nodeLabel.substring(0, 500)}`],
+                        status: 'done',
+                    });
+                } else if (nodeType === 'action') {
                     // Execute via skill or plain chat
                     if (skill) {
                         const allSkills = this.skillLoader.loadSkills();

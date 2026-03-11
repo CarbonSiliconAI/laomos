@@ -13,7 +13,7 @@ export default function Monitor() {
         api.telemetryStats().then(setStats).catch(() => { });
         api.telemetryProviderUsage().then(r => setProviders(r.data ?? [])).catch(() => { });
         api.systemSpecs().then(setSpecs).catch(() => { });
-        api.aiJobs().then(r => setJobs(r.jobs ?? [])).catch(() => { });
+        api.aiJobs().then(r => setJobs((r.jobs as AIJob[]) ?? [])).catch(() => { });
         api.systemMetrics().then(setMetrics).catch(() => { });
     }
 

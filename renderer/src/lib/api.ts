@@ -383,7 +383,7 @@ export interface HardwareMetrics {
 export interface ChainNode {
     id: string;
     label: string;
-    type: 'goal' | 'condition' | 'action';
+    type: 'goal' | 'condition' | 'action' | 'text';
     skill?: string;
 }
 

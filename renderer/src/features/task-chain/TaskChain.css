@@ -81,12 +81,20 @@
     cursor: not-allowed;
 }
 
+/* ── Layout Wrapper ── */
+.taskchain-main-area {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    margin: 0 28px 20px;
+    gap: 16px;
+}
+
 /* ── Canvas area ── */
 .taskchain-canvas-area {
     flex: 1;
     position: relative;
     overflow: auto;
-    margin: 0 28px 20px;
     border-radius: 14px;
     border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
     background: var(--glass-bg, rgba(255, 255, 255, 0.35));
@@ -94,10 +102,89 @@
     min-height: 300px;
 }
 
+/* ── Node Editor Sidebar ── */
+.taskchain-node-editor-panel {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg, rgba(255, 255, 255, 0.65));
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.taskchain-node-editor-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 12px;
+}
+
+.taskchain-node-editor-panel__header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.taskchain-node-editor-panel__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+}
+
+.taskchain-node-editor-panel__close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+.taskchain-node-editor-panel textarea {
+    flex: 1;
+    resize: none;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 14px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-family: inherit;
+    background: rgba(255, 255, 255, 0.8);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.taskchain-node-editor-panel textarea:focus {
+    border-color: var(--accent, #007AFF);
+}
+
 .taskchain-canvas {
     position: relative;
     min-width: 100%;
     min-height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through empty space to the SVG edges behind it */
 }
 
 .taskchain-svg-edges {
@@ -154,6 +241,8 @@
     backdrop-filter: blur(10px);
     cursor: pointer;
     user-select: none;
+    pointer-events: auto;
+    /* Re-enable clicks for the nodes themselves */
     z-index: 1;
     transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
     display: flex;
@@ -182,6 +271,11 @@
     background: rgba(235, 255, 240, 0.85);
 }
 
+.taskchain-node--text {
+    border-color: rgba(158, 158, 158, 0.5);
+    background: rgba(245, 245, 245, 0.85);
+}
+
 .taskchain-node__type-badge {
     display: inline-block;
     font-size: 0.65rem;
@@ -208,11 +302,36 @@
     color: #28A745;
 }
 
+.taskchain-node--text .taskchain-node__type-badge {
+    background: rgba(158, 158, 158, 0.15);
+    color: #757575;
+}
+
 .taskchain-node__label {
     font-size: 0.82rem;
     font-weight: 500;
     line-height: 1.4;
     color: var(--text, #333);
+}
+
+.taskchain-node-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text, #333);
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: hidden;
+}
+
+.taskchain-node-input:focus {
+    box-shadow: 0 1px 0 rgba(0, 122, 255, 0.3);
 }
 
 /* ── Spinner ── */
@@ -229,6 +348,100 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* ── Delete Button ── */
+.taskchain-node__delete {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FF3B30;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.taskchain-node__delete:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* ── Lock Button ── */
+.taskchain-node__lock {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FF9500;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.2s, background 0.2s;
+}
+
+.taskchain-node__lock:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.taskchain-node__lock--locked {
+    background: #8E8E93;
+}
+
+.taskchain-node--locked {
+    border-style: dashed;
+    border-width: 2px;
+}
+
+/* ── Skill Select Dropdown ── */
+.taskchain-node-skill-select {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6B21A8;
+    background: rgba(124, 58, 237, 0.1);
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-top: 6px;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
+    transition: background 0.2s, border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B21A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 10px;
+    padding-right: 20px;
+}
+
+.taskchain-node-skill-select:hover,
+.taskchain-node-skill-select:focus {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
 }
 
 /* ── Legend ── */
@@ -719,8 +932,33 @@
 }
 
 /* Editable edge hover */
-.taskchain-edge--editable {
-    transition: stroke 0.15s;
+.taskchain-edge-line {
+    transition: stroke-width 0.15s, stroke 0.15s;
+}
+
+.taskchain-edge-group--edit:hover .taskchain-edge-line {
+    stroke-width: 6;
+    stroke: rgba(0, 122, 255, 0.6);
+}
+
+.taskchain-edge-delete-btn__circle {
+    transition: r 0.2s, fill 0.2s;
+}
+
+.taskchain-edge-delete-btn:hover .taskchain-edge-delete-btn__circle {
+    r: 10;
+    fill: #FF2D55;
+}
+
+.taskchain-edge-delete-btn__cross {
+    stroke: white;
+    stroke-width: 2;
+    stroke-linecap: round;
+    transition: stroke-width 0.2s;
+}
+
+.taskchain-edge-delete-btn:hover .taskchain-edge-delete-btn__cross {
+    stroke-width: 2.5;
 }
 
 /* ── Fix Panel ── */
