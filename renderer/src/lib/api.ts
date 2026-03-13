@@ -51,6 +51,18 @@ export const api = {
         apiFetch<{ success: boolean; updated: boolean; skillMd: string }>('/api/skills/onboard/manual', {
             method: 'POST', body: JSON.stringify({ skillName, selectedContent, userInstruction }),
         }),
+    skillCreateGenerate: (requirements: string) =>
+        apiFetch<{ success: boolean; skillMd: string }>('/api/skills/create/generate', {
+            method: 'POST', body: JSON.stringify({ requirements }),
+        }),
+    skillCreateRefine: (currentSkillMd: string, userMessage: string) =>
+        apiFetch<{ success: boolean; skillMd: string }>('/api/skills/create/refine', {
+            method: 'POST', body: JSON.stringify({ currentSkillMd, userMessage }),
+        }),
+    skillCreateSave: (skillMd: string, saveName: string) =>
+        apiFetch<{ success: boolean; skillDir: string; skillName: string }>('/api/skills/create/save', {
+            method: 'POST', body: JSON.stringify({ skillMd, saveName }),
+        }),
     kernelTools: () => apiFetch<{ tools: ToolDef[] }>('/api/kernel/tools'),
     kernelRun: (body: object) => apiFetch('/api/kernel/run', {
         method: 'POST', body: JSON.stringify(body),

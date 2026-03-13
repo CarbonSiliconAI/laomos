@@ -61,43 +61,49 @@ This skill requires structured news analysis using knowledge-based patterns and 
 
 Follow this structured workflow when analyzing market news:
 
-### Step 1: Environment Assessment and Date Confirmation
+### Step 1: News Collection via WebSearch/WebFetch
 
-**Objective:** Establish current date/time context and confirm analysis period.
+**Objective:** Gather comprehensive news from the past 10 days covering major market-moving events.
 
-Execute bash command to confirm current date:
+**Search Strategy:**
 
-date "+%Y-%m-%d %H:%M:%S UTC"
+Execute parallel WebSearch queries covering different news categories:
 
-**Define Analysis Period:**
-- End Date: Today (confirmed via bash date command)
-- Start Date: 10 days ago (calculated from end date)
-- Document specific date range for report
+**Monetary Policy:**
+- Search: "FOMC meeting past 10 days", "Federal Reserve interest rate decision", "ECB policy decision recent", "Bank of Japan rate decision"
+- Target: Central bank decisions, forward guidance changes, inflation commentary
+- Fallback: Use official central bank websites via WebFetch if WebSearch results insufficient
 
-**Output Format:**
-Analysis period: [START_DATE] to [END_DATE]
+**Inflation/Economic Data:**
+- Search: "CPI inflation report latest", "jobs report NFP latest", "GDP data latest release", "PPI producer prices latest"
+- Target: Major economic data releases and surprises
+- Fallback: BLS.gov, Census.gov for official government data
 
-### Step 2: Define Comprehensive News Search Strategy
+**Mega-Cap Earnings:**
+- Search: "Apple earnings latest quarter results", "Microsoft earnings latest quarter", "NVIDIA earnings latest quarter", "Amazon earnings latest quarter", "Tesla earnings latest quarter", "Meta earnings latest quarter", "Google Alphabet earnings latest quarter"
+- Target: Results, guidance, market reactions for largest companies
+- Fallback: SEC.gov EDGAR filings for official earnings reports
 
-**Objective:** Establish systematic search coverage across all major market-moving categories.
+**Geopolitical Events:**
+- Search: "Middle East conflict oil prices impact", "Ukraine Russia war latest", "US China trade tensions", "trade war tariffs latest"
+- Target: Conflicts, sanctions, trade disputes affecting markets
+- Fallback: Reuters, AP News for geopolitical coverage
 
-**IMPORTANT:** Document the search strategy that WOULD be executed. Do NOT attempt to execute curl commands, loops, or external API calls.
+**Commodity Markets:**
+- Search: "oil prices news latest week", "gold prices latest", "OPEC meeting decision", "natural gas prices latest", "copper prices latest"
+- Target: Supply disruptions, demand shifts, price movements
+- Fallback: Platts, S&P Global for commodity data
 
-**Monetary Policy Searches (Priority 1):**
-- "FOMC Federal Reserve decision [analysis period]"
-- "ECB interest rate announcement [analysis period]"
-- "Federal Reserve press conference latest"
-- "Powell testimony latest"
-- "Central bank rate decision latest"
-- "Federal Reserve balance sheet QE QT latest"
+**Corporate News:**
+- Search: "major M&A announcement latest", "bank earnings latest quarter", "tech sector news latest", "bankruptcy filing latest", "credit rating downgrade latest"
+- Target: Large corporate events beyond mega-caps
+- Fallback: SEC.gov for official corporate filings
 
-**Economic Data Releases (Priority 1):**
-- "CPI inflation report latest"
-- "NFP non-farm payroll jobs report latest"
-- "Unemployment rate latest"
-- "GDP growth report latest"
-- "PPI producer prices latest"
-- "Retail sales latest"
-- "Housing starts building permits latest"
-- "Consumer confidence index latest"
-- "Initial jobless claims
+**Recommended News Sources (Priority Order):**
+1. Official sources: FederalReserve.gov, SEC.gov (EDGAR), Treasury.gov, BLS.gov
+2. Tier 1 financial news: Bloomberg, Reuters, Wall Street Journal, Financial Times
+3. Specialized: CNBC (real-time), MarketWatch (summaries), S&P Global Platts (commodities)
+
+**Search Execution Guidelines:**
+- Use WebSearch for broad topic searches with --connect-timeout 10 to prevent hanging
+-

@@ -24,6 +24,7 @@ import TaskChainPage from './features/task-chain/TaskChain';
 import DepartmentPage from './features/department/Department';
 import CompanyPage from './features/company/Company';
 import SkillOnboardPage from './features/skill-onboard/SkillOnboard';
+import SkillCreatorPage from './features/skill-creator/SkillCreator';
 import FilesPage from './features/files/Files';
 import ModelsPage from './features/models/Models';
 import ApiKeysPage from './features/api-keys/ApiKeys';
@@ -64,6 +65,7 @@ export default function App() {
                     <Route path="/workforce" element={<WorkforcePage />} />
                     <Route path="/workforce/chat" element={<ChatPage />} />
                     <Route path="/workforce/openclaw" element={<OpenClawPage />} />
+                    <Route path="/workforce/skill-creator" element={<SkillCreatorPage />} />
                     <Route path="/workforce/skill-onboard" element={<SkillOnboardPage />} />
                     <Route path="/workforce/models" element={<ModelsPage />} />
 

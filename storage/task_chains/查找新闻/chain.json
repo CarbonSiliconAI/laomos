@@ -1,0 +1,70 @@
+{
+  "name": "查找新闻",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Find and access news",
+      "type": "goal",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "News source identified",
+      "type": "condition",
+      "x": 320,
+      "y": 40
+    },
+    {
+      "id": "act_2",
+      "label": "Query or browse news source",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "act_3",
+      "label": "Review and filter results",
+      "type": "action",
+      "x": 320,
+      "y": 245
+    },
+    {
+      "id": "cond_2",
+      "label": "News content retrieved",
+      "type": "condition",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Determine news topic/domain",
+      "type": "action",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_1",
+      "to": "cond_2"
+    },
+    {
+      "from": "act_3",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    }
+  ]
+}

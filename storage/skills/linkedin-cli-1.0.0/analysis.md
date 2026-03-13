@@ -1,104 +1,107 @@
-# LinkedIn CLI (lk) - Analysis Criteria Document
+# LinkedIn CLI (lk) - Performance Analysis Criteria
 
 ## 1. Performance Metrics to Track
 
 ### Response Time Metrics
-- **Command Execution Time**: Measure end-to-end execution time for each command type
-  - `whoami`: Target < 2 seconds
-  - `search`: Target < 3 seconds per query
-  - `profile`: Target < 2.5 seconds per profile lookup
-  - `feed`: Target < 4 seconds for 10 posts, scales linearly with `-n` parameter
-  - `send`: Target < 2 seconds for message dispatch
-  - `messages`: Target < 3 seconds for conversation retrieval
-  - `check`: Target < 5 seconds combined operation
+| Metric | Target | Acceptable Range | Critical Threshold |
+|--------|--------|------------------|-------------------|
+| `whoami` execution | < 2s | 1.5-3s | > 5s |
+| `search` query | < 3s | 2-4s | > 8s |
+| `profile` lookup | < 2.5s | 2-4s | > 6s |
+| `feed` summarization (10 posts) | < 5s | 4-7s | > 12s |
+| `messages` retrieval | < 3s | 2-4s | > 8s |
+| `send` message delivery | < 2s | 1.5-3s | > 5s |
+| `check` combined operation | < 6s | 5-8s | > 15s |
 
 ### Resource Utilization
-- Memory consumption per command execution
-- API request count per operation (LinkedIn API calls)
-- Network bandwidth usage
-- CPU usage during feed summarization
+- CPU usage during execution: < 30%
+- Memory footprint: < 150MB
+- Network bandwidth: < 5MB per operation
+- Session cookie refresh rate: Monitor validity duration
 
 ### Reliability Metrics
-- Session persistence success rate (cookie validity)
-- Command success rate across 100 consecutive executions
-- Error recovery time
-- Timeout frequency and recovery behavior
+- Session persistence: Cookies remain valid for > 24 hours
+- Command success rate: ≥ 98%
+- Error recovery rate: ≥ 95%
+- Retry mechanism effectiveness: < 2 attempts average
+
+---
 
 ## 2. Quality Criteria for Outputs
 
+### Output Format Quality
+| Command | Output Quality Criteria |
+|---------|------------------------|
+| `whoami` | Name, profile URL, headline, location all present; clean JSON or formatted text |
+| `search` | Minimum 5 results returned; includes name, headline, profile URL, relevance score |
+| `profile` | Complete profile data: name, headline, about, experience, education, connections count |
+| `feed` | Post content, author name, engagement metrics (likes, comments), timestamp, readability |
+| `messages` | Conversation list with: sender name, last message preview, timestamp, unread count |
+| `send` | Confirmation message with: recipient name, message preview, delivery timestamp |
+| `check` | Combined profile + recent messages in single coherent output |
+
 ### Data Accuracy
-- **Profile Information**: Verify returned fields match LinkedIn's current data
-  - Name, headline, location accuracy
-  - Connection count correctness
-  - Experience/education completeness
-- **Search Results**: Validate result relevance and ranking
-  - Top result should match search intent
-  - All returned profiles should contain search keywords
-- **Feed Summaries**: Assess content relevance and completeness
-  - Summaries should capture post intent accurately
-  - No truncation of critical information
-  - Timestamp accuracy
+- Profile information matches LinkedIn's live data: 100% accuracy required
+- Search results relevance: Top 3 results match query intent ≥ 90%
+- Feed summaries: Preserve original meaning without distortion
+- Message timestamps: Accurate to within ±1 minute
+- Connection counts: Match LinkedIn's displayed count exactly
 
-### Output Formatting
-- Consistent JSON/text output structure across all commands
-- Proper escaping of special characters in names and messages
-- Readable date/time formatting (ISO 8601 standard)
-- Proper handling of Unicode characters in international names
+### Error Messaging
+- Clear, actionable error messages for all failure states
+- Error messages include: what failed, why, and suggested remediation
+- No stack traces exposed to end users
+- Timeout errors clearly indicate rate-limiting vs. connection issues
 
-### Completeness
-- All available profile fields populated when relevant
-- Feed summaries include author, engagement metrics, and timestamps
-- Message previews include sender, timestamp, and read status
-- Search results include minimum required fields (name, headline, profile URL)
+---
 
 ## 3. Success/Failure Indicators
 
 ### Success Indicators
-- ✅ Command returns valid, parseable output (JSON/text)
-- ✅ HTTP status codes indicate successful API calls (200, 201)
-- ✅ Session cookies remain valid for entire command execution
-- ✅ Output contains expected fields without null/empty critical values
-- ✅ No authentication errors or 401 responses
-- ✅ Graceful handling of pagination (feed, search with multiple pages)
-- ✅ Message delivery confirmed (send command returns confirmation)
+✅ **Command executes without errors**
+- Exit code 0 returned
+- No exception stack traces in output
+- Expected data structure returned
+
+✅ **Data completeness**
+- All required fields populated
+- No null/empty values for critical fields
+- Consistent field formatting across results
+
+✅ **Session validity**
+- Cookies authenticated successfully
+- No "unauthorized" or "403 Forbidden" responses
+- Session persists across multiple commands in sequence
+
+✅ **User experience**
+- Output is human-readable and scannable
+- Response time meets target thresholds
+- Consistent command behavior across platforms (Linux, macOS, Windows)
 
 ### Failure Indicators
-- ❌ Command timeout (exceeds target response time by >50%)
-- ❌ Missing or null values in critical output fields
-- ❌ Authentication failures (401, 403 errors)
-- ❌ Malformed JSON output
-- ❌ Session cookie expiration mid-execution
-- ❌ API rate limiting (429 errors) without retry logic
-- ❌ Incomplete data retrieval (partial results without pagination)
-- ❌ Unhandled exceptions or stack traces in output
-- ❌ Message delivery failures without error notification
-- ❌ Search returning unrelated profiles (relevance < 70%)
+❌ **Authentication failures**
+- Exit code 401/403
+- "Invalid credentials" or "Session expired" message
+- Cookie validation fails at startup
+
+❌ **Data quality failures**
+- Missing critical fields (name, profile URL)
+- Truncated or corrupted output
+- Inconsistent data types (e.g., timestamp as string vs. integer)
+
+❌ **Performance failures**
+- Response time exceeds critical threshold
+- Memory usage > 250MB
+- Network timeouts > 2 per 10 commands
+
+❌ **Reliability failures**
+- Command fails intermittently (< 95% success rate)
+- Session expires without warning
+- Rate limiting triggers on normal usage patterns
+
+---
 
 ## 4. Optimization Targets
 
 ### Speed Optimization
-- Implement response caching for profile lookups (30-minute TTL)
-- Batch API requests where possible (multiple profile lookups)
-- Parallel processing for feed summarization
-- Connection pooling for HTTP requests
-- Target: Reduce average command latency by 25%
-
-### Reliability Optimization
-- Implement automatic cookie refresh/renewal logic
-- Add exponential backoff for rate-limited requests
-- Implement retry logic for transient failures (3 attempts max)
-- Add connection timeout handling (30-second limit)
-- Target: Achieve 99% command success rate
-
-### Output Quality Optimization
-- Implement field validation before output
-- Add data sanitization for special characters
-- Implement consistent error messaging
-- Add progress indicators for long-running operations (feed with large `-n`)
-- Target: Zero malformed output responses
-
-### Resource Optimization
-- Implement streaming for large result sets
-- Lazy-load profile details (fetch only requested fields)
-- Implement memory-efficient feed processing
-- Target: <50MB memory footprint for
+- **Caching Layer**: Implement 5-

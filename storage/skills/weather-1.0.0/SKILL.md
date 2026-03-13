@@ -19,12 +19,6 @@ Compact format:
 curl --connect-timeout 5 -m 10 -s "wttr.in/London?format=%l:+%c+%t+%h+%w"
 # Output: London: ⛅️ +8°C 71% ↙5km/h
 
-Full forecast with details:
-```bash
-curl --connect-timeout 5 -m 10 -s "wttr.in/London?format=j1"
-# Returns JSON with current conditions and multi-day forecast
-```
-
 ASCII art forecast:
 ```bash
 curl --connect-timeout 5 -m 10 -s "wttr.in/London"
@@ -68,7 +62,10 @@ curl --connect-timeout 5 -m 10 -s "https://api.open-meteo.com/v1/forecast?latitu
 - For location-based queries without explicit location, wttr.in auto-detects from IP address
 - Ensure responses complete and are fully captured before proceeding to dependent tasks
 - Test API availability before chaining weather queries with other operations
-- When weather data will be used in subsequent actions (e.g., clothing recommendations), explicitly extract and format the weather information in a structured way for downstream consumption
-- Provide weather data in clear, structured format with labeled fields (Temperature, Humidity, Wind, Conditions) to enable proper integration in multi-step workflows
-- Use `format=j1` for JSON output when data needs to be parsed or passed to other tools programmatically
-- Verify that all weather parameters (temperature, humidity, wind speed, conditions) are included in output before marking action complete
+- **CRITICAL FOR MULTI-STEP WORKFLOWS**: When weather data is retrieved, explicitly pass the complete weather information (temperature, conditions, humidity, wind speed, forecast details) to any downstream actions that depend on it
+- Always store weather data in a clearly formatted summary that includes:
+  - Current temperature and conditions
+  - Humidity and wind speed
+  - 3-day forecast with hourly breakdowns
+  - Specific numeric values (not just descriptions)
+- For clothing/outfit recommendations or any weather-dependent guidance, the downstream action MUST receive the full weather context, not just a generic template

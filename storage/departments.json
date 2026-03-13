@@ -5,13 +5,18 @@
       "name": "HR",
       "tasks": [
         "查询本地天气",
-        "穿衣指南"
+        "穿衣指南",
+        "找linkedin 上个软件工程师"
       ]
     },
     {
       "id": "dept-1772739697687",
       "name": "Engineer",
-      "tasks": []
+      "tasks": [
+        "整理每日新闻并打印出来",
+        "check the weather on my location",
+        "查论文"
+      ]
     },
     {
       "id": "dept-1772740472819",

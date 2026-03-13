@@ -1,0 +1,72 @@
+{
+  "name": "查论文",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "查论文 (Find and review papers)",
+      "type": "goal",
+      "x": 1100,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Paper search results obtained",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "cond_2",
+      "label": "Paper content accessible and summarized",
+      "type": "condition",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Search for papers using browser or academic database",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 60,
+      "y": 135
+    },
+    {
+      "id": "act_2",
+      "label": "Access and fetch paper URLs or PDFs",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 580,
+      "y": 80
+    },
+    {
+      "id": "act_3",
+      "label": "Summarize paper content",
+      "type": "action",
+      "skill": "summarize",
+      "x": 580,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_1",
+      "to": "act_2"
+    },
+    {
+      "from": "act_3",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    }
+  ]
+}

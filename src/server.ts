@@ -1236,6 +1236,91 @@ Rewrite the ENTIRE SKILL.md with the selected section improved. Keep YAML frontm
             }
         });
 
+        // ── Skill Creator ───────────────────────────────────────────
+        this.app.post('/api/skills/create/generate', async (req, res) => {
+            try {
+                const { requirements } = req.body;
+                if (!requirements) return res.status(400).json({ error: 'requirements required' });
+
+                const prompt = `You are an expert OpenClaw skill author. Based on the user's requirements, generate a complete SKILL.md document.
+
+User Requirements:
+${requirements}
+
+The SKILL.md must follow this format:
+1. YAML frontmatter (between --- delimiters) with: name, description, homepage (optional), metadata (optional)
+2. A clear title and description
+3. Detailed usage instructions with bash code blocks
+4. Example commands and expected outputs
+5. Error handling and fallback strategies
+6. Important notes and tips
+
+Generate a production-ready, well-documented SKILL.md. Return ONLY the SKILL.md content, no extra explanations.`;
+
+                const result = await this.modelRouter.routeChat(prompt, 'cloud');
+                let content = (result.response || '').replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+
+                res.json({ success: true, skillMd: content });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/skills/create/refine', async (req, res) => {
+            try {
+                const { currentSkillMd, userMessage } = req.body;
+                if (!currentSkillMd || !userMessage) return res.status(400).json({ error: 'currentSkillMd and userMessage required' });
+
+                const prompt = `You are an expert OpenClaw skill author. The user wants to refine this SKILL.md.
+
+Current SKILL.md:
+${currentSkillMd}
+
+User message:
+${userMessage}
+
+Apply the user's requested changes to the SKILL.md. Maintain the same YAML frontmatter format. Return ONLY the updated SKILL.md content without code fences or extra explanations.`;
+
+                const result = await this.modelRouter.routeChat(prompt, 'cloud');
+                let content = (result.response || '').replace(/^```[\w]*\n?/m, '').replace(/\n?```$/m, '').trim();
+
+                res.json({ success: true, skillMd: content });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/skills/create/save', async (req, res) => {
+            try {
+                const { skillMd, saveName } = req.body;
+                if (!skillMd || !saveName) return res.status(400).json({ error: 'skillMd and saveName required' });
+
+                const skillsDir = path.join(this.fsManager.getRootDir(), 'skills');
+                await fs.ensureDir(skillsDir);
+
+                const safeName = saveName.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+                const skillDir = path.join(skillsDir, safeName);
+                await fs.ensureDir(skillDir);
+
+                const skillMdPath = path.join(skillDir, 'SKILL.md');
+                await fs.writeFile(skillMdPath, skillMd + '\n');
+
+                // Write _meta.json
+                const metaPath = path.join(skillDir, '_meta.json');
+                await fs.writeJson(metaPath, {
+                    source: 'user-created',
+                    createdAt: new Date().toISOString(),
+                }, { spaces: 2 });
+
+                // Reload skills cache
+                this.skillLoader.loadSkills(true);
+
+                res.json({ success: true, skillDir, skillName: safeName });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Helper function to extract SKILL.md from a zip buffer
         const extractSkillMdFromZip = (buffer: Buffer): Promise<string> => {
             return new Promise((resolve, reject) => {

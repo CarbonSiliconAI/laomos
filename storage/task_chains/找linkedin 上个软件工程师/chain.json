@@ -1,0 +1,71 @@
+{
+  "name": "找linkedin 上个软件工程师",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Find a software engineer on LinkedIn",
+      "type": "goal",
+      "x": 1360,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Search results with relevant profiles",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "cond_2",
+      "label": "Identified target software engineer",
+      "type": "condition",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Search LinkedIn for software engineers",
+      "type": "action",
+      "skill": "linkedin-cli",
+      "x": 60,
+      "y": 135
+    },
+    {
+      "id": "act_2",
+      "label": "Review and filter search results",
+      "type": "action",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "act_3",
+      "label": "Select and contact target engineer",
+      "type": "action",
+      "skill": "linkedin-dm",
+      "x": 1100,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_1",
+      "to": "act_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "act_3"
+    },
+    {
+      "from": "act_3",
+      "to": "goal_1"
+    }
+  ]
+}
