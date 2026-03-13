@@ -5,30 +5,30 @@
       "id": "goal_1",
       "label": "Summarize market news",
       "type": "goal",
-      "x": 840,
-      "y": 135
+      "x": 1109.46484375,
+      "y": 40.484375
     },
     {
       "id": "cond_1",
       "label": "That is news.",
       "type": "condition",
-      "x": 580,
-      "y": 135
+      "x": 522.00390625,
+      "y": 94.79296875
     },
     {
       "id": "act_1",
       "label": "Search news",
       "type": "action",
       "skill": "news-summary",
-      "x": 320,
-      "y": 135
+      "x": 64.578125,
+      "y": 72.08203125
     },
     {
       "id": "text_1773217000266",
       "label": "Print the news.",
       "type": "text",
-      "x": 60,
-      "y": 135
+      "x": 1281.328125,
+      "y": 202.546875
     }
   ],
   "edges": [
@@ -39,10 +39,6 @@
     {
       "from": "cond_1",
       "to": "goal_1"
-    },
-    {
-      "from": "goal_1",
-      "to": "cond_1"
     },
     {
       "from": "goal_1",

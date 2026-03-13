@@ -125,6 +125,7 @@ export default function TaskChain() {
 
     // Active Node Editor State
     const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+    const [isEditorExpanded, setIsEditorExpanded] = useState(false);
 
     // Pending Link State
     const [linkPending, setLinkPending] = useState<{ from: string, to: string } | null>(null);
@@ -223,6 +224,7 @@ export default function TaskChain() {
         setSelected(new Set());
         setNodeOutputs({});
         setActiveNodeId(null);
+        setIsEditorExpanded(false);
         setLinkPending(null);
         setSaveMsg('');
 
@@ -906,17 +908,42 @@ export default function TaskChain() {
                                 </div>
                                 <div className="taskchain-node__content">
                                     <span className="taskchain-node__type-badge">{typeEmoji(node.type)} {node.type}</span>
-                                    <textarea
-                                        className="taskchain-node-input"
-                                        value={node.label}
-                                        onChange={(e) => {
-                                            handleNodeLabelChange(node.id, e.target.value);
-                                            autoResizeTextarea(e);
-                                        }}
-                                        onFocus={e => autoResizeTextarea(e as any)}
-                                        rows={2}
-                                        onClick={e => e.stopPropagation()}
-                                    />
+                                    <div style={{ position: 'relative' }}>
+                                        <textarea
+                                            className="taskchain-node-input"
+                                            value={node.label}
+                                            onChange={(e) => {
+                                                handleNodeLabelChange(node.id, e.target.value);
+                                                autoResizeTextarea(e);
+                                            }}
+                                            onFocus={e => autoResizeTextarea(e as any)}
+                                            rows={2}
+                                            onPointerDown={e => e.stopPropagation()}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveNodeId(node.id);
+                                                setIsEditorExpanded(true);
+                                            }}
+                                            title="Click to expand editor"
+                                        />
+                                        <button 
+                                            className="taskchain-expand-hint-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveNodeId(node.id);
+                                                setIsEditorExpanded(true);
+                                            }}
+                                            title="Expand Editor"
+                                            style={{
+                                                position: 'absolute', right: '4px', top: '4px',
+                                                background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '4px',
+                                                padding: '4px', cursor: 'pointer', color: '#555',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                                        </button>
+                                    </div>
                                     {editMode && (
                                         <div
                                             className="taskchain-node__delete"
@@ -971,12 +998,21 @@ export default function TaskChain() {
 
                 {/* Right Sidebar Editor */}
                 {activeNodeId && nodes.find(n => n.id === activeNodeId) && (
-                    <div className="taskchain-node-editor-panel">
+                    <div className={`taskchain-node-editor-panel ${isEditorExpanded ? 'taskchain-node-editor-panel--expanded' : ''}`}>
                         <div className="taskchain-node-editor-panel__header">
                             <h3>Edit Node: {typeEmoji(nodes.find(n => n.id === activeNodeId)!.type)} {nodes.find(n => n.id === activeNodeId)!.type}</h3>
-                            <button className="taskchain-node-editor-panel__close" onClick={() => setActiveNodeId(null)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="taskchain-node-editor-panel__close" onClick={() => setIsEditorExpanded(!isEditorExpanded)} title={isEditorExpanded ? "Shrink" : "Expand"} style={{ padding: '4px 8px', fontSize: '0.8rem', fontWeight: 600, alignItems: 'center', gap: '4px' }}>
+                                    {isEditorExpanded ? (
+                                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Shrink</>
+                                    ) : (
+                                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Expand</>
+                                    )}
+                                </button>
+                                <button className="taskchain-node-editor-panel__close" onClick={() => { setActiveNodeId(null); setIsEditorExpanded(false); }} title="Close">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </div>
                         </div>
                         <textarea
                             value={nodes.find(n => n.id === activeNodeId)!.label}
