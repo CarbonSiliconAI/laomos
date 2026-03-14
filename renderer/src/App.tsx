@@ -6,6 +6,7 @@ import OperationsPage from './pages/Operations';
 import WorkforcePage from './pages/Workforce';
 import KnowledgePage from './pages/Knowledge';
 import GovernancePage from './pages/Governance';
+import DebugPage from './features/debug/Debug';
 
 // Features
 import CalendarPage from './features/calendar/Calendar';
@@ -61,6 +62,7 @@ export default function App() {
                     <Route path="/operations/task-chain" element={<TaskChainPage />} />
                     <Route path="/operations/department" element={<DepartmentPage />} />
                     <Route path="/operations/company" element={<CompanyPage />} />
+                    <Route path="/operations/debug" element={<DebugPage />} />
 
                     <Route path="/workforce" element={<WorkforcePage />} />
                     <Route path="/workforce/chat" element={<ChatPage />} />

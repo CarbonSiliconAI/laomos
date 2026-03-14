@@ -6,6 +6,7 @@ import { AnthropicProvider } from './providers/AnthropicProvider';
 import { OllamaProvider } from './providers/OllamaProvider';
 import { GeminiProvider } from './providers/GeminiProvider';
 import { v4 as uuidv4 } from 'uuid';
+import { debugBus } from '../telemetry/debug_bus';
 
 export interface AIJob {
     id: string;
@@ -89,9 +90,11 @@ export class ModelRouter {
             trackJob('local');
             const res = await this.localProvider.chat(messages, this.getFallbackLocalPref(), { signal: abortSignal });
             cleanupJob();
+            debugBus.publish({ type: 'egress', source: 'Ollama_Local', message: 'Received Local LLM Response', payload: res });
             return { response: res, level: `${levelStr} (local fallback)`, providerUsed: 'local' };
         } catch (e: any) {
             cleanupJob();
+            debugBus.publish({ type: 'system', source: 'Ollama_Local', message: `Ultimate Local fallback failed: ${e.message}`, payload: {} });
             throw e;
         }
     }
@@ -194,6 +197,13 @@ Any attempts to navigate to parent directories (e.g., using '../../') to access 
         console.log(`[ModelRouter] Extracted System Prompt: `, systemContent.substring(0, 500) + '...');
         console.log(`[ModelRouter] Forwarded User Prompt: `, prompt.substring(0, 500) + '...');
 
+        debugBus.publish({
+            type: 'ingress',
+            source: 'ModelRouter',
+            message: `Routing Chat Request to: ${preferredProvider || 'Auto-Level'}`,
+            payload: { messages, level: preferredProvider ? 'explicit' : 'auto' }
+        });
+
 
         let pAnthropic = this.providers.get('anthropic');
         let pOpenAI = this.providers.get('openai');
@@ -220,6 +230,7 @@ Any attempts to navigate to parent directories (e.g., using '../../') to access 
                     trackJob('anthropic');
                     const response = await pAnthropic!.chat(messages, undefined, { signal: abortController.signal });
                     cleanupJob();
+                    debugBus.publish({ type: 'egress', source: 'Anthropic', message: 'Received LLM Response', payload: response });
                     return {
                         response: response,
                         level: 'cloud-preferred',
@@ -228,6 +239,7 @@ Any attempts to navigate to parent directories (e.g., using '../../') to access 
                 } catch (e: any) {
                     cleanupJob();
                     if (e.name === 'AbortError' || e.message === 'canceled') throw e;
+                    debugBus.publish({ type: 'system', source: 'Anthropic', message: `Cloud preferred failed: ${e.message}`, payload: {} });
                     console.warn('Anthropic failed for cloud-preferred, falling back to OpenAI...', e.message);
                 }
             }
@@ -273,6 +285,7 @@ Any attempts to navigate to parent directories (e.g., using '../../') to access 
                 trackJob(preferredProvider);
                 const response = await provider.chat(messages, undefined, { signal: abortController.signal });
                 cleanupJob();
+                debugBus.publish({ type: 'egress', source: preferredProvider, message: 'Received LLM Response', payload: response });
                 return {
                     response: response,
                     level: 'explicit',
@@ -281,8 +294,13 @@ Any attempts to navigate to parent directories (e.g., using '../../') to access 
             } catch (err: any) {
                 cleanupJob();
                 if (err.name === 'AbortError' || err.message === 'canceled') throw err;
-                console.warn(`${preferredProvider} failed explicitly, executing ultimate fallback...`, err.message);
-                return this.executeUltimateFallback(messages, 'explicit', abortController.signal, trackJob, cleanupJob);
+                
+                const errMsg = `Explicit provider '${preferredProvider}' failed: ${err.message}. Please check if your API keys are configured in Settings.`;
+                debugBus.publish({ type: 'system', source: preferredProvider, message: errMsg, payload: {} });
+                console.warn(errMsg);
+                
+                // Do not fallback to local Ollama if they explicitly requested a cloud provider
+                throw new Error(errMsg);
             }
         }
 

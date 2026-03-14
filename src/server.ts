@@ -18,11 +18,14 @@ import { TaskAnalyzer } from './kernel/analyzer';
 import { PromptRegistry } from './kernel/prompt_registry';
 import { ToolRegistry } from './kernel/tool_registry';
 import { SkillLoader } from './kernel/skill_loader';
+import { TaskChainManager } from './kernel/task_chain_manager';
+import { TaskChainExecutor } from './kernel/task_chain_executor';
 import { TelegramSkillDaemon } from './kernel/telegram_skill_daemon';
 import { WhatsAppSkillDaemon } from './kernel/whatsapp_skill_daemon';
 import { ExecutionJournal } from './telemetry/journal';
 import { computeDiff } from './telemetry/diff';
 import { telemetryBus } from './telemetry/bus';
+import { debugBus } from './telemetry/debug_bus';
 import { ExecutionEvent, BudgetConstraint } from './telemetry/types';
 import { OpenAIProvider } from './kernel/providers/OpenAIProvider';
 import { AnthropicProvider } from './kernel/providers/AnthropicProvider';
@@ -77,6 +80,8 @@ export class Server {
     private activeRequests: RequestManager = {};
     private activeSkillExecutions = new Map<string, AbortController>();
     private calendarManager: CalendarManager;
+    private taskChainManager: TaskChainManager;
+    private taskChainExecutor: TaskChainExecutor;
     private httpServer: any;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -97,6 +102,8 @@ export class Server {
         this.skillLoader = new SkillLoader(this.fsManager.getRootDir());
         this.telegramDaemon = new TelegramSkillDaemon(this.modelRouter, this.taskAnalyzer, this.skillLoader, this.fsManager.getRootDir());
         this.whatsappDaemon = new WhatsAppSkillDaemon(this.modelRouter, this.taskAnalyzer, this.skillLoader, this.fsManager.getRootDir());
+        this.taskChainManager = new TaskChainManager(this.modelRouter, this.skillLoader);
+        this.taskChainExecutor = new TaskChainExecutor(this.modelRouter, this.skillLoader, this.tools);
         this.journal = journal;
         this.gameManager = new GameManager(this.fsManager.getPersonalDir());
 
@@ -342,23 +349,86 @@ export class Server {
                     }
                 }
 
+                // Ensure the first message is a system message so we can inject the tool definitions
+                let mutableMessages = [...messages];
+                const toolsXml = this.tools.exportToolsToXML();
+
+                if (toolsXml) {
+                    if (mutableMessages.length > 0 && mutableMessages[0].role === 'system') {
+                        mutableMessages[0] = {
+                            role: 'system',
+                            content: `${mutableMessages[0].content}\n\n${toolsXml}`
+                        };
+                    } else {
+                        mutableMessages.unshift({
+                            role: 'system',
+                            content: `You are a helpful AI assistant.\n\n${toolsXml}`
+                        });
+                    }
+                }
+
                 let responseContent = '';
                 let finalResponseObj: any = {};
+                let iterations = 0;
+                const maxIterations = 15;
 
-                if (model.startsWith('gpt')) {
-                    const provider = new OpenAIProvider(this.identityManager);
-                    responseContent = await provider.chat(messages, model, { signal: abortController.signal });
-                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
-                } else if (model.startsWith('claude')) {
-                    const provider = new AnthropicProvider(this.identityManager);
-                    responseContent = await provider.chat(messages, model, { signal: abortController.signal });
-                    finalResponseObj = { message: { role: 'assistant', content: responseContent } };
-                } else if (model.startsWith('gemini') || model.startsWith('grok')) {
-                    return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
-                } else {
-                    const response = await this.ollamaManager.chat(model, messages, abortController.signal);
-                    responseContent = response?.message?.content || '';
-                    finalResponseObj = response;
+                while (iterations < maxIterations) {
+                    iterations++;
+
+                    if (model.startsWith('gpt')) {
+                        const provider = new OpenAIProvider(this.identityManager);
+                        responseContent = await provider.chat(mutableMessages, model, { signal: abortController.signal });
+                        finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                    } else if (model.startsWith('claude')) {
+                        const provider = new AnthropicProvider(this.identityManager);
+                        responseContent = await provider.chat(mutableMessages, model, { signal: abortController.signal });
+                        finalResponseObj = { message: { role: 'assistant', content: responseContent } };
+                    } else if (model.startsWith('gemini') || model.startsWith('grok')) {
+                        return res.status(501).json({ error: `Provider for model ${model} is not yet implemented.` });
+                    } else {
+                        const response = await this.ollamaManager.chat(model, mutableMessages, abortController.signal);
+                        responseContent = response?.message?.content || '';
+                        finalResponseObj = response;
+                    }
+
+                    // Check for tool calls
+                    const toolCallRegex = /<tool_call\s+name="([^"]+)">([\s\S]*?)<\/tool_call>/g;
+                    let match;
+                    let hasToolCalls = false;
+                    let nextUserContent = '';
+
+                    while ((match = toolCallRegex.exec(responseContent)) !== null) {
+                        hasToolCalls = true;
+                        const toolName = match[1];
+                        const toolArgsStr = match[2].trim();
+
+                        console.log(`[Chat Auto-Execution] Tool Call matched: ${toolName}`);
+
+                        try {
+                            const args = JSON.parse(toolArgsStr);
+                            const tool = this.tools.getTool(toolName);
+                            if (!tool) {
+                                nextUserContent += `\n[Tool Result for ${toolName}]\nError: Tool not found.\n`;
+                            } else {
+                                const result = await tool.execute(args);
+                                nextUserContent += `\n[Tool Result for ${toolName}]\n${JSON.stringify(result, null, 2)}\n`;
+                            }
+                        } catch (err: any) {
+                            console.error(`[Chat Auto-Execution] Tool error:`, err);
+                            nextUserContent += `\n[Tool Result for ${toolName}]\nError: ${err.message}\n`;
+                        }
+                    }
+
+                    if (hasToolCalls) {
+                        // Append the AI's tool call attempts to the conversation
+                        mutableMessages.push({ role: 'assistant', content: responseContent });
+                        // Append the actual tool results as the next user message
+                        mutableMessages.push({ role: 'user', content: nextUserContent });
+                        console.log(`[Chat Auto-Execution] Looping... Iteration ${iterations}`);
+                    } else {
+                        // No tools called, we're done
+                        break;
+                    }
                 }
 
                 // AI Firewall Egress Scan
@@ -2433,6 +2503,30 @@ Instructions:
                 const { prompt, sessionId = 'default-os-session', preferredProvider, model } = req.body;
                 if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
+                // --- OS WORKFLOW RE-DESIGN: FIRST STEP ANALYZER ---
+                try {
+                    const analysis = await this.taskAnalyzer.analyzeTask(prompt, preferredProvider);
+                    const tmpDir = path.join(process.cwd(), 'tmp');
+                    await fs.ensureDir(tmpDir);
+                    
+                    // 1. Save analyzed goal to target.json
+                    await fs.writeJson(path.join(tmpDir, 'target.json'), analysis, { spaces: 2 });
+                    console.log(`[TaskAnalyzer] Successfully wrote target.json for prompt: "${prompt.substring(0, 30)}..."`);
+                    
+                    // 2. Generate Node/Edge Action Chain and save to chain.json
+                    try {
+                        const decomposePayload = await this.taskChainManager.decomposeGoal(analysis.target);
+                        await fs.writeJson(path.join(tmpDir, 'chain.json'), decomposePayload, { spaces: 2 });
+                        console.log(`[TaskChainDecomposer] Successfully wrote chain.json with ${decomposePayload.nodes?.length || 0} nodes.`);
+                    } catch (chainErr) {
+                        console.error('[TaskChainDecomposer] Failed to decompose goal into chain.json:', chainErr);
+                    }
+                } catch (analyzerErr) {
+                    console.error('[TaskAnalyzer] Failed to break down task or save targets:', analyzerErr);
+                    // We catch and swallow so the normal chat doesn't completely die if analysis fails
+                }
+                // --- END OS WORKFLOW ---
+
                 // 1. Add user message
                 await this.memory.addMessage(sessionId, 'user', prompt);
 
@@ -2606,73 +2700,7 @@ Instructions:
                 const { goal } = req.body;
                 if (!goal) return res.status(400).json({ error: 'goal is required' });
 
-                // Fetch installed skills for context
-                const activeSkills = this.skillLoader.loadSkills();
-                const skillList = activeSkills.map((s: any) => `- "${s.name}": ${s.description || 'No description'}`).join('\n');
-
-                const systemPrompt = `You are a task decomposition engine. Given a high-level goal, break it down into smaller prerequisite conditions and actionable steps using top-down reasoning. Start from the GOAL and work backwards to determine what conditions must be met.
-
-The user has the following skills/tools installed:
-${skillList || '(none)'}
-
-Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):
-{
-  "nodes": [
-    { "id": "goal_1", "label": "The final goal", "type": "goal" },
-    { "id": "cond_1", "label": "A prerequisite condition", "type": "condition" },
-    { "id": "act_1", "label": "A concrete action step", "type": "action", "skill": "skill-name" }
-  ],
-  "edges": [
-    { "from": "act_1", "to": "cond_1" },
-    { "from": "cond_1", "to": "goal_1" }
-  ]
-}
-
-Rules:
-- There should be exactly ONE node with type "goal" (the final target).
-- "condition" nodes are intermediate prerequisites that must be satisfied.
-- "action" nodes are leaf-level concrete steps the user needs to take.
-- Edges flow FROM prerequisites TO the things they enable (action → condition → goal).
-- Use 4-8 total nodes for a reasonable decomposition. Do not over-decompose.
-- IDs must be unique strings like goal_1, cond_1, cond_2, act_1, act_2, etc.
-- Labels should be concise (under 60 characters).
-- If an action node can be fulfilled by one of the installed skills, set the "skill" field to the exact skill name. Otherwise omit the "skill" field.
-- Only assign skills that genuinely match the action. Do not force skill assignments.`;
-
-                const userPrompt = `Decompose this goal: "${goal}"`;
-
-                const result = await this.modelRouter.routeChat(
-                    `${systemPrompt}\n\n${userPrompt}`,
-                    'cloud'
-                );
-
-                const responseText = result.response || '';
-
-                // Extract JSON from the response
-                let parsed: any;
-                try {
-                    // Try direct parse first
-                    parsed = JSON.parse(responseText);
-                } catch {
-                    // Try extracting JSON from markdown code blocks
-                    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-                    if (jsonMatch) {
-                        parsed = JSON.parse(jsonMatch[1].trim());
-                    } else {
-                        // Try finding raw JSON object
-                        const braceMatch = responseText.match(/\{[\s\S]*\}/);
-                        if (braceMatch) {
-                            parsed = JSON.parse(braceMatch[0]);
-                        } else {
-                            throw new Error('Could not extract JSON from LLM response');
-                        }
-                    }
-                }
-
-                if (!parsed.nodes || !parsed.edges) {
-                    throw new Error('Invalid decomposition structure: missing nodes or edges');
-                }
-
+                const parsed = await this.taskChainManager.decomposeGoal(goal, 'cloud');
                 res.json(parsed);
             } catch (error: any) {
                 console.error('[TaskChain] Decomposition error:', error);
@@ -2776,6 +2804,25 @@ Rules:
             } catch (error: any) {
                 console.error('[TaskChain] Step execution error:', error);
                 res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Task Chain Execution Engine ──────────────────────────
+        this.app.post('/api/task-chain/execute-all', async (req, res) => {
+            try {
+                const { chain, provider } = req.body;
+                if (!chain || !chain.nodes || !chain.edges) {
+                    return res.status(400).json({ error: 'Valid chain graph containing nodes and edges is required' });
+                }
+
+                // Kick off execution in the background
+                this.taskChainExecutor.executeChain(chain, provider).catch(err => {
+                    console.error('[TaskChainExecutor] Background Execution Failed:', err);
+                });
+
+                res.json({ success: true, message: "Task Chain Execution Engine started." });
+            } catch (err: any) {
+                res.status(500).json({ error: err.message });
             }
         });
 
@@ -3746,6 +3793,109 @@ Keep your response concise and actionable.`;
             res.json(currentBudget);
         });
 
+        // --- System Debug API Endpoints ---
+        this.app.get('/api/debug/stream', (req, res) => {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders(); // Establish SSE
+
+            const handleDebugEvent = (event: any) => {
+                res.write(`data: ${JSON.stringify(event)}\n\n`);
+            };
+
+            debugBus.subscribe(handleDebugEvent);
+
+            req.on('close', () => {
+                debugBus.unsubscribe(handleDebugEvent);
+            });
+        });
+
+        this.app.post('/api/debug/input', async (req, res) => {
+            try {
+                const { text, provider } = req.body;
+                if (!text) {
+                    return res.status(400).json({ error: 'Text input is required' });
+                }
+
+                debugBus.publish({
+                    type: 'input',
+                    source: 'User',
+                    message: text,
+                    payload: text
+                });
+
+                // --- OS WORKFLOW RE-DESIGN: FIRST STEP ANALYZER ---
+                try {
+                    const analysis = await this.taskAnalyzer.analyzeTask(text, provider || 'anthropic');
+                    const tmpDir = path.join(process.cwd(), 'tmp');
+                    await fs.ensureDir(tmpDir);
+                    await fs.writeJson(path.join(tmpDir, 'target.json'), analysis, { spaces: 2 });
+                    console.log(`[System Debug TaskAnalyzer] Successfully wrote target.json for input: "${text.substring(0, 30)}..."`);
+                    
+                    debugBus.publish({
+                        type: 'system',
+                        source: 'TaskAnalyzer',
+                        message: 'Successfully generated target.json',
+                        payload: analysis
+                    });
+
+                    // 2. Generate Node/Edge Action Chain and save to chain.json
+                    try {
+                        const decomposePayload = await this.taskChainManager.decomposeGoal(analysis.target, provider || 'anthropic');
+                        await fs.writeJson(path.join(tmpDir, 'chain.json'), decomposePayload, { spaces: 2 });
+                        console.log(`[System Debug TaskChainDecomposer] Successfully wrote chain.json with ${decomposePayload.nodes?.length || 0} nodes.`);
+                        
+                        debugBus.publish({
+                            type: 'system',
+                            source: 'TaskChainDecomposer',
+                            message: `Successfully generated chain.json (${decomposePayload.nodes.length} nodes)`,
+                            payload: decomposePayload
+                        });
+                    } catch (chainErr: any) {
+                        console.error('[System Debug TaskChainDecomposer] Failed to decompose goal into chain.json:', chainErr);
+                        debugBus.publish({
+                            type: 'system',
+                            source: 'TaskChainDecomposer',
+                            message: `Failed to decompose chain: ${chainErr.message}`
+                        });
+                    }
+                } catch (analyzerErr: any) {
+                    console.error('[System Debug TaskAnalyzer] Failed to break down task or save target.json:', analyzerErr);
+                    debugBus.publish({
+                        type: 'system',
+                        source: 'TaskAnalyzer',
+                        message: `Failed to analyze goal: ${analyzerErr.message}`
+                    });
+                }
+                // --- END OS WORKFLOW ---
+
+                res.json({ success: true, message: 'Analyzed goal and saved to target.json' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/debug/execute', async (req, res) => {
+            try {
+                const { provider } = req.body;
+                const chainPath = path.join(process.cwd(), 'tmp', 'chain.json');
+                if (!(await fs.pathExists(chainPath))) {
+                    return res.status(404).json({ error: 'No chain.json found. Please Send a goal first.' });
+                }
+                const chainData = JSON.parse(await fs.readFile(chainPath, 'utf8'));
+                
+                // Kick off background execution
+                this.taskChainExecutor.executeChain(chainData, provider || 'cloud').catch(err => {
+                    console.error('[System Debug Executor] Background Execution Failed:', err);
+                });
+
+                res.json({ success: true, message: 'Auto-Execution Engine Launched successfully on latest chain.' });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         this.app.post('/api/budget', async (req, res) => {
             currentBudget = { ...currentBudget, ...req.body };
 
@@ -3934,11 +4084,11 @@ You can use tools multiple times. When done, provide a final summary without too
             let requiresNextTurn = false;
             let nextUserMessage = '';
 
-            // 1. Process <bash> tools
-            const bashRegex = /<bash>([\s\S]*?)<\/bash>/g;
+            // 1. Process <bash> tools or markdown bash blocks
+            const bashRegex = /(?:<bash>\s*([\s\S]*?)\s*<\/bash>)|(?:```(?:bash|sh|zsh)?\s*\n?([\s\S]*?)\n?```)/g;
             let bashMatch;
             while ((bashMatch = bashRegex.exec(aiMessage)) !== null) {
-                const command = bashMatch[1].trim();
+                const command = (bashMatch[1] || bashMatch[2]).trim();
                 try {
                     console.log(`[Skill Execution] Executing bash: ${command}`);
                     const shellCmd = `/bin/zsh -l -c ${JSON.stringify(command)}`;

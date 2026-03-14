@@ -1,0 +1,5 @@
+{
+  "target": "Write and execute a Python program that prints 'hello world' to the console.",
+  "expected_output": "A Python script file or code snippet that, when executed, outputs 'hello world'.",
+  "success_criteria": "The Python code is provided and when run, it successfully prints 'hello world' to standard output."
+}

@@ -62,6 +62,24 @@ export class ToolRegistry {
         return declarations;
     }
 
+    public exportToolsToXML(): string {
+        const tools = this.listTools();
+        if (tools.length === 0) return '';
+        
+        let xml = '<Register_Tools>\n';
+        xml += 'You have access to the following tools. To use a tool, output a <tool_call> block with a JSON payload of arguments.\n';
+        xml += 'Example: <tool_call name="get_weather">{"location": "San Francisco, CA"}</tool_call>\n\n';
+        
+        for (const t of tools) {
+            xml += `<Tool name="${t.name}">\n`;
+            xml += `  <Description>${t.description}</Description>\n`;
+            xml += `  <Parameters>\n${JSON.stringify(t.parameters, null, 2)}\n  </Parameters>\n`;
+            xml += `</Tool>\n`;
+        }
+        xml += '</Register_Tools>\n';
+        return xml;
+    }
+
     private registerDefaults() {
         // 1. Web Scraper Tool
         this.register({
@@ -282,6 +300,109 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 
                     emit('Synthesis', 'completed', 'Web response generated.');
                     return { success: true, source: 'web', content: searchRes.response };
+                }
+            }
+        });
+
+        // 5. Bash Command Tool
+        this.register({
+            declaration: {
+                name: 'bash',
+                description: 'Executes a bash/zsh shell command on the local system.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        command: {
+                            type: 'string',
+                            description: 'The shell command to execute.'
+                        }
+                    },
+                    required: ['command']
+                },
+                uiMetadata: {
+                    icon: '🐚',
+                    label: 'Shell Executor',
+                    publisher: 'System',
+                    category: 'utility'
+                }
+            },
+            permissions: {
+                requiresFileSystem: true,
+                authTier: 5 
+            },
+            execute: async (params: Record<string, any>) => {
+                const command = params.command;
+                console.log(`[Tool] bash executing: ${command}`);
+                try {
+                    const util = require('util');
+                    const execAsync = util.promisify(require('child_process').exec);
+                    const { stdout, stderr } = await execAsync(`/bin/zsh -l -c ${JSON.stringify(command)}`, { timeout: 60000 });
+                    return {
+                        success: true,
+                        output: (stdout || '') + (stderr || '')
+                    };
+                } catch (error: any) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+        });
+
+        // 6. Python Script Tool
+        this.register({
+            declaration: {
+                name: 'python',
+                description: 'Executes inline Python 3 code on the local system.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        code: {
+                            type: 'string',
+                            description: 'The Python code to execute.'
+                        }
+                    },
+                    required: ['code']
+                },
+                uiMetadata: {
+                    icon: '🐍',
+                    label: 'Python Runtime',
+                    publisher: 'System',
+                    category: 'utility'
+                }
+            },
+            permissions: {
+                requiresFileSystem: true,
+                authTier: 5
+            },
+            execute: async (params: Record<string, any>) => {
+                const code = params.code;
+                console.log(`[Tool] python executing code of length: ${code.length}`);
+                try {
+                    const util = require('util');
+                    const fs = require('fs');
+                    const os = require('os');
+                    const path = require('path');
+                    const execAsync = util.promisify(require('child_process').exec);
+                    
+                    const tempScriptPath = path.join(os.tmpdir(), `laomos-py-${Date.now()}.py`);
+                    fs.writeFileSync(tempScriptPath, code);
+
+                    const { stdout, stderr } = await execAsync(`python3 ${tempScriptPath}`, { timeout: 60000 });
+                    
+                    // Cleanup
+                    try { fs.unlinkSync(tempScriptPath); } catch (e) {}
+                    
+                    return {
+                        success: true,
+                        output: (stdout || '') + (stderr || '')
+                    };
+                } catch (error: any) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
                 }
             }
         });

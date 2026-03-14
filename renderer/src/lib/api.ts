@@ -205,6 +205,12 @@ export const api = {
     cacheClear: () => apiFetch('/api/cache', { method: 'DELETE' }),
 
     // ── Task Chain ──────────────────────────
+    debugInput: (input: string, provider: string) => apiFetch<{ output?: string; summary?: string }>('/api/debug/input', {
+        method: 'POST', body: JSON.stringify({ text: input, provider }),
+    }),
+    debugExecute: (provider: string) => apiFetch<{ success: boolean; message: string }>('/api/debug/execute', {
+        method: 'POST', body: JSON.stringify({ provider }),
+    }),
     taskChainDecompose: (goal: string) => apiFetch<TaskChainResult>('/api/task-chain/decompose', {
         method: 'POST', body: JSON.stringify({ goal }),
     }),

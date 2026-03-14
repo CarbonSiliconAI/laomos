@@ -1,0 +1,37 @@
+{
+  "name": "find a software from linkedin",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Find a software from LinkedIn",
+      "type": "goal",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "LinkedIn profile/search access established",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Search software engineer for me in bay area. Set my linkedin id by \n```bash\n   export LINKEDIN_LI_AT=\"AQEDAWVJSiIC86gFAAABnNtlCJsAAAGc_3GMm00AmV8GbiMsuLA14W6ODkSvfD7wno94SukgV8J5Wrk21tCJ8tyAigobXrE3NRw89Z8Sg0gbUf6SpRQuR_d3Vigy-HFuA33r8-bNoQR_zhkHIKhaHT3I\"\n   export LINKEDIN_JSESSIONID=\"ajax:1631019628487339649\"",
+      "skill": "linkedin-cli",
+      "type": "action",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    }
+  ]
+}

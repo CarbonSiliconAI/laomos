@@ -1,0 +1,150 @@
+.debug-container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: var(--text-color);
+}
+
+.debug-header {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.debug-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.debug-header p {
+    color: var(--text-color-light);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.debug-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.debug-btn-clear {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-color);
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.debug-btn-clear:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.debug-terminal {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    overflow-y: auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.debug-empty {
+    color: #9ca3af;
+    text-align: center;
+    margin-top: 100px;
+    font-style: italic;
+}
+
+.debug-event {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.debug-time {
+    color: #6b7280;
+    margin-right: 8px;
+}
+
+.debug-type {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.debug-source {
+    color: #7dd3fc;
+    margin-right: 12px;
+}
+
+.debug-message {
+    color: #e5e7eb;
+}
+
+.debug-payload {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+    margin-bottom: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12px;
+    color: #a7f3d0;
+}
+
+.debug-input-area {
+    display: flex;
+    gap: 12px;
+    height: 80px;
+}
+
+.debug-input-area textarea {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text-color);
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.debug-input-area textarea:focus {
+    border-color: var(--primary-color);
+}
+
+.debug-input-area button {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.debug-input-area button:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.debug-input-area button:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+}

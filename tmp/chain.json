@@ -1,0 +1,33 @@
+{
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Python program prints 'hello world' to console",
+      "type": "goal"
+    },
+    {
+      "id": "act_1",
+      "label": "Create Python script with print statement",
+      "type": "action",
+      "success_condition": "Python file exists with correct print('hello world') syntax",
+      "function": "core_utils/python_test.md"
+    },
+    {
+      "id": "act_2",
+      "label": "Execute Python script via bash",
+      "type": "action",
+      "success_condition": "'hello world' appears in console output",
+      "function": "core_utils/python_test.md"
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "act_2"
+    },
+    {
+      "from": "act_2",
+      "to": "goal_1"
+    }
+  ]
+}

@@ -38,17 +38,16 @@ export class TaskAnalyzer {
     /**
      * Analyzes a raw user prompt and returns a structured task breakdown.
      */
-    async analyzeTask(prompt: string): Promise<AnalyzedTask> {
+    async analyzeTask(prompt: string, provider: string = 'anthropic'): Promise<AnalyzedTask> {
         try {
             // We prepend our system prompt to the user's request.
             // The router parses <Register_SystemPrompt> tags to extract system instructions.
             const query = `<Register_SystemPrompt>\n${ANALYZER_SYSTEM_PROMPT}\n</Register_SystemPrompt>\n\nUser Task: "${prompt}"`;
 
             // Route the prompt through the kernel's LLM router (defaulting to a capable cloud model if available, or fast local)
-            // We use 'cloud-preferred' to ensure high quality JSON instruction following.
             const { response } = await this.modelRouter.routeChat(
                 query,
-                'cloud-preferred',
+                provider,
                 'Kernel Task Analyzer'
             );
 
