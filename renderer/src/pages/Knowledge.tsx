@@ -52,6 +52,18 @@ const CARDS = [
             </svg>
         ),
     },
+    {
+        path: '/knowledge/agency',
+        title: 'Agency Knowledge',
+        desc: 'Skills and experience extracted from installed agency agents',
+        color: 'rgba(217,119,6,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0-3-3.87" />
+            </svg>
+        ),
+    },
 ];
 
 export default function KnowledgePage() {

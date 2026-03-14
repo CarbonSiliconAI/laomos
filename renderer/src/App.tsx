@@ -36,6 +36,7 @@ import HistoryPage from './features/history/History';
 import SettingsPage from './features/settings/Settings';
 import AutoConfigPage from './features/auto-config/AutoConfig';
 import AgentStorePage from './features/agent-store/AgentStore';
+import AgencyKnowledgePage from './features/agency-knowledge/AgencyKnowledge';
 import EvolutionTreePage from './pages/EvolutionTree';
 
 export default function App() {
@@ -74,6 +75,7 @@ export default function App() {
                     <Route path="/knowledge/rag" element={<RagPage />} />
                     <Route path="/knowledge/search" element={<SearchPage />} />
                     <Route path="/knowledge/graph" element={<GraphPage />} />
+                    <Route path="/knowledge/agency" element={<AgencyKnowledgePage />} />
 
                     <Route path="/governance" element={<GovernancePage />} />
                     <Route path="/governance/monitor" element={<MonitorPage />} />

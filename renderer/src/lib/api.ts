@@ -232,6 +232,25 @@ export const api = {
     agencyExecutions: (agentId?: string, limit = 20) => apiFetch<{ executions: AgencyExecution[] }>(
         agentId ? `/api/agency/executions/${encodeURIComponent(agentId)}?limit=${limit}` : `/api/agency/executions?limit=${limit}`
     ),
+    agencyEvolutionScore: (agentId: string) => apiFetch<AgentEvolutionScore>(`/api/agency/agents/${encodeURIComponent(agentId)}/evolution-score`),
+    evolutionEvents: (params?: { sourceType?: string; outcome?: string; limit?: number }) => {
+        const qs = new URLSearchParams();
+        if (params?.sourceType) qs.set('sourceType', params.sourceType);
+        if (params?.outcome) qs.set('outcome', params.outcome);
+        if (params?.limit) qs.set('limit', String(params.limit));
+        const query = qs.toString();
+        return apiFetch<{ events: EvolutionEventData[] }>(`/api/evolution/events${query ? `?${query}` : ''}`);
+    },
+    agencySkills: (agentId?: string) => apiFetch<{ skills: AgencySkill[] }>(
+        agentId ? `/api/agency/skills/${encodeURIComponent(agentId)}` : '/api/agency/skills'
+    ),
+    agencyExperience: (agentId?: string) => apiFetch<{ experience: AgencyExperienceEntry[] }>(
+        agentId ? `/api/agency/experience/${encodeURIComponent(agentId)}` : '/api/agency/experience'
+    ),
+    agencyExtractSkills: (agentId: string) => apiFetch<{ success: boolean; count: number; skills: AgencySkill[] }>(
+        `/api/agency/agents/${encodeURIComponent(agentId)}/extract-skills`,
+        { method: 'POST' }
+    ),
     agencyScaffoldDepartments: (divisions: string[]) => apiFetch<{ created: Array<{ id: string; name: string; tasks: string[] }>; skipped: string[] }>('/api/agency/scaffold-departments', {
         method: 'POST', body: JSON.stringify({ divisions }),
     }),
@@ -538,4 +557,67 @@ export interface FlowTemplate {
     category: string;
     nodes: FlowTemplateNode[];
     edges: FlowTemplateEdge[];
+}
+
+export interface AgencySkill {
+    id: string;
+    agentId: string;
+    agentName: string;
+    division: string;
+    name: string;
+    description: string;
+    category: string;
+    source: 'prompt' | 'metric' | 'inferred';
+    createdAt: number;
+}
+
+export interface AgencyExperienceEntry {
+    id: string;
+    agentId: string;
+    agentName: string;
+    division: string;
+    summary: string;
+    insight: string;
+    totalRuns: number;
+    successRate: number;
+    createdAt: number;
+}
+
+export interface AgentEvolutionScore {
+    totalRuns: number;
+    successRate: number;
+    avgDurationMs: number;
+    trend: 'improving' | 'stable' | 'degrading';
+}
+
+export interface EvolutionEventData {
+    event_id: string;
+    timestamp: string;
+    source_type: 'flow_node' | 'agent' | 'skill';
+    source_id: string;
+    source_name: string;
+    trigger: {
+        error_type: string;
+        error_message: string;
+        exit_code: number | null;
+        context: Record<string, unknown>;
+    };
+    intent: 'repair' | 'harden' | 'innovate';
+    pcec_phases: {
+        perceive_ms: number;
+        construct_ms: number;
+        evaluate_ms: number;
+        commit_ms: number;
+    };
+    candidates: Array<{
+        strategy: string;
+        code_diff: string;
+        sandbox_result: { passed: boolean; output: string; duration_ms: number };
+        score: number;
+    }>;
+    selected: number | null;
+    outcome: 'success' | 'failure' | 'fallback';
+    cost_usd: number;
+    latency_ms: number;
+    gene_id: string | null;
 }

@@ -3912,6 +3912,80 @@ Keep your response concise and actionable.`;
             }
         });
 
+        // ── Evolution Score ──────────────────────────────────────────────
+        this.app.get('/api/agency/agents/:id/evolution-score', async (req, res) => {
+            try {
+                const agentId = decodeURIComponent(req.params.id);
+                const score = this.agencyManager.getAgentEvolutionScore(agentId);
+                res.json(score);
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Evolution Events ────────────────────────────────────────────
+        this.app.get('/api/evolution/events', async (req, res) => {
+            try {
+                const sourceType = req.query.sourceType ? (req.query.sourceType as string).split(',') : undefined;
+                const outcome = req.query.outcome ? (req.query.outcome as string).split(',') : undefined;
+                const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+                const events = this.agencyManager.getEvolutionEvents({ sourceType, outcome, limit });
+                res.json({ events });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Agency Skills ─────────────────────────────────────────────
+        this.app.get('/api/agency/skills', async (_req, res) => {
+            try {
+                const skills = this.agencyManager.getSkills();
+                res.json({ skills });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/skills/:agentId', async (req, res) => {
+            try {
+                const agentId = decodeURIComponent(req.params.agentId);
+                const skills = this.agencyManager.getSkills(agentId);
+                res.json({ skills });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/agency/agents/:id/extract-skills', async (req, res) => {
+            try {
+                const agentId = decodeURIComponent(req.params.id);
+                const skills = this.agencyManager.extractAndStoreSkills(agentId);
+                res.json({ success: true, count: skills.length, skills });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Agency Experience ────────────────────────────────────────
+        this.app.get('/api/agency/experience', async (_req, res) => {
+            try {
+                const experience = this.agencyManager.getExperience();
+                res.json({ experience });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/experience/:agentId', async (req, res) => {
+            try {
+                const agentId = decodeURIComponent(req.params.agentId);
+                const experience = this.agencyManager.getExperience(agentId);
+                res.json({ experience });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         this.app.post('/api/agency/scaffold-departments', async (req, res) => {
             try {
                 const { divisions } = req.body as { divisions: string[] };

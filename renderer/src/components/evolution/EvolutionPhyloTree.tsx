@@ -4,6 +4,16 @@ import type { EvolutionEvent, EvolutionOutcome, SourceType } from '../../lib/evo
 import { computeShannonMetrics } from '../../lib/evolution/shannon';
 import './EvolutionPhyloTree.css';
 
+// Division emoji map (shared with AgentStore)
+const DIVISION_EMOJI: Record<string, string> = {
+  engineering: '\u{1F4BB}', design: '\u{1F3A8}', marketing: '\u{1F4CA}', sales: '\u{1F4B0}',
+  testing: '\u{1F527}', product: '\u{1F4E6}', specialized: '\u{2B50}', support: '\u{1F6A9}',
+  strategy: '\u{1F3AF}', 'project-management': '\u{1F4CB}', 'paid-media': '\u{1F4B3}',
+  'game-development': '\u{1F3AE}', 'spatial-computing': '\u{1F30D}',
+};
+
+type FilterMode = 'all' | 'flow_node' | 'agent' | 'skill';
+
 // ── Tree node interface ──
 interface TreeNode {
   id: string;
@@ -46,13 +56,13 @@ function getNodeColor(node: LayoutNode): string {
   if (node.type === 'root') return '#6366f1';
   if (node.type === 'source_type') {
     if (node.sourceType === 'flow_node') return '#4f46e5';
-    if (node.sourceType === 'agent')     return '#059669';
-    if (node.sourceType === 'skill')     return '#d97706';
+    if (node.sourceType === 'agent')     return '#d97706'; // amber for agents
+    if (node.sourceType === 'skill')     return '#059669';
   }
   if (node.type === 'source') {
     if (node.sourceType === 'flow_node') return '#6366f1';
-    if (node.sourceType === 'agent')     return '#10b981';
-    if (node.sourceType === 'skill')     return '#f59e0b';
+    if (node.sourceType === 'agent')     return '#f59e0b'; // amber for agents
+    if (node.sourceType === 'skill')     return '#10b981';
   }
   if (node.outcome === 'success')  return '#059669';
   if (node.outcome === 'failure')  return '#dc2626';
@@ -63,7 +73,13 @@ function getNodeColor(node: LayoutNode): string {
 function getNodeRadius(node: LayoutNode): number {
   if (node.type === 'root') return 14;
   if (node.type === 'source_type') return 10;
-  if (node.type === 'source') return 7;
+  if (node.type === 'source') {
+    // Scale agent nodes by execution count
+    if (node.sourceType === 'agent' && node.eventCount) {
+      return Math.min(14, 5 + Math.sqrt(node.eventCount) * 2);
+    }
+    return 7;
+  }
   return 2.5 + Math.sqrt((node.cost_usd || 0.01) * 1000) * 1;
 }
 
@@ -88,11 +104,20 @@ function buildTree(events: EvolutionEvent[]): TreeNode {
     label: TYPE_LABELS[type] || type,
     type: 'source_type' as const,
     sourceType: type as SourceType,
-    children: Object.entries(sources).map(([name, evts]) => ({
+    children: Object.entries(sources).map(([name, evts]) => {
+      // For agents, add division emoji to label
+      let nodeLabel = name;
+      if (type === 'agent' && evts.length > 0) {
+        const division = (evts[0].trigger.context?.division as string) || '';
+        const emoji = DIVISION_EMOJI[division] || '\u{1F916}';
+        nodeLabel = `${emoji} ${name}`;
+      }
+      return {
       id: `${type}_${name}`,
-      label: name,
+      label: nodeLabel,
       type: 'source' as const,
       sourceType: type as SourceType,
+      sourceName: name,
       eventCount: evts.length,
       children: evts.map(ev => ({
         id: ev.event_id,
@@ -108,7 +133,8 @@ function buildTree(events: EvolutionEvent[]): TreeNode {
         sourceName: ev.source_name,
         children: [],
       })),
-    })),
+    };
+    }),
   }));
 
   return { id: 'root', label: 'LaoMOS', type: 'root', children };
@@ -197,6 +223,7 @@ export default function EvolutionPhyloTree() {
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 900 });
   const [canvasReady, setCanvasReady] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
   // Zoom/pan state
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -214,9 +241,16 @@ export default function EvolutionPhyloTree() {
   const { events, loading } = useEvolutionEvents();
   useEvolutionStats();
 
+  // Filter events by mode
+  const filteredEvents = useMemo(() => {
+    if (!events) return null;
+    if (filterMode === 'all') return events;
+    return events.filter(e => e.source_type === filterMode);
+  }, [events, filterMode]);
+
   // Build tree and layout
-  const tree = useMemo(() => events ? buildTree(events) : null, [events]);
-  const shannonMetrics = useMemo(() => events ? computeShannonMetrics(events) : null, [events]);
+  const tree = useMemo(() => filteredEvents ? buildTree(filteredEvents) : null, [filteredEvents]);
+  const shannonMetrics = useMemo(() => filteredEvents ? computeShannonMetrics(filteredEvents) : null, [filteredEvents]);
 
   // Keep transformRef in sync
   useEffect(() => {
@@ -405,7 +439,7 @@ export default function EvolutionPhyloTree() {
           ctx.fillText(n.label, n.x, labelY);
           if (n.type === 'source' && n.eventCount) {
             ctx.font = '8px -apple-system, sans-serif';
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = n.sourceType === 'agent' ? '#b45309' : '#64748b';
             ctx.fillText(`${n.eventCount} events`, n.x, labelY + 10);
           }
         }
@@ -550,7 +584,7 @@ export default function EvolutionPhyloTree() {
     );
   }
 
-  if (!events || events.length === 0) {
+  if (!filteredEvents || filteredEvents.length === 0) {
     return (
       <div className="phylo-tree">
         <div className="phylo-tree__empty">
@@ -566,12 +600,12 @@ export default function EvolutionPhyloTree() {
     );
   }
 
-  const eventCount = events.length;
-  const successCount = events.filter(e => e.outcome === 'success').length;
-  const failureCount = events.filter(e => e.outcome === 'failure').length;
-  const fallbackCount = events.filter(e => e.outcome === 'fallback').length;
+  const eventCount = filteredEvents.length;
+  const successCount = filteredEvents.filter(e => e.outcome === 'success').length;
+  const failureCount = filteredEvents.filter(e => e.outcome === 'failure').length;
+  const fallbackCount = filteredEvents.filter(e => e.outcome === 'fallback').length;
   const successRate = eventCount > 0 ? ((successCount / eventCount) * 100).toFixed(1) : '0.0';
-  const totalCost = events.reduce((s, e) => s + e.cost_usd, 0);
+  const totalCost = filteredEvents.reduce((s, e) => s + e.cost_usd, 0);
 
   return (
     <div className="phylo-tree">
@@ -591,12 +625,25 @@ export default function EvolutionPhyloTree() {
             </p>
           </div>
         </div>
-        <button
-          className={`phylo-tree__toggle ${showLabels ? 'phylo-tree__toggle--active' : ''}`}
-          onClick={() => setShowLabels(!showLabels)}
-        >
-          {showLabels ? 'Labels On' : 'Labels Off'}
-        </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {(['all', 'flow_node', 'agent', 'skill'] as FilterMode[]).map(mode => (
+            <button
+              key={mode}
+              className={`phylo-tree__toggle ${filterMode === mode ? 'phylo-tree__toggle--active' : ''}`}
+              onClick={() => setFilterMode(mode)}
+              style={mode === 'agent' && filterMode === mode ? { background: 'rgba(217,119,6,0.1)', color: '#d97706', borderColor: 'rgba(217,119,6,0.3)' } : undefined}
+            >
+              {mode === 'all' ? 'All' : mode === 'flow_node' ? 'Flow Nodes' : mode === 'agent' ? 'Agents' : 'Skills'}
+            </button>
+          ))}
+          <span style={{ width: 1, height: 20, background: 'rgba(0,0,0,0.08)', margin: '0 4px' }} />
+          <button
+            className={`phylo-tree__toggle ${showLabels ? 'phylo-tree__toggle--active' : ''}`}
+            onClick={() => setShowLabels(!showLabels)}
+          >
+            {showLabels ? 'Labels On' : 'Labels Off'}
+          </button>
+        </div>
       </div>
 
       <div className="phylo-tree__stats">
@@ -650,10 +697,10 @@ export default function EvolutionPhyloTree() {
             <span className="phylo-tree__legend-dot" style={{ background: '#4f46e5' }} /> Flow Nodes
           </span>
           <span className="phylo-tree__legend-item">
-            <span className="phylo-tree__legend-dot" style={{ background: '#10b981' }} /> Agents
+            <span className="phylo-tree__legend-dot" style={{ background: '#f59e0b' }} /> Agents
           </span>
           <span className="phylo-tree__legend-item">
-            <span className="phylo-tree__legend-dot" style={{ background: '#f59e0b' }} /> Skills
+            <span className="phylo-tree__legend-dot" style={{ background: '#10b981' }} /> Skills
           </span>
           <span className="phylo-tree__legend-divider" />
           <span className="phylo-tree__legend-item">
@@ -690,7 +737,7 @@ export default function EvolutionPhyloTree() {
             <div>
               <strong>{selectedNode.sourceName}</strong>
               <span className="phylo-tree__detail-meta">
-                {selectedNode.sourceType} · {selectedNode.timestamp ? new Date(selectedNode.timestamp).toLocaleString() : ''}
+                {selectedNode.sourceType === 'agent' ? 'Agency Agent' : selectedNode.sourceType} · {selectedNode.timestamp ? new Date(selectedNode.timestamp).toLocaleString() : ''}
               </span>
             </div>
             <span className={`badge badge-${selectedNode.outcome === 'success' ? 'ok' : selectedNode.outcome === 'failure' ? 'bad' : 'warn'}`}>
@@ -700,7 +747,7 @@ export default function EvolutionPhyloTree() {
           <div className="phylo-tree__detail-grid">
             <div className="phylo-tree__detail-cell">
               <span className="phylo-tree__detail-cell-label">Error Type</span>
-              <code>{selectedNode.errorType}</code>
+              <code>{selectedNode.errorType || '(none)'}</code>
             </div>
             <div className="phylo-tree__detail-cell">
               <span className="phylo-tree__detail-cell-label">Strategy</span>
@@ -718,6 +765,55 @@ export default function EvolutionPhyloTree() {
           <button className="phylo-tree__close-btn" onClick={() => setSelectedNode(null)}>Close</button>
         </div>
       )}
+
+      {/* Agent source node detail panel */}
+      {selectedNode?.type === 'source' && selectedNode.sourceType === 'agent' && (() => {
+        const agentEvents = filteredEvents.filter(e => e.source_name === selectedNode.sourceName);
+        const agentSuccessCount = agentEvents.filter(e => e.outcome === 'success').length;
+        const agentSuccessRate = agentEvents.length > 0 ? ((agentSuccessCount / agentEvents.length) * 100).toFixed(1) : '0.0';
+        const recent5 = agentEvents.slice(0, 5);
+        const division = (agentEvents[0]?.trigger.context?.division as string) || '';
+        const emoji = DIVISION_EMOJI[division] || '\u{1F916}';
+        return (
+          <div className="phylo-tree__detail glass-card">
+            <div className="phylo-tree__detail-header">
+              <div>
+                <strong>{emoji} {selectedNode.sourceName}</strong>
+                <span className="phylo-tree__detail-meta">
+                  Agency Agent · {division || 'Unknown division'}
+                </span>
+              </div>
+              <span className="badge badge-muted">{agentEvents.length} runs</span>
+            </div>
+            <div className="phylo-tree__detail-grid">
+              <div className="phylo-tree__detail-cell">
+                <span className="phylo-tree__detail-cell-label">Total Executions</span>
+                <span style={{ fontSize: 18, fontWeight: 700 }}>{agentEvents.length}</span>
+              </div>
+              <div className="phylo-tree__detail-cell">
+                <span className="phylo-tree__detail-cell-label">Success Rate</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: parseFloat(agentSuccessRate) >= 60 ? '#059669' : '#dc2626' }}>{agentSuccessRate}%</span>
+              </div>
+              <div className="phylo-tree__detail-cell">
+                <span className="phylo-tree__detail-cell-label">Recent Outcomes</span>
+                <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+                  {recent5.map(e => (
+                    <span key={e.event_id} style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: e.outcome === 'success' ? '#059669' : '#dc2626',
+                    }} title={`${e.outcome} — ${new Date(e.timestamp).toLocaleString()}`} />
+                  ))}
+                </div>
+              </div>
+              <div className="phylo-tree__detail-cell">
+                <span className="phylo-tree__detail-cell-label">Version</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Original v1.0</span>
+              </div>
+            </div>
+            <button className="phylo-tree__close-btn" onClick={() => setSelectedNode(null)}>Close</button>
+          </div>
+        );
+      })()}
 
       {shannonMetrics && (
         <div className="phylo-tree__shannon">

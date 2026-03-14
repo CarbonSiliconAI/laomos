@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { api, AgencyAgent } from '../../lib/api';
+import { api, AgencyAgent, AgentEvolutionScore } from '../../lib/api';
 import DepartmentScaffold from './DepartmentScaffold';
 import './AgentStore.css';
 
@@ -102,12 +102,31 @@ export default function AgentStore() {
     const [activeDivision, setActiveDivision] = useState('all');
     const [search, setSearch] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [evoScores, setEvoScores] = useState<Record<string, AgentEvolutionScore>>({});
 
     function fetchAgents() {
         setLoading(true);
         setError(null);
         api.agencyAgents()
-            .then(r => setAgents(r.agents ?? []))
+            .then(r => {
+                const list = r.agents ?? [];
+                setAgents(list);
+                // Fetch evolution scores for installed agents
+                const installed = list.filter(a => a.isInstalled);
+                if (installed.length > 0) {
+                    Promise.all(installed.map(a =>
+                        api.agencyEvolutionScore(a.id)
+                            .then(score => ({ id: a.id, score }))
+                            .catch(() => null)
+                    )).then(results => {
+                        const scores: Record<string, AgentEvolutionScore> = {};
+                        for (const r of results) {
+                            if (r && r.score.totalRuns > 0) scores[r.id] = r.score;
+                        }
+                        setEvoScores(scores);
+                    });
+                }
+            })
             .catch(e => setError(e.message ?? 'Failed to fetch agents'))
             .finally(() => setLoading(false));
     }
@@ -143,6 +162,8 @@ export default function AgentStore() {
                 await api.agencyUninstall(agent.id);
             } else {
                 await api.agencyInstall(agent.id);
+                // Auto-extract skills on install
+                api.agencyExtractSkills(agent.id).catch(console.error);
             }
             setAgents(prev => prev.map(a =>
                 a.id === agent.id ? { ...a, isInstalled: !a.isInstalled, installedAt: a.isInstalled ? undefined : Date.now() } : a
@@ -241,6 +262,24 @@ export default function AgentStore() {
                                     </div>
                                 </div>
                                 <div className="agent-card__desc">{agent.description}</div>
+                                {agent.isInstalled && evoScores[agent.id] && (() => {
+                                    const score = evoScores[agent.id];
+                                    const trendArrow = score.trend === 'improving' ? '\u2191' : score.trend === 'degrading' ? '\u2193' : '\u2192';
+                                    const trendColor = score.trend === 'improving' ? '#059669' : score.trend === 'degrading' ? '#dc2626' : '#6b7280';
+                                    const pct = Math.round(score.successRate * 100);
+                                    return (
+                                        <div className="agent-card__evo">
+                                            <span className="agent-card__evo-runs">{score.totalRuns} runs</span>
+                                            <div className="agent-card__evo-bar-track">
+                                                <div className="agent-card__evo-bar-fill" style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <span className="agent-card__evo-pct">{pct}%</span>
+                                            <span className="agent-card__evo-trend" style={{ color: trendColor }} title={score.trend}>
+                                                {trendArrow}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
                                 <div className="agent-card__footer">
                                     <button
                                         className={`agent-card__btn ${agent.isInstalled ? 'agent-card__btn--installed' : 'agent-card__btn--install'}`}
