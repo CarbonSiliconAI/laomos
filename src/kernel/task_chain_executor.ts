@@ -36,7 +36,7 @@ export class TaskChainExecutor {
         // 1. Topological Sort
         const sortedNodeIds = this.topologicalSort(chain);
         const nodeMap = new Map(chain.nodes.map(n => [n.id, n]));
-        
+
         let accumulatedContext = '';
 
         // 2. Execute sequentially
@@ -138,7 +138,7 @@ export class TaskChainExecutor {
                 const funcPath = path.join(process.cwd(), 'function_lib', node.function);
                 if (await fs.pathExists(funcPath)) {
                     const funcContent = await fs.readFile(funcPath, 'utf8');
-                    actionInstructions = `Execute the action "${node.label}" using the following reference document:\n\n${funcContent}\n\nIMPORTANT INSTRUCTION: If the reference document contains a relevant bash command block (e.g. \`\`\`bash ... \`\`\`), you MUST return that strict bash code directly. Do not over-explain. If you need tools to accomplish the task, use <tool_call>.`;
+                    actionInstructions = `Execute the action "${node.label}" using the following reference document:\n\n${funcContent}\n\nIMPORTANT INSTRUCTION: If the reference document implies or contains a bash script, you MUST return that strict bash code directly inside a \`\`\`bash block. DO NOT use the <tool_call name="bash"> tool for standard shell commands. Only use <tool_call> for other specialized tools or scripts.\nCRITICAL: DO NOT output any conversational text, pleasantries, or explanations. ONLY output the code or tool calls required to complete the task.`;
                 }
             } catch (e) {
                 console.warn(`[TaskChainExecutor] Failed to read function file: ${node.function}`);
@@ -148,7 +148,7 @@ export class TaskChainExecutor {
         while (currentAttempt <= maxRetries) {
             try {
                 // Determine Execution Prompt (includes debug history if retrying)
-                let prompt = `You are a background executing agent.\nAction: ${node.label}\n\nContext:\n${context}\n\n${actionInstructions}\n\n${this.tools.exportToolsToXML()}`;
+                let prompt = `You are a background executing agent.\nAction: ${node.label}\n\nContext:\n${context}\n\n${actionInstructions}\n\nCRITICAL CONSTRAINTS:\n1. Any scripts, files, or data artifacts you create MUST be written to the local \`./tmp/\` directory. Do not generate files in the project root.\n2. For standard script execution (bash, python, node), you MUST return the code directly inside a \`\`\`bash block. DO NOT use <tool_call> for bash or python commands unless instructed by a function.\n\n${this.tools.exportToolsToXML()}`;
                 if (currentAttempt > 0) {
                     debugBus.publish({
                         type: 'system',
@@ -156,7 +156,7 @@ export class TaskChainExecutor {
                         message: `Initiating Auto-Debug (Attempt ${currentAttempt}/${maxRetries}) for ${node.id}`,
                         payload: { error: lastError, failedOutput: lastOutput }
                     });
-                    
+
                     prompt += `\n\n[URGENT BUG FIXING MODE]
 Your previous attempt failed to satisfy the verification criteria: "${node.success_condition}".
 Previous Output:
@@ -217,10 +217,17 @@ Provide a corrected execution logic to achieve the success condition.`;
                         rawExecutionData += `\n${toolResultsChunk}`;
                     } else {
                         // If no tools were called, check if there's a bash snippet to run implicitly
-                        const bashMatch = textOutput.match(/```bash\n([\s\S]*?)\n```/);
+                        const bashMatch = textOutput.match(/```bash\s*\n([\s\S]*?)```/);
                         if (bashMatch) {
+                            debugBus.publish({
+                                type: 'tool_call',
+                                source: 'TaskChainExecutor',
+                                message: `Executing Implicit Bash Block`,
+                                payload: bashMatch[1].trim()
+                            });
+
                             try {
-                                const { stdout, stderr } = await execPromise(bashMatch[1]);
+                                const { stdout, stderr } = await execPromise(bashMatch[1].trim());
                                 const terminalOutput = `\n\n--- Terminal Output ---\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`;
                                 rawExecutionData += terminalOutput;
                             } catch (cmdErr: any) {
@@ -279,7 +286,7 @@ Line 2: A one sentence explanation for your decision.`;
 
         const result = await this.modelRouter.routeChat(checkPrompt, provider, 'Execution Quality Validator');
         const text = result.response || '';
-        
+
         const lines = text.split('\n');
         const firstLine = lines[0].toUpperCase().trim();
         const passed = firstLine.includes('YES');
@@ -306,7 +313,7 @@ Line 2: A one sentence explanation for your decision.`;
         });
 
         if (!passed) {
-             throw new Error("Final Goal Verification Failed. Please review the intermediate output.");
+            throw new Error("Final Goal Verification Failed. Please review the intermediate output.");
         }
     }
 }

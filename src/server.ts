@@ -3811,6 +3811,52 @@ Keep your response concise and actionable.`;
             });
         });
 
+        this.app.post('/api/debug/bash', async (req, res) => {
+            try {
+                const { text } = req.body;
+                if (!text) {
+                    return res.status(400).json({ error: 'Text input is required' });
+                }
+
+                debugBus.publish({
+                    type: 'input',
+                    source: 'User Native Bash',
+                    message: text,
+                    payload: text
+                });
+
+                const bashTool = this.tools.getTool('bash');
+                if (!bashTool) {
+                    throw new Error("Bash tool not initialized in ToolRegistry.");
+                }
+
+                debugBus.publish({
+                    type: 'system',
+                    source: 'Native Runner',
+                    message: 'Executing raw bash command...'
+                });
+
+                const execResult = await bashTool.execute({ command: text });
+                
+                debugBus.publish({
+                    type: 'system',
+                    source: 'Native Runner',
+                    message: 'Execution Finished',
+                    payload: execResult
+                });
+
+                res.json({ success: true, message: 'Executed Native Bash', output: execResult });
+            } catch (error: any) {
+                console.error('[System Debug Native Bash] Execution Error:', error);
+                debugBus.publish({
+                    type: 'system',
+                    source: 'Native Runner Error',
+                    message: error.message
+                });
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         this.app.post('/api/debug/input', async (req, res) => {
             try {
                 const { text, provider } = req.body;

@@ -79,6 +79,25 @@ export default function DebugPage() {
         }
     };
 
+    const handleRunBash = async () => {
+        if (!input.trim() || isSending) return;
+        setIsSending(true);
+        try {
+            await api.debugBash(input);
+            setInput('');
+        } catch (err) {
+            console.error('Failed to execute bash', err);
+            setEvents(prev => [...prev, {
+                timestamp: Date.now(),
+                type: 'system',
+                source: 'Frontend',
+                message: `Failed to run bash: ${(err as Error).message}`
+            }]);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
     const getEventColor = (type: string) => {
         switch (type) {
             case 'input': return '#34d399';
@@ -143,11 +162,14 @@ export default function DebugPage() {
                     <option value="google">Gemini (Google)</option>
                     <option value="local">Ollama (Local)</option>
                 </select>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={handleSend} disabled={isSending || !input.trim()} style={{ background: '#3b82f6', color: '#fff' }}>
-                        {isSending ? 'Sending...' : 'Decompose'}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button onClick={handleRunBash} disabled={isSending || !input.trim()} style={{ background: '#10b981', color: '#fff' }} title="Directly run prompt as a Bash string">
+                        {isSending ? 'Sending...' : 'Run Native Bash'}
                     </button>
-                    <button onClick={handleExecute} disabled={isSending} style={{ background: '#8b5cf6', color: '#fff' }}>
+                    <button onClick={handleSend} disabled={isSending || !input.trim()} style={{ background: '#3b82f6', color: '#fff' }} title="Analyze Goal & generate chain.json">
+                        {isSending ? 'Sending...' : 'Decompose Target'}
+                    </button>
+                    <button onClick={handleExecute} disabled={isSending} style={{ background: '#8b5cf6', color: '#fff' }} title="Execute the tasks in chain.json">
                         Execute Graph
                     </button>
                 </div>

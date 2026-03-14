@@ -1,5 +1,5 @@
 {
-  "target": "Write and execute a Python program that prints 'hello world' to the console.",
-  "expected_output": "A Python script file or code snippet that, when executed, outputs 'hello world'.",
-  "success_criteria": "The Python code is provided and when run, it successfully prints 'hello world' to standard output."
+  "target": "List all files and directories in the current working directory with detailed information including permissions, ownership, and timestamps.",
+  "expected_output": "A formatted directory listing showing file names, permissions, owner, group, size, modification date, and time for all items in the current directory.",
+  "success_criteria": "The command executes successfully and displays a complete list of all files and directories in the current location with their metadata."
 }

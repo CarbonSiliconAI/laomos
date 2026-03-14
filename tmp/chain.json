@@ -2,22 +2,23 @@
   "nodes": [
     {
       "id": "goal_1",
-      "label": "Python program prints 'hello world' to console",
+      "label": "List all files/dirs with permissions, ownership, timestamps",
       "type": "goal"
     },
     {
       "id": "act_1",
-      "label": "Create Python script with print statement",
+      "label": "Execute ls -la command in current directory",
       "type": "action",
-      "success_condition": "Python file exists with correct print('hello world') syntax",
-      "function": "core_utils/python_test.md"
+      "success_condition": "Command executes without error and returns formatted output with file details",
+      "skill": "OS Companion",
+      "function": "none"
     },
     {
       "id": "act_2",
-      "label": "Execute Python script via bash",
+      "label": "Parse and display output with permissions, owner, and timestamps",
       "type": "action",
-      "success_condition": "'hello world' appears in console output",
-      "function": "core_utils/python_test.md"
+      "success_condition": "Output clearly shows permissions (rwx), ownership (user:group), and modification timestamps for all items",
+      "function": "none"
     }
   ],
   "edges": [

@@ -335,8 +335,30 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                 console.log(`[Tool] bash executing: ${command}`);
                 try {
                     const util = require('util');
+                    const fs = require('fs');
+                    const path = require('path');
                     const execAsync = util.promisify(require('child_process').exec);
-                    const { stdout, stderr } = await execAsync(`/bin/zsh -l -c ${JSON.stringify(command)}`, { timeout: 60000 });
+                    
+                    // Strip markdown wrapping if the user or LLM passed a raw codeblock
+                    let safeCommand = command.trim();
+                    const mdMatch = safeCommand.match(/^```[a-zA-Z]*\n([\s\S]*?)\n```$/);
+                    if (mdMatch) {
+                        safeCommand = mdMatch[1].trim();
+                    }
+
+                    // Ensure user profiles (PATH) are loaded via a login shell (-l).
+                    // Also, silently alias `python ` to `python3 ` because macOS doesn't typically alias it natively in non-interactive subshells.
+                    if (process.platform === 'darwin') {
+                        // Replace 'python ' with 'python3 ' globally but avoid matching things like 'python3'
+                        safeCommand = safeCommand.replace(/\bpython\b/g, 'python3');
+                    }
+
+                    const tmpDir = path.join(process.cwd(), 'tmp');
+                    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+                    const scriptPath = path.join(tmpDir, '.laomos_cmd.sh');
+                    fs.writeFileSync(scriptPath, safeCommand);
+
+                    const { stdout, stderr } = await execAsync(`/bin/zsh -l "${scriptPath}"`, { timeout: 60000 });
                     return {
                         success: true,
                         output: (stdout || '') + (stderr || '')
