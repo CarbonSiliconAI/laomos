@@ -1,5 +1,5 @@
 {
-  "target": "List all files and directories in the current working directory with detailed information including permissions, ownership, and timestamps.",
-  "expected_output": "A formatted directory listing showing file names, permissions, owner, group, size, modification date, and time for all items in the current directory.",
-  "success_criteria": "The command executes successfully and displays a complete list of all files and directories in the current location with their metadata."
+  "target": "Execute the command 'lk whoami' to identify the current user or system identity.",
+  "expected_output": "The output of the whoami command, which should display the current user identifier or system information.",
+  "success_criteria": "The command executes successfully and returns the current user or identity information without errors."
 }

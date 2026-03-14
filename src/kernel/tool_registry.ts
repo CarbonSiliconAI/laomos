@@ -356,6 +356,49 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                     const tmpDir = path.join(process.cwd(), 'tmp');
                     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
                     const scriptPath = path.join(tmpDir, '.laomos_cmd.sh');
+
+                    // ==========================================
+                    // XML Command Registry Integration
+                    // ==========================================
+                    const systemDir = path.join(process.cwd(), 'storage', 'system');
+                    if (!fs.existsSync(systemDir)) fs.mkdirSync(systemDir, { recursive: true });
+                    const registryXmlPath = path.join(systemDir, 'command_registry.xml');
+
+                    // 1. Ensure Registry Exists
+                    if (!fs.existsSync(registryXmlPath)) {
+                        const defaultXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Registry>
+    <Command>
+        <Alias>lk</Alias>
+        <Target>python3 {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
+    </Command>
+</Registry>`;
+                        fs.writeFileSync(registryXmlPath, defaultXml);
+                    }
+
+                    // 2. Parse Registry and Apply Aliases via Text Replacement
+                    try {
+                        const xmlContent = fs.readFileSync(registryXmlPath, 'utf8');
+                        const commandRegex = /<Command>\s*<Alias>(.*?)<\/Alias>\s*<Target>(.*?)<\/Target>\s*<\/Command>/g;
+                        let match;
+                        while ((match = commandRegex.exec(xmlContent)) !== null) {
+                            const alias = match[1].trim();
+                            const rawTarget = match[2].trim();
+                            // Resolve {ROOT_DIR} wildcard
+                            const resolvedTarget = rawTarget.replace(/\{ROOT_DIR\}/g, process.cwd());
+                            
+                            // Prevent infinite loops or breaking commands: Replace exactly the alias keyword
+                            // Regex boundary \b ensures we only replace the exact word 'lk', not 'milk' or 'lk.py'.
+                            // However, since aliases are usually at the start of a command, we match the beginning of lines
+                            // or following a pipe/ampersand. For robust simplicity, we'll replace the word if it's the first
+                            // command on a line.
+                            const aliasBoundaryRegex = new RegExp(`(^|\\n|\\||\\&\\&|\\;)\\s*${alias}\\b`, 'g');
+                            safeCommand = safeCommand.replace(aliasBoundaryRegex, `$1${resolvedTarget}`);
+                        }
+                    } catch (e) {
+                        console.error("[ToolRegistry] Failed to parse command_registry.xml. Skipping alias injection.", e);
+                    }
+
                     fs.writeFileSync(scriptPath, safeCommand);
 
                     const { stdout, stderr } = await execAsync(`/bin/zsh -l "${scriptPath}"`, { timeout: 60000 });

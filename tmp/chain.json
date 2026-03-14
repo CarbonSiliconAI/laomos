@@ -2,32 +2,21 @@
   "nodes": [
     {
       "id": "goal_1",
-      "label": "List all files/dirs with permissions, ownership, timestamps",
+      "label": "Identify current user via 'lk whoami' command",
       "type": "goal"
     },
     {
       "id": "act_1",
-      "label": "Execute ls -la command in current directory",
+      "label": "Execute 'lk whoami' command",
       "type": "action",
-      "success_condition": "Command executes without error and returns formatted output with file details",
-      "skill": "OS Companion",
-      "function": "none"
-    },
-    {
-      "id": "act_2",
-      "label": "Parse and display output with permissions, owner, and timestamps",
-      "type": "action",
-      "success_condition": "Output clearly shows permissions (rwx), ownership (user:group), and modification timestamps for all items",
-      "function": "none"
+      "success_condition": "Command executes without error and returns authenticated LinkedIn profile details (name, ID, email, etc.)",
+      "skill": "linkedin-cli",
+      "function": "linkedin/whoami.md"
     }
   ],
   "edges": [
     {
       "from": "act_1",
-      "to": "act_2"
-    },
-    {
-      "from": "act_2",
       "to": "goal_1"
     }
   ]
