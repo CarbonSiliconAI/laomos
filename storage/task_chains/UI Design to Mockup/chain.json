@@ -1,0 +1,24 @@
+{
+  "name": "UI Design to Mockup",
+  "nodes": [
+    {
+      "id": "agent-ui-designer",
+      "label": "UI Designer",
+      "type": "agent",
+      "agentId": "design/design-ui-designer",
+      "agentName": "UI Designer",
+      "agentDivision": "design"
+    },
+    {
+      "id": "draw-mockup",
+      "label": "AI Draw Mockup",
+      "type": "draw"
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent-ui-designer",
+      "to": "draw-mockup"
+    }
+  ]
+}

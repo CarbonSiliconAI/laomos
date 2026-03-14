@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import type { ChainNode, ChainEdge, RunLogEntry, DiagnoseResult, DiagnoseFix } from '../../lib/api';
+import type { ChainNode, ChainEdge, RunLogEntry, DiagnoseResult, DiagnoseFix, AgencyAgent } from '../../lib/api';
 import './TaskChain.css';
 
 // ── Layout helpers ──────────────────────────────────────────
@@ -75,6 +75,16 @@ function layoutNodes(nodes: ChainNode[], edges: ChainEdge[]): PositionedNode[] {
     return positioned;
 }
 
+// ── Helpers ─────────────────────────────────────────────────
+function extractAgentOutput(rawOutput: string): string {
+    try {
+        const parsed = JSON.parse(rawOutput);
+        return parsed.response || rawOutput;
+    } catch {
+        return rawOutput;
+    }
+}
+
 // ── Component ───────────────────────────────────────────────
 export default function TaskChain() {
     const navigate = useNavigate();
@@ -106,6 +116,8 @@ export default function TaskChain() {
     const [diagnosing, setDiagnosing] = useState(false);
     const [diagNodeId, setDiagNodeId] = useState<string | null>(null);
     const [diagResult, setDiagResult] = useState<DiagnoseResult | null>(null);
+    const [installedAgents, setInstalledAgents] = useState<AgencyAgent[]>([]);
+    const [showAgentPicker, setShowAgentPicker] = useState(false);
 
     const canvasRef = useRef<HTMLDivElement>(null);
     const stopRef = useRef(false);
@@ -119,6 +131,11 @@ export default function TaskChain() {
     }, []);
 
     useEffect(() => { fetchChainList(); }, [fetchChainList]);
+
+    // Fetch installed agency agents
+    useEffect(() => {
+        api.agencyInstalled().then(r => setInstalledAgents(r.agents || [])).catch(() => {});
+    }, []);
 
     // ── Recompute edge paths ────────────────────────────────
     const recomputeEdges = useCallback(() => {
@@ -355,42 +372,56 @@ export default function TaskChain() {
             setJobStatus(`Running: ${node.label.slice(0, 40)}...`);
 
             try {
-                const result = await api.taskChainRunStep({
-                    nodeId: node.id,
-                    nodeLabel: node.label,
-                    nodeType: node.type,
-                    skill: node.skill,
-                    previousOutput: accumulatedContext || undefined,
-                    chainGoal: chainGoalText,
-                    accumulatedContext: accumulatedContext || undefined,
-                });
-
-                // Capture detailed execution log
-                if (result.executionLog && result.executionLog.length > 0) {
-                    logLines.push(`\n========== [${node.type.toUpperCase()}] ${node.label} ==========`);
-                    result.executionLog.forEach(entry => logLines.push(entry));
-                } else {
-                    logLines.push(`[${node.type}] ${node.label}:\n${result.output}`);
-                }
-
-                if (node.type === 'condition' || node.type === 'goal') {
-                    if (result.passed === false) {
-                        setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, passed: false, status: 'failed' } }));
-                        setJobStatus(`❌ Condition failed: ${node.label}`);
-                        logLines.push(`STOPPED: condition "${node.label}" not satisfied`);
+                // Agent nodes use agencyExecute, others use taskChainRunStep
+                if (node.type === 'agent' && node.agentId) {
+                    const execRes = await api.agencyExecute(node.agentId, node.label, accumulatedContext || undefined);
+                    const exec = execRes.execution;
+                    logLines.push(`\n========== [AGENT] ${node.agentName || node.label} ==========`);
+                    if (exec.status === 'failed') {
+                        setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: exec.error || 'Agent execution failed', status: 'failed' } }));
+                        setJobStatus(`❌ Agent failed: ${node.label}`);
+                        logLines.push(`ERROR: ${exec.error}`);
                         break;
                     }
-                    setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, passed: true, status: 'done' } }));
-                    // For conditions: restore passthrough as accumulated context
-                    if ((result as any).passthrough) {
-                        accumulatedContext = (result as any).passthrough;
-                    }
-                    // For goals: output is the final summary
+                    const agentOutput = extractAgentOutput(exec.output);
+                    logLines.push(`Output (${exec.durationMs}ms):\n${agentOutput}`);
+                    setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: agentOutput, status: 'done' } }));
+                    accumulatedContext += (accumulatedContext ? '\n\n' : '') + `[${node.agentName || node.label}]: ${agentOutput}`;
                 } else {
-                    setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, status: 'done' } }));
-                    // Build accumulated context from action node summaries
-                    const summary = (result as any).summary || result.output.substring(0, 300);
-                    accumulatedContext += (accumulatedContext ? '\n\n' : '') + `[${node.label}]: ${summary}`;
+                    const result = await api.taskChainRunStep({
+                        nodeId: node.id,
+                        nodeLabel: node.label,
+                        nodeType: node.type,
+                        skill: node.skill,
+                        previousOutput: accumulatedContext || undefined,
+                        chainGoal: chainGoalText,
+                        accumulatedContext: accumulatedContext || undefined,
+                    });
+
+                    // Capture detailed execution log
+                    if (result.executionLog && result.executionLog.length > 0) {
+                        logLines.push(`\n========== [${node.type.toUpperCase()}] ${node.label} ==========`);
+                        result.executionLog.forEach(entry => logLines.push(entry));
+                    } else {
+                        logLines.push(`[${node.type}] ${node.label}:\n${result.output}`);
+                    }
+
+                    if (node.type === 'condition' || node.type === 'goal') {
+                        if (result.passed === false) {
+                            setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, passed: false, status: 'failed' } }));
+                            setJobStatus(`❌ Condition failed: ${node.label}`);
+                            logLines.push(`STOPPED: condition "${node.label}" not satisfied`);
+                            break;
+                        }
+                        setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, passed: true, status: 'done' } }));
+                        if ((result as any).passthrough) {
+                            accumulatedContext = (result as any).passthrough;
+                        }
+                    } else {
+                        setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: result.output, status: 'done' } }));
+                        const summary = (result as any).summary || result.output.substring(0, 300);
+                        accumulatedContext += (accumulatedContext ? '\n\n' : '') + `[${node.label}]: ${summary}`;
+                    }
                 }
             } catch (e: any) {
                 setNodeOutputs(prev => ({ ...prev, [nodeId]: { output: e.message, status: 'failed' } }));
@@ -438,9 +469,38 @@ export default function TaskChain() {
         setJobStatus('⏹ Stopping...');
     };
 
+    const addAgentNode = (agent: AgencyAgent) => {
+        const newId = `agent-${Date.now()}`;
+        const maxX = nodes.length > 0 ? Math.max(...nodes.map(n => n.x)) + 260 : 60;
+        const newNode: PositionedNode = {
+            id: newId,
+            label: agent.name,
+            type: 'agent',
+            agentId: agent.id,
+            agentName: agent.name,
+            agentDivision: agent.division,
+            x: maxX,
+            y: 160,
+        };
+        setNodes(prev => [...prev, newNode]);
+        setSelected(prev => new Set([...prev, newId]));
+        setShowAgentPicker(false);
+    };
+
+    const divisionEmoji = (div: string) => {
+        const map: Record<string, string> = {
+            engineering: '🛠️', marketing: '📢', product: '📦',
+            design: '🎨', finance: '💰', operations: '⚙️',
+            sales: '💼', support: '🎧', legal: '⚖️', hr: '👥',
+        };
+        return map[div?.toLowerCase()] || '🤖';
+    };
+
     const typeEmoji = (type: string) => {
         if (type === 'goal') return '🎯';
         if (type === 'condition') return '🔗';
+        if (type === 'agent') return '🤖';
+        if (type === 'draw') return '🎨';
         return '⚡';
     };
 
@@ -465,6 +525,12 @@ export default function TaskChain() {
                 </div>
                 <div className="taskchain-legend-item">
                     <div className="taskchain-legend-dot" style={{ background: '#7C3AED' }} />Has Skill
+                </div>
+                <div className="taskchain-legend-item">
+                    <div className="taskchain-legend-dot" style={{ background: '#F59E0B' }} />Agent
+                </div>
+                <div className="taskchain-legend-item">
+                    <div className="taskchain-legend-dot" style={{ background: '#7C3AED' }} />Draw
                 </div>
             </div>
 
@@ -537,6 +603,25 @@ export default function TaskChain() {
                         Auto-Improve
                     </>}
                 </button>
+                {installedAgents.length > 0 && (
+                    <div style={{ position: 'relative' }}>
+                        <button className="taskchain-agent-btn" onClick={() => setShowAgentPicker(!showAgentPicker)}>
+                            🤖 + Agent
+                        </button>
+                        {showAgentPicker && (
+                            <div className="taskchain-agent-picker">
+                                <div className="taskchain-agent-picker__title">Add Agent Node</div>
+                                {installedAgents.map(a => (
+                                    <button key={a.id} className="taskchain-agent-picker__item" onClick={() => addAgentNode(a)}>
+                                        <span className="taskchain-agent-picker__emoji">{divisionEmoji(a.division)}</span>
+                                        <span className="taskchain-agent-picker__name">{a.name}</span>
+                                        <span className="taskchain-agent-picker__div">{a.division}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Save bar (when chain exists) */}
@@ -650,6 +735,11 @@ export default function TaskChain() {
                                         {node.skill}
                                     </div>
                                 )}
+                                {node.type === 'agent' && node.agentDivision && (
+                                    <div className="taskchain-agent-badge">
+                                        {divisionEmoji(node.agentDivision)} {node.agentDivision}
+                                    </div>
+                                )}
                                 {node.type === 'action' && !node.skill && (
                                     <div className="taskchain-skill-missing" onClick={e => {
                                         e.stopPropagation();
@@ -664,8 +754,14 @@ export default function TaskChain() {
                                         {nodeOutputs[node.id].status === 'running' && <div className="taskchain-spinner taskchain-spinner--small" />}
                                         {nodeOutputs[node.id].passed === true && '✅ '}
                                         {nodeOutputs[node.id].passed === false && '❌ '}
-                                        {nodeOutputs[node.id].output.slice(0, 150)}
-                                        {nodeOutputs[node.id].output.length > 150 && '...'}
+                                        {node.type === 'draw' && nodeOutputs[node.id].status === 'done' && nodeOutputs[node.id].output ? (
+                                            <img src={nodeOutputs[node.id].output} alt="AI Draw" className="taskchain-node__draw-img" />
+                                        ) : (
+                                            <>
+                                                {nodeOutputs[node.id].output.slice(0, 150)}
+                                                {nodeOutputs[node.id].output.length > 150 && '...'}
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>

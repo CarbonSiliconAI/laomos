@@ -1,0 +1,52 @@
+{
+  "name": "draw me a small design mock",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Small Design Mock",
+      "type": "goal",
+      "x": 1100,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Install Fiction Writer",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Write Design Concept",
+      "type": "action",
+      "skill": "Fiction Writer",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_2",
+      "label": "Configure Agent Browser",
+      "type": "condition",
+      "x": 840,
+      "y": 135
+    },
+    {
+      "id": "act_2",
+      "label": "Visualize Design",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 60,
+      "y": 135
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    }
+  ]
+}

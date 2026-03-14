@@ -208,6 +208,24 @@
     color: #28A745;
 }
 
+.taskchain-node--draw {
+    border-color: rgba(168, 85, 247, 0.5);
+    background: rgba(245, 235, 255, 0.85);
+}
+
+.taskchain-node--draw .taskchain-node__type-badge {
+    background: rgba(168, 85, 247, 0.15);
+    color: #7C3AED;
+}
+
+.taskchain-node__draw-img {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
 .taskchain-node__label {
     font-size: 0.82rem;
     font-weight: 500;
@@ -989,4 +1007,111 @@
     background: rgba(245, 158, 11, 0.2);
     color: #fbbf24;
     border-color: rgba(245, 158, 11, 0.5);
+}
+
+/* ── Agent Node ── */
+.taskchain-node--agent {
+    border-color: rgba(245, 158, 11, 0.5);
+    background: rgba(255, 251, 235, 0.85);
+}
+
+.taskchain-node--agent .taskchain-node__type-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #D97706;
+}
+
+.taskchain-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.12);
+    color: #D97706;
+}
+
+/* ── Agent Button & Picker ── */
+.taskchain-agent-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.taskchain-agent-btn:hover {
+    background: rgba(245, 158, 11, 0.18);
+}
+
+.taskchain-agent-picker {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 260px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+}
+
+.taskchain-agent-picker__title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 8px 8px;
+}
+
+.taskchain-agent-picker__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.taskchain-agent-picker__item:hover {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.taskchain-agent-picker__emoji {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.taskchain-agent-picker__name {
+    font-weight: 600;
+    color: var(--text, #333);
+    flex: 1;
+}
+
+.taskchain-agent-picker__div {
+    font-size: 0.7rem;
+    color: var(--text-muted, #999);
+    flex-shrink: 0;
 }

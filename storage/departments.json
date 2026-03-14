@@ -4,8 +4,16 @@
       "id": "dept-1772739533884",
       "name": "HR",
       "tasks": [
-        "查询本地天气",
-        "穿衣指南"
+        {
+          "id": "查询本地天气",
+          "type": "chain",
+          "name": "查询本地天气"
+        },
+        {
+          "id": "穿衣指南",
+          "type": "chain",
+          "name": "穿衣指南"
+        }
       ]
     },
     {
@@ -22,7 +30,49 @@
       "id": "dept-1772742742399",
       "name": "Board",
       "tasks": []
+    },
+    {
+      "id": "dept-1773448867734-906s",
+      "name": "Engineering",
+      "tasks": [
+        {
+          "id": "engineering/engineering-backend-architect",
+          "type": "agent",
+          "name": "Backend Architect"
+        },
+        {
+          "id": "engineering/engineering-ai-engineer",
+          "type": "agent",
+          "name": "Ai Engineer"
+        },
+        {
+          "id": "engineering/engineering-code-reviewer",
+          "type": "agent",
+          "name": "Code Reviewer"
+        }
+      ]
+    },
+    {
+      "id": "dept-1773448867734-vhu9",
+      "name": "Design",
+      "tasks": [
+        {
+          "id": "design/design-ui-designer",
+          "type": "agent",
+          "name": "Ui Designer"
+        },
+        {
+          "id": "design/design-ux-architect",
+          "type": "agent",
+          "name": "Ux Architect"
+        },
+        {
+          "id": "design a small test mock for me",
+          "type": "chain",
+          "name": "design a small test mock for me"
+        }
+      ]
     }
   ],
-  "activeDept": "dept-1772739533884"
+  "activeDept": "dept-1773448867734-906s"
 }

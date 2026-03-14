@@ -1,0 +1,60 @@
+{
+  "name": "give me a small test design mock",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Small Test Design Mock",
+      "type": "goal",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Define the scope",
+      "type": "condition",
+      "x": 320,
+      "y": 80
+    },
+    {
+      "id": "cond_2",
+      "label": "Determine the requirements",
+      "type": "condition",
+      "x": 320,
+      "y": 190
+    },
+    {
+      "id": "act_1",
+      "label": "Use Agent Browser",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 60,
+      "y": 80
+    },
+    {
+      "id": "act_2",
+      "label": "Summarize the design",
+      "type": "action",
+      "skill": "summarize",
+      "x": 60,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_2"
+    },
+    {
+      "from": "cond_2",
+      "to": "goal_1"
+    }
+  ]
+}

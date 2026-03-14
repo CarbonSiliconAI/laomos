@@ -35,6 +35,7 @@ import MonitorPage from './features/monitor/Monitor';
 import HistoryPage from './features/history/History';
 import SettingsPage from './features/settings/Settings';
 import AutoConfigPage from './features/auto-config/AutoConfig';
+import AgentStorePage from './features/agent-store/AgentStore';
 import EvolutionTreePage from './pages/EvolutionTree';
 
 export default function App() {
@@ -66,6 +67,7 @@ export default function App() {
                     <Route path="/workforce/openclaw" element={<OpenClawPage />} />
                     <Route path="/workforce/skill-onboard" element={<SkillOnboardPage />} />
                     <Route path="/workforce/models" element={<ModelsPage />} />
+                    <Route path="/workforce/agent-store" element={<AgentStorePage />} />
 
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/knowledge/files" element={<FilesPage />} />

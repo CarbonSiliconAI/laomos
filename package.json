@@ -23,6 +23,7 @@
   "repository": "github:CarbonSiliconAI/laomos",
   "type": "commonjs",
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/fs-extra": "^11.0.4",

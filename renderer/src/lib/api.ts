@@ -215,6 +215,30 @@ export const api = {
         apiFetch<DiagnoseResult>('/api/task-chain/diagnose', {
             method: 'POST', body: JSON.stringify(body),
         }),
+
+    // ── Agency Agents ─────────────────────────────
+    agencyAgents: () => apiFetch<{ agents: AgencyAgent[] }>('/api/agency/agents'),
+    agencyAgentsByDivision: (division: string) => apiFetch<{ agents: AgencyAgent[] }>(`/api/agency/agents/${encodeURIComponent(division)}`),
+    agencyInstalled: () => apiFetch<{ agents: AgencyAgent[] }>('/api/agency/installed'),
+    agencyInstall: (id: string) => apiFetch<{ success: boolean; agent: AgencyAgent }>('/api/agency/install', {
+        method: 'POST', body: JSON.stringify({ id }),
+    }),
+    agencyUninstall: (id: string) => apiFetch<{ success: boolean }>('/api/agency/uninstall', {
+        method: 'POST', body: JSON.stringify({ id }),
+    }),
+    agencyExecute: (agentId: string, input: string, context?: string) => apiFetch<{ success: boolean; execution: AgencyExecution }>('/api/agency/execute', {
+        method: 'POST', body: JSON.stringify({ agentId, input, context }),
+    }),
+    agencyExecutions: (agentId?: string, limit = 20) => apiFetch<{ executions: AgencyExecution[] }>(
+        agentId ? `/api/agency/executions/${encodeURIComponent(agentId)}?limit=${limit}` : `/api/agency/executions?limit=${limit}`
+    ),
+    agencyScaffoldDepartments: (divisions: string[]) => apiFetch<{ created: Array<{ id: string; name: string; tasks: string[] }>; skipped: string[] }>('/api/agency/scaffold-departments', {
+        method: 'POST', body: JSON.stringify({ divisions }),
+    }),
+    agencyFlowTemplates: () => apiFetch<{ templates: FlowTemplate[] }>('/api/agency/flow-templates'),
+    agencyApplyTemplate: (templateId: string) => apiFetch<{ success: boolean; flow: { id: string; name: string; nodes: FlowTemplateNode[]; edges: FlowTemplateEdge[] } }>(`/api/agency/flow-templates/${encodeURIComponent(templateId)}/apply`, {
+        method: 'POST',
+    }),
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────
@@ -383,8 +407,11 @@ export interface HardwareMetrics {
 export interface ChainNode {
     id: string;
     label: string;
-    type: 'goal' | 'condition' | 'action';
+    type: 'goal' | 'condition' | 'action' | 'agent' | 'draw';
     skill?: string;
+    agentId?: string;
+    agentName?: string;
+    agentDivision?: string;
 }
 
 export interface ChainEdge {
@@ -418,10 +445,16 @@ export interface DiagnoseResult {
     fixes: DiagnoseFix[];
 }
 
+export interface DeptTask {
+    id: string;
+    type: 'chain' | 'agent';
+    name?: string;
+}
+
 export interface Department {
     id: string;
     name: string;
-    tasks: string[];
+    tasks: DeptTask[];
 }
 
 export interface DepartmentsData {
@@ -447,4 +480,62 @@ export interface CompanyData {
     departments: OrgDept[];
     links: OrgLink[];
     savedDepartments: string[];
+}
+
+export interface AgencyAgent {
+    id: string;
+    name: string;
+    description: string;
+    division: string;
+    color?: string;
+    emoji?: string;
+    sha: string;
+    promptContent: string;
+    skills: string[];
+    metrics: string[];
+    installedAt?: number;
+    isInstalled: boolean;
+}
+
+export interface AgencyExecution {
+    id: string;
+    agentId: string;
+    agentName: string;
+    input: string;
+    output: string;
+    durationMs: number;
+    status: 'success' | 'failed';
+    error?: string;
+    createdAt: number;
+}
+
+export interface FlowTemplateNode {
+    id: string;
+    type: string;
+    label: string;
+    cat: string;
+    domain: string;
+    func: string;
+    in: string;
+    out: string;
+    x: number;
+    y: number;
+    manualInput: string;
+    lastOutput: string;
+    status: string;
+}
+
+export interface FlowTemplateEdge {
+    from: string;
+    to: string;
+}
+
+export interface FlowTemplate {
+    id: string;
+    name: string;
+    description: string;
+    agentCount: number;
+    category: string;
+    nodes: FlowTemplateNode[];
+    edges: FlowTemplateEdge[];
 }

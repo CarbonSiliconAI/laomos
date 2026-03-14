@@ -1,0 +1,49 @@
+{
+  "name": "design a small test mock for me",
+  "nodes": [
+    {
+      "id": "goal_1",
+      "label": "Design a test mock",
+      "type": "goal",
+      "x": 580,
+      "y": 135
+    },
+    {
+      "id": "cond_1",
+      "label": "Define the mock's purpose",
+      "type": "condition",
+      "x": 320,
+      "y": 135
+    },
+    {
+      "id": "act_1",
+      "label": "Use Agent Browser to navigate to a relevant page",
+      "type": "action",
+      "skill": "Agent Browser",
+      "x": 60,
+      "y": 80
+    },
+    {
+      "id": "act_2",
+      "label": "Use automation-workflows to set up a test workflow",
+      "type": "action",
+      "skill": "automation-workflows",
+      "x": 60,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "act_1",
+      "to": "cond_1"
+    },
+    {
+      "from": "cond_1",
+      "to": "goal_1"
+    },
+    {
+      "from": "act_2",
+      "to": "cond_1"
+    }
+  ]
+}

@@ -35,6 +35,7 @@ import { GameManager } from './game_manager';
 import { MailManager } from './mail_manager';
 import { google } from 'googleapis';
 import { CalendarManager, ScheduledJob } from './kernel/calendar';
+import { AgencyManager } from './agency_manager';
 
 export interface RequestManager {
     [requestId: string]: AbortController;
@@ -77,6 +78,7 @@ export class Server {
     private activeRequests: RequestManager = {};
     private activeSkillExecutions = new Map<string, AbortController>();
     private calendarManager: CalendarManager;
+    private agencyManager: AgencyManager;
     private httpServer: any;
 
     constructor(graphManager: GraphManager, fsManager: FileSystemManager, ollamaManager: OllamaManager, identityManager: IdentityManager, externalApiManager: ExternalAPIManager, modelRouter: ModelRouter, memory: ContextManager, scheduler: AgentScheduler, registry: PromptRegistry, tools: ToolRegistry, firewall: AIFirewall, port: number = 3000, journal?: ExecutionJournal) {
@@ -102,6 +104,8 @@ export class Server {
 
         const systemDir = path.join(this.fsManager.getRootDir(), 'system');
         this.mailManager = new MailManager(systemDir, this.modelRouter, this.identityManager);
+        this.agencyManager = new AgencyManager(systemDir);
+        this.agencyManager.setModelRouter(modelRouter);
 
         // Hydrate budget at startup
         try {
@@ -2661,6 +2665,50 @@ Rules:
                         status: 'done',
                     });
 
+                } else if (nodeType === 'draw') {
+                    // Generate image using the accumulated context or node label as prompt
+                    const drawPrompt = accumulatedContext || previousOutput || nodeLabel;
+                    try {
+                        const imageUrl = await this.externalApiManager.generateImage('auto', drawPrompt);
+                        // Save to disk if base64
+                        let finalUrl = imageUrl;
+                        if (!imageUrl.startsWith('http')) {
+                            let base64Data = imageUrl;
+                            if (imageUrl.startsWith('data:image/')) {
+                                const parts = imageUrl.split(';base64,');
+                                if (parts.length === 2) base64Data = parts[1];
+                            }
+                            const fileName = `taskchain_draw_${Date.now()}.png`;
+                            const personalDir = path.join(this.fsManager.getRootDir(), 'personal');
+                            await fs.ensureDir(personalDir);
+                            const filePath = path.join(personalDir, fileName);
+                            await fs.writeFile(filePath, base64Data, 'base64');
+                            finalUrl = `/api/files/read?path=${encodeURIComponent(filePath)}`;
+                        }
+                        return res.json({
+                            output: finalUrl,
+                            summary: `Generated image from prompt: ${drawPrompt.substring(0, 100)}`,
+                            executionLog: [`[AI Draw]\nPrompt: ${drawPrompt.substring(0, 500)}\nResult: ${finalUrl}`],
+                            status: 'done',
+                        });
+                    } catch (drawErr: any) {
+                        // Fallback to mock
+                        try {
+                            const mockUrl = await this.externalApiManager.generateImage('mock', drawPrompt);
+                            return res.json({
+                                output: mockUrl,
+                                summary: `Generated mock image (fallback)`,
+                                executionLog: [`[AI Draw - Mock Fallback]\nPrompt: ${drawPrompt.substring(0, 500)}\nResult: ${mockUrl}`],
+                                status: 'done',
+                            });
+                        } catch (mockErr: any) {
+                            return res.json({
+                                output: `Draw failed: ${drawErr.message}`,
+                                status: 'failed',
+                            });
+                        }
+                    }
+
                 } else if (nodeType === 'goal') {
                     const inputData = accumulatedContext || previousOutput || '';
                     const checkPrompt = inputData
@@ -2688,6 +2736,27 @@ Rules:
 
         // ── Task Chain Persistence ──────────────────────────────
         const taskChainsDir = path.join(this.fsManager.getRootDir(), 'task_chains');
+
+        // Seed preset chains
+        (async () => {
+            const presetName = 'UI Design to Mockup';
+            const presetDir = path.join(taskChainsDir, presetName);
+            if (!await fs.pathExists(path.join(presetDir, 'chain.json'))) {
+                await fs.ensureDir(presetDir);
+                const presetChain = {
+                    name: presetName,
+                    nodes: [
+                        { id: 'agent-ui-designer', label: 'UI Designer', type: 'agent', agentId: 'design/design-ui-designer', agentName: 'UI Designer', agentDivision: 'design' },
+                        { id: 'draw-mockup', label: 'AI Draw Mockup', type: 'draw' },
+                    ],
+                    edges: [
+                        { from: 'agent-ui-designer', to: 'draw-mockup' },
+                    ],
+                };
+                await fs.writeFile(path.join(presetDir, 'chain.json'), JSON.stringify(presetChain, null, 2));
+                console.log(`[TaskChain] Seeded preset chain: "${presetName}"`);
+            }
+        })().catch(err => console.error('[TaskChain] Failed to seed preset:', err.message));
 
         this.app.post('/api/task-chain/save', async (req, res) => {
             try {
@@ -3178,7 +3247,26 @@ Rules for fixes:
 
         const loadDepts = async () => {
             if (await fs.pathExists(departmentsFile)) {
-                return await fs.readJson(departmentsFile);
+                const data = await fs.readJson(departmentsFile);
+                // Normalize legacy string[] tasks to DeptTask[]
+                if (Array.isArray(data.departments)) {
+                    for (const dept of data.departments) {
+                        if (Array.isArray(dept.tasks)) {
+                            dept.tasks = dept.tasks.map((t: any) => {
+                                if (typeof t === 'string') {
+                                    const isAgent = t.includes('/');
+                                    // For agent ids like "design/design-ui-designer", derive a readable name
+                                    const name = isAgent
+                                        ? t.split('/').pop()!.replace(/^[a-z]+-/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+                                        : t;
+                                    return { id: t, type: isAgent ? 'agent' : 'chain', name };
+                                }
+                                return t;
+                            });
+                        }
+                    }
+                }
+                return data;
             }
             return { departments: [], activeDept: null };
         };
@@ -3239,14 +3327,20 @@ Rules for fixes:
                 if (action === 'add-task') {
                     const dept = data.departments.find((d: any) => d.id === id);
                     if (!dept) return res.status(404).json({ error: 'Department not found' });
-                    if (!dept.tasks.includes(task)) dept.tasks.push(task);
+                    const taskObj = typeof task === 'string' ? { id: task, type: 'chain', name: task } : task;
+                    if (!dept.tasks.some((t: any) => (typeof t === 'string' ? t : t.id) === taskObj.id)) {
+                        dept.tasks.push(taskObj);
+                    }
                     await saveDepts(data);
                     return res.json({ success: true });
                 }
                 if (action === 'remove-task') {
                     const dept = data.departments.find((d: any) => d.id === id);
                     if (!dept) return res.status(404).json({ error: 'Department not found' });
-                    dept.tasks = dept.tasks.filter((t: string) => t !== task);
+                    dept.tasks = dept.tasks.filter((t: any) => {
+                        const tid = typeof t === 'string' ? t : t.id;
+                        return tid !== task;
+                    });
                     await saveDepts(data);
                     return res.json({ success: true });
                 }
@@ -3734,6 +3828,250 @@ Keep your response concise and actionable.`;
         // SPA fallback — serve React index.html for any non-API route
         // Express 5 requires named wildcard: /{*path} instead of *
         const appRoot2 = process.env.APP_ROOT || process.cwd();
+        // ── Agency Agents ─────────────────────────────────────────────
+
+        this.app.get('/api/agency/agents', async (_req, res) => {
+            try {
+                const agents = await this.agencyManager.getAllAgents();
+                res.json({ agents });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/agents/:division', async (req, res) => {
+            try {
+                const agents = await this.agencyManager.getAgentsByDivision(req.params.division);
+                res.json({ agents });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/agency/install', async (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Missing agent id' });
+                const agent = await this.agencyManager.installAgent(id);
+                if (!agent) return res.status(404).json({ error: 'Agent not found' });
+                res.json({ success: true, agent });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/agency/uninstall', async (req, res) => {
+            try {
+                const { id } = req.body;
+                if (!id) return res.status(400).json({ error: 'Missing agent id' });
+                await this.agencyManager.uninstallAgent(id);
+                res.json({ success: true });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/installed', async (_req, res) => {
+            try {
+                const agents = this.agencyManager.getInstalledAgents();
+                res.json({ agents });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Agency Execute & Executions ──────────────────────────
+        this.app.post('/api/agency/execute', async (req, res) => {
+            try {
+                const { agentId, input, context } = req.body;
+                if (!agentId) return res.status(400).json({ error: 'Missing agentId' });
+                const execution = await this.agencyManager.executeAgentTask(agentId, input, context);
+                res.json({ success: true, execution });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/executions/:agentId', async (req, res) => {
+            try {
+                const limit = parseInt(req.query.limit as string) || 20;
+                const executions = this.agencyManager.getExecutions(req.params.agentId, limit);
+                res.json({ executions });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.get('/api/agency/executions', async (_req, res) => {
+            try {
+                const limit = parseInt(_req.query.limit as string) || 20;
+                const executions = this.agencyManager.getExecutions(undefined, limit);
+                res.json({ executions });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        this.app.post('/api/agency/scaffold-departments', async (req, res) => {
+            try {
+                const { divisions } = req.body as { divisions: string[] };
+                if (!Array.isArray(divisions) || divisions.length === 0) {
+                    return res.status(400).json({ error: 'divisions array required' });
+                }
+
+                const installed = this.agencyManager.getInstalledAgents();
+                const data = await loadDepts();
+                const existingNames = new Set((data.departments as Array<{ id: string; name: string; tasks: any[] }>).map(d => d.name.toLowerCase()));
+
+                const created: Array<{ id: string; name: string; tasks: Array<{ id: string; type: string; name: string }> }> = [];
+                const skipped: string[] = [];
+
+                for (const division of divisions) {
+                    const agentsInDiv = installed.filter(a => a.division === division);
+                    if (agentsInDiv.length === 0) {
+                        skipped.push(division);
+                        continue;
+                    }
+
+                    const deptName = division.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    if (existingNames.has(deptName.toLowerCase())) {
+                        skipped.push(division);
+                        continue;
+                    }
+
+                    const newId = `dept-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+                    const dept = { id: newId, name: deptName, tasks: agentsInDiv.map(a => ({ id: a.id, type: 'agent' as const, name: a.name })) };
+                    data.departments.push(dept);
+                    existingNames.add(deptName.toLowerCase());
+                    created.push(dept);
+                }
+
+                if (created.length > 0) {
+                    if (!data.activeDept && data.departments.length > 0) {
+                        data.activeDept = data.departments[0].id;
+                    }
+                    await saveDepts(data);
+                }
+
+                res.json({ created, skipped });
+            } catch (error: any) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // ── Agency Flow Templates ────────────────────────────────────
+
+        interface FlowTemplateNode {
+            id: string; type: string; label: string; cat: string; domain: string;
+            func: string; in: string; out: string;
+            x: number; y: number; manualInput: string; lastOutput: string; status: string;
+        }
+        interface FlowTemplateEdge { from: string; to: string; }
+        interface FlowTemplate {
+            id: string; name: string; description: string; agentCount: number;
+            category: string;
+            nodes: FlowTemplateNode[]; edges: FlowTemplateEdge[];
+        }
+
+        function agentNode(id: string, label: string, x: number, y: number, func: string = ''): FlowTemplateNode {
+            return { id, type: 'chat', label, cat: 'Agency Agent', domain: 'Agent', func: func || `${label} agent`, in: 'Text', out: 'Text', x, y, manualInput: '', lastOutput: '', status: '' };
+        }
+
+        const FLOW_TEMPLATES: FlowTemplate[] = [
+            {
+                id: 'agency-template-startup-mvp',
+                name: 'Startup MVP Quick Delivery',
+                description: 'End-to-end MVP delivery pipeline: from rapid prototyping through architecture, implementation, growth, and reality-checking.',
+                agentCount: 5,
+                category: 'engineering',
+                nodes: [
+                    agentNode('n1', 'Rapid Prototyper', 60, 160, 'Creates fast functional prototypes'),
+                    agentNode('n2', 'Backend Architect', 320, 160, 'Designs scalable backend systems'),
+                    agentNode('n3', 'Frontend Developer', 580, 160, 'Implements modern web frontends'),
+                    agentNode('n4', 'Growth Hacker', 840, 160, 'Drives user acquisition and growth'),
+                    agentNode('n5', 'Reality Checker', 1100, 160, 'Validates feasibility and flags risks'),
+                ],
+                edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }],
+            },
+            {
+                id: 'agency-template-omnichannel-marketing',
+                name: 'Omni-Channel Marketing Campaign',
+                description: 'Full-funnel content creation and multi-platform distribution with analytics feedback.',
+                agentCount: 5,
+                category: 'marketing',
+                nodes: [
+                    agentNode('n1', 'Content Creator', 60, 200, 'Creates compelling marketing content'),
+                    agentNode('n2', 'Twitter Engager', 360, 80, 'Optimizes Twitter engagement'),
+                    agentNode('n3', 'Instagram Curator', 360, 320, 'Curates Instagram visual content'),
+                    agentNode('n4', 'Reddit Community Builder', 660, 200, 'Builds authentic Reddit presence'),
+                    agentNode('n5', 'Analytics Reporter', 960, 200, 'Generates performance reports'),
+                ],
+                edges: [{ from: 'n1', to: 'n2' }, { from: 'n1', to: 'n3' }, { from: 'n2', to: 'n4' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }],
+            },
+            {
+                id: 'agency-template-enterprise-feature',
+                name: 'Enterprise Feature Development',
+                description: 'Structured feature delivery with project management, parallel dev/design, and evidence-based validation.',
+                agentCount: 6,
+                category: 'mixed',
+                nodes: [
+                    agentNode('n1', 'Senior Project Manager', 60, 200, 'Plans and coordinates feature delivery'),
+                    agentNode('n2', 'Senior Developer', 360, 80, 'Implements core feature logic'),
+                    agentNode('n3', 'UI Designer', 360, 320, 'Designs feature user interface'),
+                    agentNode('n4', 'Experiment Tracker', 660, 200, 'Tracks A/B experiments and metrics'),
+                    agentNode('n5', 'Evidence Collector', 920, 200, 'Gathers supporting data and evidence'),
+                    agentNode('n6', 'Reality Checker', 1180, 200, 'Final feasibility and risk validation'),
+                ],
+                edges: [{ from: 'n1', to: 'n2' }, { from: 'n1', to: 'n3' }, { from: 'n2', to: 'n4' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }, { from: 'n5', to: 'n6' }],
+            },
+            {
+                id: 'agency-template-product-discovery',
+                name: 'Full-Stack Product Discovery',
+                description: 'Parallel trend research and UX insights feed into synthesis, prioritization, and architecture.',
+                agentCount: 5,
+                category: 'product',
+                nodes: [
+                    agentNode('n1', 'Trend Researcher', 60, 80, 'Researches emerging market trends'),
+                    agentNode('n2', 'UX Researcher', 60, 320, 'Conducts user experience research'),
+                    agentNode('n3', 'Feedback Synthesizer', 360, 200, 'Synthesizes feedback into insights'),
+                    agentNode('n4', 'Sprint Prioritizer', 660, 200, 'Prioritizes backlog for sprints'),
+                    agentNode('n5', 'Backend Architect', 960, 200, 'Architects technical implementation'),
+                ],
+                edges: [{ from: 'n1', to: 'n3' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }],
+            },
+            {
+                id: 'agency-template-paid-ads-optimization',
+                name: 'Paid Ads Account Optimization',
+                description: 'Systematic paid media audit through tracking, strategy, query analysis, and creative optimization.',
+                agentCount: 5,
+                category: 'marketing',
+                nodes: [
+                    agentNode('n1', 'Paid Media Auditor', 60, 200, 'Audits paid media account health'),
+                    agentNode('n2', 'Tracking Specialist', 320, 200, 'Ensures tracking and attribution'),
+                    agentNode('n3', 'PPC Campaign Strategist', 580, 80, 'Optimizes PPC campaign strategy'),
+                    agentNode('n4', 'Search Query Analyst', 580, 320, 'Analyzes search query performance'),
+                    agentNode('n5', 'Ad Creative Strategist', 880, 200, 'Optimizes ad creative and copy'),
+                ],
+                edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n2', to: 'n4' }, { from: 'n3', to: 'n5' }, { from: 'n4', to: 'n5' }],
+            },
+        ];
+
+        this.app.get('/api/agency/flow-templates', (_req, res) => {
+            res.json({ templates: FLOW_TEMPLATES });
+        });
+
+        this.app.post('/api/agency/flow-templates/:templateId/apply', (req, res) => {
+            const template = FLOW_TEMPLATES.find(t => t.id === req.params.templateId);
+            if (!template) return res.status(404).json({ error: 'Template not found' });
+            const flow = {
+                id: `${template.id}-${Date.now()}`,
+                name: `${template.name} ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`,
+                nodes: template.nodes,
+                edges: template.edges,
+            };
+            res.json({ success: true, flow });
+        });
+
         this.app.get('/{*path}', (req, res, next) => {
             if (req.path.startsWith('/api/')) return next();
             const indexPath = path.join(appRoot2, 'dist-renderer', 'index.html');
