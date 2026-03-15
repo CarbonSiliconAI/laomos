@@ -1,1 +1,0 @@
-python3 /Users/hippobot/Documents/GitHub/laomos/storage/skills/linkedin-cli-1.0.0/scripts/lk.py whoami

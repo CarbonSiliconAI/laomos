@@ -5,6 +5,7 @@ dist-renderer/
 release/
 .DS_Store
 *.log
+tmp/
 
 # Runtime data
 storage/system/.aos_state/

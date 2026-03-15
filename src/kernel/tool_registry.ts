@@ -370,7 +370,7 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 <Registry>
     <Command>
         <Alias>lk</Alias>
-        <Target>python3 {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
+        <Target>{HOME_DIR}/miniforge3/bin/python3 {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
     </Command>
 </Registry>`;
                         fs.writeFileSync(registryXmlPath, defaultXml);
@@ -384,8 +384,11 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                         while ((match = commandRegex.exec(xmlContent)) !== null) {
                             const alias = match[1].trim();
                             const rawTarget = match[2].trim();
-                            // Resolve {ROOT_DIR} wildcard
-                            const resolvedTarget = rawTarget.replace(/\{ROOT_DIR\}/g, process.cwd());
+                            // Resolve {ROOT_DIR} and {HOME_DIR} macros
+                            const os = require('os');
+                            const resolvedTarget = rawTarget
+                                .replace(/\{ROOT_DIR\}/g, process.cwd())
+                                .replace(/\{HOME_DIR\}/g, os.homedir());
                             
                             // Prevent infinite loops or breaking commands: Replace exactly the alias keyword
                             // Regex boundary \b ensures we only replace the exact word 'lk', not 'milk' or 'lk.py'.
@@ -399,17 +402,66 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                         console.error("[ToolRegistry] Failed to parse command_registry.xml. Skipping alias injection.", e);
                     }
 
+                    // ==========================================
+                    // Persistent Environment Variables
+                    // ==========================================
+                    const envFilePath = path.join(process.cwd(), '.env');
+
+                    // Extract any export statements and persist them
+                    const exportRegex = /^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$/gm;
+                    let exportMatch;
+                    const newExports: { name: string; value: string; line: string }[] = [];
+                    while ((exportMatch = exportRegex.exec(safeCommand)) !== null) {
+                        const varName = exportMatch[1];
+                        const varValue = exportMatch[2].replace(/^["']|["']$/g, ''); // strip quotes
+                        newExports.push({ name: varName, value: varValue, line: `export ${varName}=${exportMatch[2]}` });
+                    }
+                    if (newExports.length > 0) {
+                        // Read existing env file, update or append new vars
+                        let existingEnv = '';
+                        if (fs.existsSync(envFilePath)) {
+                            existingEnv = fs.readFileSync(envFilePath, 'utf8');
+                        }
+                        for (const exp of newExports) {
+                            // Remove old entry for same var
+                            const removeRegex = new RegExp(`^export\\s+${exp.name}=.*$`, 'gm');
+                            existingEnv = existingEnv.replace(removeRegex, '').trim();
+                            // Also inject into Node.js process.env immediately
+                            process.env[exp.name] = exp.value;
+                        }
+                        const lines = [existingEnv, ...newExports.map(e => e.line)].filter(l => l.trim());
+                        fs.writeFileSync(envFilePath, lines.join('\n') + '\n');
+                        console.log(`[Tool] bash: Persisted ${newExports.length} env var(s) to .env and process.env`);
+                    }
+
+                    // Load all .env vars into process.env before execution
+                    if (fs.existsSync(envFilePath)) {
+                        const envContent = fs.readFileSync(envFilePath, 'utf8');
+                        const envLineRegex = /^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$/gm;
+                        let envLine;
+                        while ((envLine = envLineRegex.exec(envContent)) !== null) {
+                            const val = envLine[2].replace(/^["']|["']$/g, '');
+                            if (!process.env[envLine[1]]) {
+                                process.env[envLine[1]] = val;
+                            }
+                        }
+                    }
+
                     fs.writeFileSync(scriptPath, safeCommand);
 
-                    const { stdout, stderr } = await execAsync(`/bin/zsh -l "${scriptPath}"`, { timeout: 60000 });
+                    const { stdout, stderr } = await execAsync(`/bin/zsh -l "${scriptPath}"`, {
+                        timeout: 60000,
+                        env: { ...process.env }
+                    });
                     return {
                         success: true,
                         output: (stdout || '') + (stderr || '')
                     };
                 } catch (error: any) {
+                    const output = (error.stdout || '') + (error.stderr || '');
                     return {
                         success: false,
-                        error: error.message
+                        error: output || error.message
                     };
                 }
             }

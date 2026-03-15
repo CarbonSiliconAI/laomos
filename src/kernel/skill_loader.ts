@@ -167,7 +167,7 @@ export class SkillLoader {
                         } catch { }
 
                         if (hasUvDeps && this.isBinAvailable('uv')) {
-                            runCommand = `uv run "${absPath}"`;
+                            runCommand = `uv run --script "${absPath}"`;
                         } else {
                             runCommand = `python3 "${absPath}"`;
                         }
