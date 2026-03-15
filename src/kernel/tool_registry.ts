@@ -347,10 +347,9 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
                     }
 
                     // Ensure user profiles (PATH) are loaded via a login shell (-l).
-                    // Also, silently alias `python ` to `python3 ` because macOS doesn't typically alias it natively in non-interactive subshells.
+                    // Unify python3 → python so both resolve to Homebrew's python (3.10).
                     if (process.platform === 'darwin') {
-                        // Replace 'python ' with 'python3 ' globally but avoid matching things like 'python3'
-                        safeCommand = safeCommand.replace(/\bpython\b/g, 'python3');
+                        safeCommand = safeCommand.replace(/\bpython3\b/g, 'python');
                     }
 
                     const tmpDir = path.join(process.cwd(), 'tmp');
@@ -370,7 +369,7 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 <Registry>
     <Command>
         <Alias>lk</Alias>
-        <Target>{HOME_DIR}/miniforge3/bin/python3 {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
+        <Target>python {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
     </Command>
 </Registry>`;
                         fs.writeFileSync(registryXmlPath, defaultXml);
@@ -449,9 +448,16 @@ Respond with EXACTLY ONE WORD: "LOCAL" or "WEB".`;
 
                     fs.writeFileSync(scriptPath, safeCommand);
 
+                    // Prepend Homebrew python@3.10 to PATH so `python` resolves to 3.10
+                    const brewPythonBin = '/opt/homebrew/opt/python@3.10/libexec/bin';
+                    const execEnv = {
+                        ...process.env,
+                        PATH: `${brewPythonBin}:${process.env.PATH || ''}`
+                    };
+
                     const { stdout, stderr } = await execAsync(`/bin/zsh -l "${scriptPath}"`, {
                         timeout: 60000,
-                        env: { ...process.env }
+                        env: execEnv
                     });
                     return {
                         success: true,

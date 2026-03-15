@@ -2,6 +2,6 @@
 <Registry>
     <Command>
         <Alias>lk</Alias>
-        <Target>{HOME_DIR}/miniforge3/bin/python3 {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
+        <Target>python {ROOT_DIR}/storage/skills/linkedin-cli-1.0.0/scripts/lk.py</Target>
     </Command>
 </Registry>
