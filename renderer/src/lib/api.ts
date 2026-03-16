@@ -236,6 +236,15 @@ export const api = {
         apiFetch<DiagnoseResult>('/api/task-chain/diagnose', {
             method: 'POST', body: JSON.stringify(body),
         }),
+
+    // ── Packages ────────────────────────────
+    packagesList: () => apiFetch<{ packages: { name: string; version: string }[] }>('/api/packages/list'),
+    packagesInstall: (packageName: string) => apiFetch<{ success: boolean; message: string; output: string }>('/api/packages/install', {
+        method: 'POST', body: JSON.stringify({ packageName }),
+    }),
+    packagesUninstall: (packageName: string) => apiFetch<{ success: boolean; message: string; output: string }>('/api/packages/uninstall', {
+        method: 'POST', body: JSON.stringify({ packageName }),
+    }),
 };
 
 // ── Type Definitions ─────────────────────────────────────────────────────────

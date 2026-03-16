@@ -4020,6 +4020,67 @@ Keep your response concise and actionable.`;
             }
         });
 
+        // ── Package Management API ─────────────────────────────────
+        this.app.get('/api/packages/list', async (req, res) => {
+            try {
+                const util = require('util');
+                const execAsync = util.promisify(require('child_process').exec);
+                const { stdout } = await execAsync('npm list -g --json --depth=0', { timeout: 15000 });
+                const parsed = JSON.parse(stdout);
+                const deps = parsed.dependencies || {};
+                const packages = Object.entries(deps).map(([name, info]: [string, any]) => ({
+                    name,
+                    version: info.version || 'unknown',
+                }));
+                res.json({ packages });
+            } catch (error: any) {
+                // npm list returns exit code 1 when there are extraneous packages, but still outputs JSON
+                try {
+                    const parsed = JSON.parse(error.stdout || '{}');
+                    const deps = parsed.dependencies || {};
+                    const packages = Object.entries(deps).map(([name, info]: [string, any]) => ({
+                        name,
+                        version: info.version || 'unknown',
+                    }));
+                    res.json({ packages });
+                } catch {
+                    res.status(500).json({ error: error.message });
+                }
+            }
+        });
+
+        this.app.post('/api/packages/install', async (req, res) => {
+            try {
+                const { packageName } = req.body;
+                if (!packageName) return res.status(400).json({ error: 'packageName is required' });
+                const util = require('util');
+                const execAsync = util.promisify(require('child_process').exec);
+                console.log(`[Packages] Installing globally: ${packageName}`);
+                const { stdout, stderr } = await execAsync(`npm install -g ${packageName}`, { timeout: 120000 });
+                console.log(`[Packages] Installed: ${packageName}`);
+                res.json({ success: true, message: `Installed ${packageName}`, output: (stdout || '') + (stderr || '') });
+            } catch (error: any) {
+                console.error(`[Packages] Install failed:`, error.message);
+                res.status(500).json({ error: error.message, output: (error.stdout || '') + (error.stderr || '') });
+            }
+        });
+
+        this.app.post('/api/packages/uninstall', async (req, res) => {
+            try {
+                const { packageName } = req.body;
+                if (!packageName) return res.status(400).json({ error: 'packageName is required' });
+                const util = require('util');
+                const execAsync = util.promisify(require('child_process').exec);
+                console.log(`[Packages] Uninstalling globally: ${packageName}`);
+                const { stdout, stderr } = await execAsync(`npm uninstall -g ${packageName}`, { timeout: 60000 });
+                console.log(`[Packages] Uninstalled: ${packageName}`);
+                res.json({ success: true, message: `Uninstalled ${packageName}`, output: (stdout || '') + (stderr || '') });
+            } catch (error: any) {
+                console.error(`[Packages] Uninstall failed:`, error.message);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // SPA fallback — serve React index.html for any non-API route
         // Express 5 requires named wildcard: /{*path} instead of *
         const appRoot2 = process.env.APP_ROOT || process.cwd();
@@ -4214,6 +4275,72 @@ You can use tools multiple times. When done, provide a final summary without too
         this.httpServer.on('error', (err: any) => {
             console.error('[Server] Error:', err.message);
         });
+
+        // ── WebSocket PTY Terminal ──────────────────────────────
+        try {
+            const WebSocket = require('ws');
+            const pty = require('node-pty');
+            const wss = new WebSocket.Server({ noServer: true });
+
+            this.httpServer.on('upgrade', (request: any, socket: any, head: any) => {
+                const url = new URL(request.url || '', `http://127.0.0.1:${this.port}`);
+                if (url.pathname === '/ws/terminal') {
+                    wss.handleUpgrade(request, socket, head, (ws: any) => {
+                        wss.emit('connection', ws, request);
+                    });
+                } else {
+                    socket.destroy();
+                }
+            });
+
+            wss.on('connection', (ws: any) => {
+                console.log('[Terminal] WebSocket client connected');
+                const shell = process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh';
+                const ptyProcess = pty.spawn(shell, [], {
+                    name: 'xterm-256color',
+                    cols: 120,
+                    rows: 30,
+                    cwd: process.env.HOME || process.cwd(),
+                    env: { ...process.env, TERM: 'xterm-256color' },
+                });
+
+                ptyProcess.onData((data: string) => {
+                    try {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ type: 'output', data }));
+                        }
+                    } catch (e) { /* client disconnected */ }
+                });
+
+                ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+                    console.log(`[Terminal] PTY exited with code ${exitCode}`);
+                    try { ws.close(); } catch (e) { /* ignore */ }
+                });
+
+                ws.on('message', (msg: string) => {
+                    try {
+                        const parsed = JSON.parse(msg.toString());
+                        if (parsed.type === 'input') {
+                            ptyProcess.write(parsed.data);
+                        } else if (parsed.type === 'resize') {
+                            ptyProcess.resize(parsed.cols || 120, parsed.rows || 30);
+                        }
+                    } catch {
+                        // Raw text fallback
+                        ptyProcess.write(msg.toString());
+                    }
+                });
+
+                ws.on('close', () => {
+                    console.log('[Terminal] WebSocket client disconnected');
+                    ptyProcess.kill();
+                });
+            });
+
+            console.log('[Terminal] WebSocket PTY server ready on /ws/terminal');
+        } catch (err: any) {
+            console.warn('[Terminal] Failed to initialize PTY server:', err.message);
+        }
 
         await this.calendarManager.init();
         this.calendarManager.start();

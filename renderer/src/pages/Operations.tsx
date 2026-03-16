@@ -77,6 +77,18 @@ const WORKFLOW_TOOLS = [
             </svg>
         ),
     },
+    {
+        path: '/operations/terminal',
+        title: 'Terminal',
+        desc: 'Direct system shell access',
+        color: 'rgba(34,197,94,0.85)',
+        icon: (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M6 10l3 2-3 2" /><line x1="12" y1="14" x2="18" y2="14" />
+            </svg>
+        ),
+    },
 ];
 
 const CREATIVE_ENTERTAINMENT = [
